@@ -1,0 +1,8 @@
+bin/
+obj/
+*.user
+*.sln.docstates
+.vs/
+build/
+x64/
+DX12RenderEngine/
