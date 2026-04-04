@@ -1,27 +1,92 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
-    <Filter Include="Source Files">
-      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
-      <Extensions>cpp;c;cc;cxx;c++;cppm;ixx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
+    <Filter Include="DX12Lib">
+      <UniqueIdentifier>{760e8622-3c79-4c3d-bece-25c46183b9e8}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Header Files">
-      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
-      <Extensions>h;hh;hpp;hxx;h++;hm;inl;inc;ipp;xsd</Extensions>
+    <Filter Include="DX12Lib\inc">
+      <UniqueIdentifier>{17fce592-fa72-47ba-ad22-0f1a358dd5e6}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Resource Files">
-      <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
-      <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
+    <Filter Include="DX12Lib\src">
+      <UniqueIdentifier>{615ec744-7827-4885-b567-ec27e22b0967}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Demo">
+      <UniqueIdentifier>{9a0a6ff1-c88a-4ead-9079-0221c265cf60}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Demo\inc">
+      <UniqueIdentifier>{e92b123b-b886-4204-9a2d-66061b60e539}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Demo\src">
+      <UniqueIdentifier>{95202969-9e07-48bb-b13f-cd1f2050a66e}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Demo\shaders">
+      <UniqueIdentifier>{5cdf6b28-1a67-458a-b361-4ccefedd384b}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="code\main.cpp">
-      <Filter>Source Files</Filter>
+    <ClCompile Include="code\DX12Lib\src\Application.cpp">
+      <Filter>DX12Lib\src</Filter>
+    </ClCompile>
+    <ClCompile Include="code\DX12Lib\src\CommandQueue.cpp">
+      <Filter>DX12Lib\src</Filter>
+    </ClCompile>
+    <ClCompile Include="code\DX12Lib\src\DX12LibPCH.cpp">
+      <Filter>DX12Lib\src</Filter>
+    </ClCompile>
+    <ClCompile Include="code\DX12Lib\src\HighResolutionClock.cpp">
+      <Filter>DX12Lib\src</Filter>
+    </ClCompile>
+    <ClCompile Include="code\DX12Lib\src\RenderApp.cpp">
+      <Filter>DX12Lib\src</Filter>
+    </ClCompile>
+    <ClCompile Include="code\DX12Lib\src\Window.cpp">
+      <Filter>DX12Lib\src</Filter>
+    </ClCompile>
+    <ClCompile Include="code\Demo\src\main.cpp">
+      <Filter>Demo\src</Filter>
+    </ClCompile>
+    <ClCompile Include="code\Demo\src\Demo.cpp">
+      <Filter>Demo\src</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="code\Helpers.h">
-      <Filter>Header Files</Filter>
+    <ClInclude Include="code\DX12Lib\inc\Application.h">
+      <Filter>DX12Lib\inc</Filter>
     </ClInclude>
+    <ClInclude Include="code\DX12Lib\inc\CommandQueue.h">
+      <Filter>DX12Lib\inc</Filter>
+    </ClInclude>
+    <ClInclude Include="code\DX12Lib\inc\DX12LibPCH.h">
+      <Filter>DX12Lib\inc</Filter>
+    </ClInclude>
+    <ClInclude Include="code\DX12Lib\inc\Events.h">
+      <Filter>DX12Lib\inc</Filter>
+    </ClInclude>
+    <ClInclude Include="code\DX12Lib\inc\Helpers.h">
+      <Filter>DX12Lib\inc</Filter>
+    </ClInclude>
+    <ClInclude Include="code\DX12Lib\inc\HighResolutionClock.h">
+      <Filter>DX12Lib\inc</Filter>
+    </ClInclude>
+    <ClInclude Include="code\DX12Lib\inc\KeyCodes.h">
+      <Filter>DX12Lib\inc</Filter>
+    </ClInclude>
+    <ClInclude Include="code\DX12Lib\inc\RenderApp.h">
+      <Filter>DX12Lib\inc</Filter>
+    </ClInclude>
+    <ClInclude Include="code\DX12Lib\inc\Window.h">
+      <Filter>DX12Lib\inc</Filter>
+    </ClInclude>
+    <ClInclude Include="code\Demo\inc\Demo.h">
+      <Filter>Demo\inc</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <FxCompile Include="code\Demo\shaders\VertexShader.hlsl">
+      <Filter>Demo\shaders</Filter>
+    </FxCompile>
+    <FxCompile Include="code\Demo\shaders\PixelShader.hlsl">
+      <Filter>Demo\shaders</Filter>
+    </FxCompile>
   </ItemGroup>
 </Project>
