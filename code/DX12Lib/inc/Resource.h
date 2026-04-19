@@ -15,10 +15,14 @@ public:
 	Resource(const std::wstring& name = L"");
 	virtual ~Resource();
 
-	// Get access to the underlying D3D12 resource
+	/**
+	* Get access to the underlying D3D12 resource.
+	*/
 	Microsoft::WRL::ComPtr<ID3D12Resource> GetD3D12Resource() const;
 
-	// Replace the D3D12 resource
+	/**
+	* Replace the D3D12 resource.
+	*/
 	virtual void SetD3D12Resource(Microsoft::WRL::ComPtr<ID3D12Resource> d3d12Resource,
 		const D3D12_CLEAR_VALUE* clearValue = nullptr);
 
@@ -33,7 +37,6 @@ public:
 	* Release the underlying resource.
 	* This is useful for swap chain resizing.
 	*/
-
 	virtual void Reset();
 
 	ULONG RefCount() const;

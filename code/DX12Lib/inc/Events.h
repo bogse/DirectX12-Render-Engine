@@ -3,7 +3,9 @@
 
 #include <cstdint>
 
-// Base class for events args
+/**
+* Base class for events args
+*/
 class EventArgs
 {
 public:

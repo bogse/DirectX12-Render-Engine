@@ -13,7 +13,9 @@ public:
 	size_t GetNumVertices() const;
 	size_t GetVertexStride() const;
 
-	// Get the vertex buffer view for binding to the Input Assembler stage.
+	/*
+	* Get the vertex buffer view for binding to the Input Assembler stage.
+	*/
 	D3D12_VERTEX_BUFFER_VIEW GetVertexBufferView() const;
 
 private:

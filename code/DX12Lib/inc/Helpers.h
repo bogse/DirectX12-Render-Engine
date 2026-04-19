@@ -11,9 +11,9 @@
 
 // From DXSampleHelper.h 
 // Source: https://github.com/Microsoft/DirectX-Graphics-Samples
-inline void ThrowIfFailed(HRESULT hr)
+inline void ThrowIfFailed(HRESULT result)
 {
-    if (FAILED(hr))
+    if (FAILED(result))
     {
         throw std::exception();
     }

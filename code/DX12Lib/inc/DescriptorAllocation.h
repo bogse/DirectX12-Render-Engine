@@ -10,13 +10,16 @@
 #include <d3d12.h>
 
 #include <cstdint>
+#include <memory>
 
 class DescriptorAllocatorPage;
 
 class DescriptorAllocation
 {
 public:
-	// Creates a NULL descriptor.
+	/**
+	* Creates a NULL descriptor.
+	*/
 	DescriptorAllocation();
 
 	DescriptorAllocation(
@@ -25,41 +28,65 @@ public:
 		uint32_t descriptorSize,
 		std::shared_ptr<DescriptorAllocatorPage> page);
 
-	// The destructor will automatically free the allocation.
+	/**
+	* The destructor will automatically free the allocation.
+	*/
 	~DescriptorAllocation();
 
-	// Copies are not allowed.
+	/**
+	* Copies are not allowed.
+	*/
 	DescriptorAllocation(const DescriptorAllocation&) = delete;
 	DescriptorAllocation& operator=(const DescriptorAllocation&) = delete;
 
-	// Move is allowed.
+	/*
+	* Move is allowed.
+	*/
 	DescriptorAllocation(DescriptorAllocation&& allocation);
 	DescriptorAllocation& operator=(DescriptorAllocation&& other);
 
-	// Check if is a valid descriptor.
+	/**
+	* Check if is a valid descriptor.
+	*/
 	bool IsNull() const;
 
-	// Get a descriptor at a particular offset in the allocation.
+	/**
+	* Get a descriptor at a particular offset in the allocation.
+	*/
 	D3D12_CPU_DESCRIPTOR_HANDLE GetDescriptorHandle(uint32_t offset = 0) const;
 
-	// Get the number of (consecutive) handles for this allocation.
+	/**
+	* Get the number of (consecutive) handles for this allocation.
+	*/
 	uint32_t GetNumHandles() const;
 
-	// Get the heap that this allocation came from.
-	// (For internal use only.)
+	/**
+	* Get the heap that this allocation came from.
+	* (For internal use only.)
+	*/
 	std::shared_ptr<DescriptorAllocatorPage> GetDescriptorAllocatorPage() const;
 
 private:
-	// Free the descriptor back to the heap it came from.
+	/**
+	* Free the descriptor back to the heap it came from.
+	*/
 	void Free();
 
-	// The base descriptor.
+	/**
+	* The base descriptor.
+	*/
 	D3D12_CPU_DESCRIPTOR_HANDLE m_Descriptor;
-	// The number of descriptors in this allocation.
+	/**
+	* The number of descriptors in this allocation.
+	*/
 	uint32_t m_NumHandles;
-	// The offset to the next descriptor.
+	/**
+	* The offset to the next descriptor.
+	*/
 	uint32_t m_DescriptorSize;
 
-	// A pointer back to the original page where this allocation came from.
+	/**
+	* A pointer back to the original page where this allocation came from.
+	*/
 	std::shared_ptr<DescriptorAllocatorPage> m_Page;
 };

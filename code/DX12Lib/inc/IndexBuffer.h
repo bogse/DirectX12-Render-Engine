@@ -13,7 +13,9 @@ public:
 	size_t GetNumIndicies() const;
 	DXGI_FORMAT GetIndexFormat() const;
 
-	// Get the index buffer view for binding to the Input Assembler stage.
+	/**
+	* Get the index buffer view for binding to the Input Assembler stage.
+	*/
 	D3D12_INDEX_BUFFER_VIEW GetIndexBufferView() const;
 
 private:

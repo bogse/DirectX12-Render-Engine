@@ -1,15 +1,14 @@
 #pragma once
 
-#include "RenderApp.h"
-#include "IndexBuffer.h"
-#include "Window.h"
-#include "VertexBuffer.h"
 #include "DescriptorAllocation.h"
+#include "IndexBuffer.h"
+#include "RenderApp.h"
+#include "VertexBuffer.h"
+#include "Window.h"
 
 #include <DirectXMath.h>
 
 class RootSignature;
-class DescriptorAllocation;
 
 class Demo : public RenderApp
 {

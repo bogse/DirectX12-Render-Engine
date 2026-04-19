@@ -1,8 +1,8 @@
 #include "Demo.h"
 
 #include "Application.h"
-#include "CommandQueue.h"
 #include "CommandList.h"
+#include "CommandQueue.h"
 #include "DescriptorAllocation.h"
 #include "Helpers.h"
 #include "RootSignature.h"
@@ -14,12 +14,13 @@
 #include <d3dcompiler.h>
 
 #include <algorithm>
+
 #if defined(min)
-#undef min
+	#undef min
 #endif
 
 #if defined(max)
-#undef max
+	#undef max
 #endif
 
 using namespace DirectX;
@@ -27,19 +28,19 @@ using namespace DirectX;
 // Vertex data for a colored cube.
 struct VertexPosColor
 {
-	XMFLOAT3 Pos;
+	XMFLOAT3 Position;
 	XMFLOAT3 Color;
 };
 
 static VertexPosColor g_Vertices[8] = {
 	{ XMFLOAT3(-1.0f, -1.0f, -1.0f), XMFLOAT3(0.0f, 0.0f, 0.0f) }, // 0
 	{ XMFLOAT3(-1.0f,  1.0f, -1.0f), XMFLOAT3(0.0f, 1.0f, 0.0f) }, // 1
-	{ XMFLOAT3(1.0f,  1.0f, -1.0f), XMFLOAT3(1.0f, 1.0f, 0.0f) }, // 2
-	{ XMFLOAT3(1.0f, -1.0f, -1.0f), XMFLOAT3(1.0f, 0.0f, 0.0f) }, // 3
+	{ XMFLOAT3( 1.0f,  1.0f, -1.0f), XMFLOAT3(1.0f, 1.0f, 0.0f) }, // 2
+	{ XMFLOAT3( 1.0f, -1.0f, -1.0f), XMFLOAT3(1.0f, 0.0f, 0.0f) }, // 3
 	{ XMFLOAT3(-1.0f, -1.0f,  1.0f), XMFLOAT3(0.0f, 0.0f, 1.0f) }, // 4
 	{ XMFLOAT3(-1.0f,  1.0f,  1.0f), XMFLOAT3(0.0f, 1.0f, 1.0f) }, // 5
-	{ XMFLOAT3(1.0f,  1.0f,  1.0f), XMFLOAT3(1.0f, 1.0f, 1.0f) }, // 6
-	{ XMFLOAT3(1.0f, -1.0f,  1.0f), XMFLOAT3(1.0f, 0.0f, 1.0f) }  // 7
+	{ XMFLOAT3( 1.0f,  1.0f,  1.0f), XMFLOAT3(1.0f, 1.0f, 1.0f) }, // 6
+	{ XMFLOAT3( 1.0f, -1.0f,  1.0f), XMFLOAT3(1.0f, 0.0f, 1.0f) }  // 7
 };
 
 static WORD g_Indices[36] =
@@ -69,7 +70,6 @@ Demo::~Demo()
 
 bool Demo::LoadContent()
 {
-	Microsoft::WRL::ComPtr<ID3D12Device2> device = Application::GetInstance().GetDevice();
 	std::shared_ptr<CommandQueue> commandQueue = Application::GetInstance().GetCommandQueue(D3D12_COMMAND_LIST_TYPE_COPY);
 	std::shared_ptr<CommandList> commandList = commandQueue->GetCommandList();
 
@@ -97,6 +97,8 @@ bool Demo::LoadContent()
 	};
 
 	// Create a root signature.
+	Microsoft::WRL::ComPtr<ID3D12Device2> device = Application::GetInstance().GetDevice();
+
 	D3D12_FEATURE_DATA_ROOT_SIGNATURE featureData = {};
 	featureData.HighestVersion = D3D_ROOT_SIGNATURE_VERSION_1_1;
 	if (FAILED(device->CheckFeatureSupport(D3D12_FEATURE_ROOT_SIGNATURE, &featureData, sizeof(featureData))))
@@ -186,13 +188,13 @@ void Demo::OnUpdate(UpdateEventArgs& eventArgs)
 
 	// Update the model matrix.
 	float angle = static_cast<float>(eventArgs.m_TotalTime * 90.0);
-	const XMVECTOR rotationAxis = XMVectorSet(0, 1, 1, 0);
+	const XMVECTOR rotationAxis = XMVectorSet(0.f, 1.f, 1.f, 0.f);
 	m_ModelMatrix = XMMatrixRotationAxis(rotationAxis, XMConvertToRadians(angle));
 
 	// Update the view matrix.
-	const XMVECTOR eyePosition = XMVectorSet(0, 0, -10, 1);
-	const XMVECTOR focusPoint = XMVectorSet(0, 0, 0, 1);
-	const XMVECTOR upDirection = XMVectorSet(0, 1, 0, 0);
+	const XMVECTOR eyePosition = XMVectorSet(0.f, 0.f, -10.f, 1.f);
+	const XMVECTOR focusPoint = XMVectorSet(0.f, 0.f, 0.f, 1.f);
+	const XMVECTOR upDirection = XMVectorSet(0.f, 1.f, 0.f, 0.f);
 	m_ViewMatrix = XMMatrixLookAtLH(eyePosition, focusPoint, upDirection);
 
 	// Update the projection matrix.

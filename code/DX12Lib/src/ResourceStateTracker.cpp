@@ -93,26 +93,6 @@ void ResourceStateTracker::TransitionResource(
 	TransitionResource(resource.GetD3D12Resource().Get(), stateAfter, subResource);
 }
 
-void ResourceStateTracker::UAVBarrier(const Resource* resource)
-{
-	ID3D12Resource* pResource = resource != nullptr ? resource->GetD3D12Resource().Get() : nullptr;
-
-	if (resource)
-	{
-		pResource = resource->GetD3D12Resource().Get();
-	}
-	
-	ResourceBarrier(CD3DX12_RESOURCE_BARRIER::UAV(pResource));
-}
-
-void ResourceStateTracker::AliasBarrier(const Resource* resourceBefore, const Resource* resourceAfter)
-{
-	ID3D12Resource* pResourceBefore = resourceBefore != nullptr ? resourceBefore->GetD3D12Resource().Get() : nullptr;
-	ID3D12Resource* pResourceAfter = resourceAfter != nullptr ? resourceAfter->GetD3D12Resource().Get() : nullptr;
-
-	ResourceBarrier(CD3DX12_RESOURCE_BARRIER::Aliasing(pResourceBefore, pResourceAfter));
-}
-
 void ResourceStateTracker::FlushResourceBarriers(CommandList& commandList)
 {
 	UINT numBarriers = static_cast<UINT>(m_ResourceBarriers.size());

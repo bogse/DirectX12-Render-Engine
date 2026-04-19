@@ -48,10 +48,14 @@ public:
 	
 	std::shared_ptr<Window> GetWindowByName(const std::wstring& windowName);
 
-	// Run the application loop and message pump. Return the error code if an error occurred.
+	/**
+	* Run the application loop and message pump. Return the error code if an error occurred.
+	*/
 	int Run(std::shared_ptr<RenderApp> pRenderApp);
 
-	// Request to quit the application and close all windows. @param exitCode The error code to return to the invoking process.
+	/**
+	* Request to quit the application and close all windows. @param exitCode The error code to return to the invoking process.
+	*/
 	void Quit(int exitCode = 0);
 
 	Microsoft::WRL::ComPtr<ID3D12Device2> GetDevice() const;
@@ -64,10 +68,14 @@ public:
 	 */
 	std::shared_ptr<CommandQueue> GetCommandQueue(D3D12_COMMAND_LIST_TYPE type = D3D12_COMMAND_LIST_TYPE_DIRECT) const;
 
-	// Flush all command queues.
+	/**
+	* Flush all command queues.
+	*/
 	void Flush();
 
-	// Allocate a number of CPU visible descriptors.
+	/**
+	* Allocate a number of CPU visible descriptors.
+	*/
 	DescriptorAllocation AllocateDescriptors(D3D12_DESCRIPTOR_HEAP_TYPE type, uint32_t numDescriptors = 1);
 
 	/**
@@ -85,7 +93,9 @@ public:
 
 protected:
 	Application(HINSTANCE hInst);
-	// Destroy the application instance and all windows associated with this application.
+	/**
+	* Destroy the application instance and all windows associated with this application.
+	*/
 	virtual ~Application();
 
 	void Initialize();

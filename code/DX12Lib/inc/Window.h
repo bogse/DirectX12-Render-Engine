@@ -38,31 +38,47 @@ public:
 	void Show();
 	void Hide();
 
-	// Get the render target view for the current back buffer.
+	/*
+	* Get the render target view for the current back buffer.
+	*/
 	UINT GetCurrentBackBufferIndex() const;
 
-	// Present the swapchain's back buffer to the screen. Returns the current back buffer index after the present.
+	/*
+	* Present the swapchain's back buffer to the screen. Returns the current back buffer index after the present.
+	*/
 	UINT Present();
 
-	// Get the render target view for the current back buffer.
+	/*
+	* Get the render target view for the current back buffer.
+	*/
 	D3D12_CPU_DESCRIPTOR_HANDLE GetCurrentRenderTargetView() const;
 
-	// Get the back buffer resource for the current back buffer.
+	/*
+	* Get the back buffer resource for the current back buffer.
+	*/
 	const Resource& GetCurrentRenderTarget() const;
 
 protected:
-	// The Window procedure needsto call protected methods of this class.
+	/*
+	* The Window procedure needsto call protected methods of this class.
+	*/
 	friend LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
-	// Only the application can create a window.
+	/*
+	* Only the application can create a window.
+	*/
 	friend class Application;
-	// The DirectXTemplate class needs to register itself with a window.
+	/*
+	* The DirectXTemplate class needs to register itself with a window.
+	*/
 	friend class RenderApp;
 
 	Window() = delete;
 	Window(HWND hWnd, const std::wstring& windowName, int clientWidth, int clientHeight, bool vSync);
 	virtual ~Window();
 
-	// Register a RenderApp with this window. This allows the window to callback functions in the RenderApp class.
+	/*
+	* Register a RenderApp with this window. This allows the window to callback functions in the RenderApp class.
+	*/
 	void RegisterCallbacks(std::shared_ptr<RenderApp> pRenderApp);
 
 	virtual void OnUpdate(UpdateEventArgs& eventArgs);
