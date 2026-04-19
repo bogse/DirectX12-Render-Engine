@@ -48,6 +48,42 @@
     <ClCompile Include="code\Demo\src\Demo.cpp">
       <Filter>Demo\src</Filter>
     </ClCompile>
+    <ClCompile Include="code\DX12Lib\src\UploadBuffer.cpp">
+      <Filter>DX12Lib\src</Filter>
+    </ClCompile>
+    <ClCompile Include="code\DX12Lib\src\DescriptorAllocator.cpp">
+      <Filter>DX12Lib\src</Filter>
+    </ClCompile>
+    <ClCompile Include="code\DX12Lib\src\DescriptorAllocatorPage.cpp">
+      <Filter>DX12Lib\src</Filter>
+    </ClCompile>
+    <ClCompile Include="code\DX12Lib\src\DescriptorAllocation.cpp">
+      <Filter>DX12Lib\src</Filter>
+    </ClCompile>
+    <ClCompile Include="code\DX12Lib\src\RootSignature.cpp">
+      <Filter>DX12Lib\src</Filter>
+    </ClCompile>
+    <ClCompile Include="code\DX12Lib\src\DynamicDescriptorHeap.cpp">
+      <Filter>DX12Lib\src</Filter>
+    </ClCompile>
+    <ClCompile Include="code\DX12Lib\src\ResourceStateTracker.cpp">
+      <Filter>DX12Lib\src</Filter>
+    </ClCompile>
+    <ClCompile Include="code\DX12Lib\src\Buffer.cpp">
+      <Filter>DX12Lib\src</Filter>
+    </ClCompile>
+    <ClCompile Include="code\DX12Lib\src\CommandList.cpp">
+      <Filter>DX12Lib\src</Filter>
+    </ClCompile>
+    <ClCompile Include="code\DX12Lib\src\IndexBuffer.cpp">
+      <Filter>DX12Lib\src</Filter>
+    </ClCompile>
+    <ClCompile Include="code\DX12Lib\src\Resource.cpp">
+      <Filter>DX12Lib\src</Filter>
+    </ClCompile>
+    <ClCompile Include="code\DX12Lib\src\VertexBuffer.cpp">
+      <Filter>DX12Lib\src</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="code\DX12Lib\inc\Application.h">
@@ -79,6 +115,45 @@
     </ClInclude>
     <ClInclude Include="code\Demo\inc\Demo.h">
       <Filter>Demo\inc</Filter>
+    </ClInclude>
+    <ClInclude Include="code\DX12Lib\inc\UploadBuffer.h">
+      <Filter>DX12Lib\inc</Filter>
+    </ClInclude>
+    <ClInclude Include="code\DX12Lib\inc\Defines.h">
+      <Filter>DX12Lib\inc</Filter>
+    </ClInclude>
+    <ClInclude Include="code\DX12Lib\inc\DescriptorAllocator.h">
+      <Filter>DX12Lib\inc</Filter>
+    </ClInclude>
+    <ClInclude Include="code\DX12Lib\inc\DescriptorAllocatorPage.h">
+      <Filter>DX12Lib\inc</Filter>
+    </ClInclude>
+    <ClInclude Include="code\DX12Lib\inc\DescriptorAllocation.h">
+      <Filter>DX12Lib\inc</Filter>
+    </ClInclude>
+    <ClInclude Include="code\DX12Lib\inc\RootSignature.h">
+      <Filter>DX12Lib\inc</Filter>
+    </ClInclude>
+    <ClInclude Include="code\DX12Lib\inc\DynamicDescriptorHeap.h">
+      <Filter>DX12Lib\inc</Filter>
+    </ClInclude>
+    <ClInclude Include="code\DX12Lib\inc\ResourceStateTracker.h">
+      <Filter>DX12Lib\inc</Filter>
+    </ClInclude>
+    <ClInclude Include="code\DX12Lib\inc\Buffer.h">
+      <Filter>DX12Lib\inc</Filter>
+    </ClInclude>
+    <ClInclude Include="code\DX12Lib\inc\CommandList.h">
+      <Filter>DX12Lib\inc</Filter>
+    </ClInclude>
+    <ClInclude Include="code\DX12Lib\inc\IndexBuffer.h">
+      <Filter>DX12Lib\inc</Filter>
+    </ClInclude>
+    <ClInclude Include="code\DX12Lib\inc\Resource.h">
+      <Filter>DX12Lib\inc</Filter>
+    </ClInclude>
+    <ClInclude Include="code\DX12Lib\inc\VertexBuffer.h">
+      <Filter>DX12Lib\inc</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

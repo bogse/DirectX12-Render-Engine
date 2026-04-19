@@ -2,8 +2,10 @@
 
 #include "Application.h"
 
-#include "RenderApp.h"
 #include "CommandQueue.h"
+#include "DescriptorAllocator.h"
+#include "DescriptorAllocatorPage.h"
+#include "RenderApp.h"
 #include "Window.h"
 
 constexpr wchar_t WINDOW_CLASS_NAME[] = L"DX12RenderWindowClass";
@@ -16,9 +18,13 @@ static Application*		g_pSingleton = nullptr;
 static WindowMap		g_Windows;
 static WindowNameMap	g_WindowByName;
 
+uint64_t Application::ms_FrameCount = 0;
+
 static LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
 
-// Wrapper class to allow shared pointers for the window class.
+// A wrapper struct to allow shared pointers for the window class.
+// This is needed because the constructor and destructor for the Window
+// class are protected and not accessible by the std::make_shared method.
 struct MakeWindow : public Window
 {
 	MakeWindow(HWND hWnd, const std::wstring& windowName, int clientWidth, int clientHeight, bool vSync)
@@ -30,6 +36,14 @@ struct MakeWindow : public Window
 Application::Application(HINSTANCE hInst)
 	: m_hInstance(hInst)
 	, m_TearingSupported(false)
+{}
+
+Application::~Application()
+{
+	Flush();
+}
+
+void Application::Initialize()
 {
 	// Windows 10 Creators update adds Per Monitor V2 DPI awareness context.
 	// Using this awareness context allows the client area of the window
@@ -41,9 +55,12 @@ Application::Application(HINSTANCE hInst)
 	// Always enable the debug layer before doing anything DX12 related
 	// so all possible errors generated while creating DX12 objects
 	// are caught by the debug layer.
-	ComPtr<ID3D12Debug> debugInterface;
+	Microsoft::WRL::ComPtr<ID3D12Debug1> debugInterface;
 	ThrowIfFailed(D3D12GetDebugInterface(IID_PPV_ARGS(&debugInterface)));
 	debugInterface->EnableDebugLayer();
+	// Enable these if you want full validation (will slow down rendering a lot).
+	//debugInterface->SetEnableGPUBasedValidation(TRUE);
+	//debugInterface->SetEnableSynchronizedCommandQueueValidation(TRUE);
 #endif
 
 	WNDCLASSEXW wndClass = { 0 };
@@ -62,21 +79,36 @@ Application::Application(HINSTANCE hInst)
 		MessageBoxA(NULL, "Unable to register the window class.", "Error", MB_OK | MB_ICONERROR);
 	}
 
-	m_dxgiAdapter = GetAdapter(false);
-
-	if (m_dxgiAdapter)
+	Microsoft::WRL::ComPtr<IDXGIAdapter4> dxgiAdapter = GetAdapter(false);
+	if (!dxgiAdapter)
 	{
-		m_d3d12Device = CreateDevice(m_dxgiAdapter);
+		// If no supporting DX12 adapters exist, fall back to WARP.
+		dxgiAdapter = GetAdapter(true);
 	}
 
-	if (m_d3d12Device)
+	if (dxgiAdapter)
 	{
-		m_DirectCommandQueue = std::make_shared<CommandQueue>(m_d3d12Device, D3D12_COMMAND_LIST_TYPE_DIRECT);
-		m_ComputeCommandQueue = std::make_shared<CommandQueue>(m_d3d12Device, D3D12_COMMAND_LIST_TYPE_COMPUTE);
-		m_CopyCommandQueue = std::make_shared<CommandQueue>(m_d3d12Device, D3D12_COMMAND_LIST_TYPE_COPY);
-
-		m_TearingSupported = CheckTearingSupport();
+		m_d3d12Device = CreateDevice(dxgiAdapter);
 	}
+	else
+	{
+		throw std::exception("DXGI adapter enumeration failed.");
+	}
+
+	m_DirectCommandQueue = std::make_shared<CommandQueue>(D3D12_COMMAND_LIST_TYPE_DIRECT);
+	m_ComputeCommandQueue = std::make_shared<CommandQueue>(D3D12_COMMAND_LIST_TYPE_COMPUTE);
+	m_CopyCommandQueue = std::make_shared<CommandQueue>(D3D12_COMMAND_LIST_TYPE_COPY);
+
+	m_TearingSupported = CheckTearingSupport();
+
+	// Create descriptor allocators
+	for (int i = 0; i < D3D12_DESCRIPTOR_HEAP_TYPE_NUM_TYPES; ++i)
+	{
+		m_DescriptorAllocators[i] = std::make_unique<DescriptorAllocator>(static_cast<D3D12_DESCRIPTOR_HEAP_TYPE>(i));
+	}
+
+	// Initialize frame counter
+	ms_FrameCount = 0;
 }
 
 void Application::Create(HINSTANCE hInst)
@@ -84,6 +116,7 @@ void Application::Create(HINSTANCE hInst)
 	if (!g_pSingleton)
 	{
 		g_pSingleton = new Application(hInst);
+		g_pSingleton->Initialize();
 	}
 }
 
@@ -105,14 +138,9 @@ void Application::Destroy()
 	}
 }
 
-Application::~Application()
-{
-	Flush();
-}
-
 Microsoft::WRL::ComPtr<IDXGIAdapter4> Application::GetAdapter(bool bUseWarp)
 {
-	ComPtr<IDXGIFactory4> dxgiFactory;
+	Microsoft::WRL::ComPtr<IDXGIFactory4> dxgiFactory;
 	UINT createFactoryFlags = 0;
 #if defined(_DEBUG)
 	createFactoryFlags = DXGI_CREATE_FACTORY_DEBUG;
@@ -120,8 +148,8 @@ Microsoft::WRL::ComPtr<IDXGIAdapter4> Application::GetAdapter(bool bUseWarp)
 
 	ThrowIfFailed(CreateDXGIFactory2(createFactoryFlags, IID_PPV_ARGS(&dxgiFactory)));
 
-	ComPtr<IDXGIAdapter1> dxgiAdapter1;
-	ComPtr<IDXGIAdapter4> dxgiAdapter4;
+	Microsoft::WRL::ComPtr<IDXGIAdapter1> dxgiAdapter1;
+	Microsoft::WRL::ComPtr<IDXGIAdapter4> dxgiAdapter4;
 
 	if (bUseWarp)
 	{
@@ -154,13 +182,13 @@ Microsoft::WRL::ComPtr<IDXGIAdapter4> Application::GetAdapter(bool bUseWarp)
 
 Microsoft::WRL::ComPtr<ID3D12Device2> Application::CreateDevice(Microsoft::WRL::ComPtr<IDXGIAdapter4> adapter)
 {
-	ComPtr<ID3D12Device2> d3d12Device2;
+	Microsoft::WRL::ComPtr<ID3D12Device2> d3d12Device2;
 	ThrowIfFailed(D3D12CreateDevice(adapter.Get(), D3D_FEATURE_LEVEL_11_0, IID_PPV_ARGS(&d3d12Device2)));
 	// NAME_D3D12_OBJECT(d3d12Device2);
 
 	// Enable debug messages in debug mode.
 #if defined(_DEBUG)
-	ComPtr<ID3D12InfoQueue> pInfoQueue;
+	Microsoft::WRL::ComPtr<ID3D12InfoQueue> pInfoQueue;
 	if (SUCCEEDED(d3d12Device2.As(&pInfoQueue)))
 	{
 		pInfoQueue->SetBreakOnSeverity(D3D12_MESSAGE_SEVERITY_CORRUPTION, TRUE);
@@ -204,10 +232,10 @@ bool Application::CheckTearingSupport()
 	// DXGI 1.4 interface and query for the 1.5 interface. This is to enabled the 
 	// graphics debugging tools which will not support the 1.5 factory interface
 	// until a future update.
-	ComPtr<IDXGIFactory4> factory4;
+	Microsoft::WRL::ComPtr<IDXGIFactory4> factory4;
 	if (SUCCEEDED(CreateDXGIFactory1(IID_PPV_ARGS(&factory4))))
 	{
-		ComPtr<IDXGIFactory5> factory5;
+		Microsoft::WRL::ComPtr<IDXGIFactory5> factory5;
 		if (SUCCEEDED(factory4.As(&factory5)))
 		{
 			factory5->CheckFeatureSupport(DXGI_FEATURE_PRESENT_ALLOW_TEARING,
@@ -257,7 +285,8 @@ std::shared_ptr<Window> Application::CreateRenderWindow(const std::wstring& wind
 
 void Application::DestroyWindow(std::shared_ptr<Window> window)
 {
-	if (window) window->Destroy();
+	if (window) 
+		window->Destroy();
 }
 
 void Application::DestroyWindow(const std::wstring& windowName)
@@ -283,8 +312,11 @@ std::shared_ptr<Window> Application::GetWindowByName(const std::wstring& windowN
 
 int Application::Run(std::shared_ptr<RenderApp> pRenderApp)
 {
-	if (!pRenderApp->Initialize()) return 1;
-	if (!pRenderApp->LoadContent()) return 2;
+	if (!pRenderApp->Initialize()) 
+		return 1;
+
+	if (!pRenderApp->LoadContent()) 
+		return 2;
 
 	MSG msg = { 0 };
 	while (msg.message != WM_QUIT)
@@ -341,6 +373,19 @@ void Application::Flush()
 	m_DirectCommandQueue->Flush();
 	m_ComputeCommandQueue->Flush();
 	m_CopyCommandQueue->Flush();
+}
+
+DescriptorAllocation Application::AllocateDescriptors(D3D12_DESCRIPTOR_HEAP_TYPE type, uint32_t numDescriptors)
+{
+	return m_DescriptorAllocators[type]->Allocate(numDescriptors);
+}
+
+void Application::ReleaseStaleDescriptors(uint64_t finishedFrame)
+{
+	for (int i = 0; i < D3D12_DESCRIPTOR_HEAP_TYPE_NUM_TYPES; ++i)
+	{
+		m_DescriptorAllocators[i]->ReleaseStaleDescriptors(finishedFrame);
+	}
 }
 
 Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> Application::CreateDescriptorHeap(UINT numDescriptors, D3D12_DESCRIPTOR_HEAP_TYPE type)
@@ -423,11 +468,11 @@ static LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM l
 		{
 		case WM_PAINT:
 		{
-			UpdateEventArgs updateEventArgs(0.0f, 0.0f);
+			UpdateEventArgs updateEventArgs(0.0f, 0.0f, Application::ms_FrameCount);
 			// Delta time will be filled in by the Window.
 			pWindow->OnUpdate(updateEventArgs);
 
-			RenderEventArgs renderEventArgs(0.0f, 0.0f);
+			RenderEventArgs renderEventArgs(0.0f, 0.0f, Application::ms_FrameCount);
 			// Delta time will be filled in by the Window.
 			pWindow->OnRender(renderEventArgs);
 

@@ -8,6 +8,7 @@
 #include <dxgi1_6.h>
 
 #include "Events.h"
+#include "Resource.h"
 #include "HighResolutionClock.h"
 
 class RenderApp;
@@ -47,7 +48,7 @@ public:
 	D3D12_CPU_DESCRIPTOR_HANDLE GetCurrentRenderTargetView() const;
 
 	// Get the back buffer resource for the current back buffer.
-	Microsoft::WRL::ComPtr<ID3D12Resource> GetCurrentBackBuffer() const;
+	const Resource& GetCurrentRenderTarget() const;
 
 protected:
 	// The Window procedure needsto call protected methods of this class.
@@ -96,13 +97,15 @@ private:
 
 	HighResolutionClock m_UpdateClock;
 	HighResolutionClock m_RenderClock;
-	uint64_t m_FrameCounter;
+
+	UINT64 m_FenceValues[BufferCount];
+	uint64_t m_FrameValues[BufferCount];
 
 	std::weak_ptr<RenderApp> m_pRenderApp;
 
 	Microsoft::WRL::ComPtr<IDXGISwapChain4> m_dxgiSwapChain;
 	Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> m_d3d12RTVDescriptorHeap;
-	Microsoft::WRL::ComPtr<ID3D12Resource> m_d3d12BackBuffers[BufferCount];
+	Resource m_ResourceBackBuffers[BufferCount];
 
 	UINT m_RTVDescriptorSize;
 	UINT m_CurrentBackBufferIndex;

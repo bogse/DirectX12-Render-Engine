@@ -1,6 +1,8 @@
 #pragma once
 #include "KeyCodes.h"
 
+#include <cstdint>
+
 // Base class for events args
 class EventArgs
 {
@@ -147,27 +149,31 @@ public:
 class UpdateEventArgs : public EventArgs
 {
 public:
-	UpdateEventArgs(double deltaTime, double totalTime)
+	UpdateEventArgs(double deltaTime, double totalTime, uint64_t frameNumber)
 		: m_ElapsedTime(deltaTime)
 		, m_TotalTime(totalTime)
+		, m_FrameNumber(frameNumber)
 	{
 	}
 
 	double m_ElapsedTime;
 	double m_TotalTime;
+	uint64_t m_FrameNumber;
 };
 
 class RenderEventArgs : public EventArgs
 {
 public:
-	RenderEventArgs(double deltaTime, double totalTime)
+	RenderEventArgs(double deltaTime, double totalTime, uint64_t frameNumber)
 		: m_ElapsedTime(deltaTime)
 		, m_TotalTime(totalTime)
+		, m_FrameNumber(frameNumber)
 	{
 	}
 
 	double m_ElapsedTime;
 	double m_TotalTime;
+	uint64_t m_FrameNumber;
 };
 
 class UserEventArgs : public EventArgs

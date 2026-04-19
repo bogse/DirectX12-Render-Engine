@@ -4,6 +4,8 @@
 
 #include "Application.h"
 #include "CommandQueue.h"
+#include "CommandList.h"
+#include "ResourceStateTracker.h"
 #include "RenderApp.h"
 
 Window::Window(HWND hWnd, const std::wstring& windowName, int clientWidth, int clientHeight, bool vSync)
@@ -13,11 +15,17 @@ Window::Window(HWND hWnd, const std::wstring& windowName, int clientWidth, int c
 	, m_ClientHeight(clientHeight)
 	, m_vSync(vSync)
 	, m_Fullscreen(false)
-	, m_FrameCounter(0)
+	, m_FenceValues{0}
+	, m_FrameValues{0}
 {
 	Application& app = Application::GetInstance();
 
 	m_IsTearingSupported = app.IsTearingSupported();
+
+	for (int i = 0; i < BufferCount; ++i)
+	{
+		m_ResourceBackBuffers[i].SetName(L"Backbuffer[" + std::to_wstring(i) + L"]");
+	}
 
 	m_dxgiSwapChain = CreateSwapChain();
 	m_d3d12RTVDescriptorHeap = app.CreateDescriptorHeap(BufferCount, D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
@@ -54,11 +62,20 @@ void Window::Hide()
 
 void Window::Destroy()
 {
-	if (auto pRenderApp = m_pRenderApp.lock())
+	if (std::shared_ptr<RenderApp> pRenderApp = m_pRenderApp.lock())
 	{
 		// Notify the registered render app that the window is being destroyed.
 		pRenderApp->OnWindowDestroy();
 	}
+
+	// Remove back buffer resource from the global resource state tracker.
+	for (int i = 0; i < BufferCount; ++i)
+	{
+		ID3D12Resource* resource = m_ResourceBackBuffers[i].GetD3D12Resource().Get();
+		ResourceStateTracker::RemoveGlobalResourceState(resource);
+		m_ResourceBackBuffers[i].Reset();
+	}
+
 	if (m_hWnd)
 	{
 		DestroyWindow(m_hWnd);
@@ -157,33 +174,31 @@ void Window::RegisterCallbacks(std::shared_ptr<RenderApp> pRenderApp)
 	m_pRenderApp = pRenderApp;
 }
 
-void Window::OnUpdate(UpdateEventArgs&)
+void Window::OnUpdate(UpdateEventArgs& eventArgs)
 {
 	m_UpdateClock.Tick();
 
-	if (auto pRenderApp = m_pRenderApp.lock())
+	if (std::shared_ptr<RenderApp> pRenderApp = m_pRenderApp.lock())
 	{
-		m_FrameCounter++;
-
-		UpdateEventArgs updateEventArgs(m_UpdateClock.GetDeltaSeconds(), m_UpdateClock.GetTotalSeconds());
+		UpdateEventArgs updateEventArgs(m_UpdateClock.GetDeltaSeconds(), m_UpdateClock.GetTotalSeconds(), eventArgs.m_FrameNumber);
 		pRenderApp->OnUpdate(updateEventArgs);
 	}
 }
 
-void Window::OnRender(RenderEventArgs&)
+void Window::OnRender(RenderEventArgs& eventArgs)
 {
 	m_RenderClock.Tick();
 
-	if (auto pRenderApp = m_pRenderApp.lock())
+	if (std::shared_ptr<RenderApp> pRenderApp = m_pRenderApp.lock())
 	{
-		RenderEventArgs renderEventArgs(m_RenderClock.GetDeltaSeconds(), m_RenderClock.GetTotalSeconds());
+		RenderEventArgs renderEventArgs(m_RenderClock.GetDeltaSeconds(), m_RenderClock.GetTotalSeconds(), eventArgs.m_FrameNumber);
 		pRenderApp->OnRender(renderEventArgs);
 	}
 }
 
 void Window::OnKeyPressed(KeyEventArgs& eventArgs)
 {
-	if (auto pRenderApp = m_pRenderApp.lock())
+	if (std::shared_ptr<RenderApp> pRenderApp = m_pRenderApp.lock())
 	{
 		pRenderApp->OnKeyPressed(eventArgs);
 	}
@@ -191,7 +206,7 @@ void Window::OnKeyPressed(KeyEventArgs& eventArgs)
 
 void Window::OnKeyReleased(KeyEventArgs& eventArgs)
 {
-	if (auto pRenderApp = m_pRenderApp.lock())
+	if (std::shared_ptr<RenderApp> pRenderApp = m_pRenderApp.lock())
 	{
 		pRenderApp->OnKeyReleased(eventArgs);
 	}
@@ -199,7 +214,7 @@ void Window::OnKeyReleased(KeyEventArgs& eventArgs)
 
 void Window::OnMouseMoved(MouseMotionEventArgs& eventArgs)
 {
-	if (auto pRenderApp = m_pRenderApp.lock())
+	if (std::shared_ptr<RenderApp> pRenderApp = m_pRenderApp.lock())
 	{
 		pRenderApp->OnMouseMoved(eventArgs);
 	}
@@ -207,7 +222,7 @@ void Window::OnMouseMoved(MouseMotionEventArgs& eventArgs)
 
 void Window::OnMouseButtonPressed(MouseButtonEventArgs& eventArgs)
 {
-	if (auto pRenderApp = m_pRenderApp.lock())
+	if (std::shared_ptr<RenderApp> pRenderApp = m_pRenderApp.lock())
 	{
 		pRenderApp->OnMouseButtonPressed(eventArgs);
 	}
@@ -215,7 +230,7 @@ void Window::OnMouseButtonPressed(MouseButtonEventArgs& eventArgs)
 
 void Window::OnMouseButtonReleased(MouseButtonEventArgs& eventArgs)
 {
-	if (auto pRenderApp = m_pRenderApp.lock())
+	if (std::shared_ptr<RenderApp> pRenderApp = m_pRenderApp.lock())
 	{
 		pRenderApp->OnMouseButtonReleased(eventArgs);
 	}
@@ -223,7 +238,7 @@ void Window::OnMouseButtonReleased(MouseButtonEventArgs& eventArgs)
 
 void Window::OnMouseWheel(MouseWheelEventArgs& eventArgs)
 {
-	if (auto pRenderApp = m_pRenderApp.lock())
+	if (std::shared_ptr<RenderApp> pRenderApp = m_pRenderApp.lock())
 	{
 		pRenderApp->OnMouseWheel(eventArgs);
 	}
@@ -241,7 +256,9 @@ void Window::OnResize(ResizeEventArgs& eventArgs)
 
 		for (int i = 0; i < BufferCount; ++i)
 		{
-			m_d3d12BackBuffers[i].Reset();
+			ID3D12Resource* resource = m_ResourceBackBuffers[i].GetD3D12Resource().Get();
+			ResourceStateTracker::RemoveGlobalResourceState(resource);
+			m_ResourceBackBuffers[i].Reset();
 		}
 
 		DXGI_SWAP_CHAIN_DESC swapChainDesc = {};
@@ -254,7 +271,7 @@ void Window::OnResize(ResizeEventArgs& eventArgs)
 		UpdateRenderTargetViews();
 	}
 
-	if (auto pRenderApp = m_pRenderApp.lock())
+	if (std::shared_ptr<RenderApp> pRenderApp = m_pRenderApp.lock())
 	{
 		pRenderApp->OnResize(eventArgs);
 	}
@@ -264,8 +281,8 @@ Microsoft::WRL::ComPtr<IDXGISwapChain4> Window::CreateSwapChain()
 {
 	Application& app = Application::GetInstance();
 
-	ComPtr<IDXGISwapChain4> dxgiSwapChain4;
-	ComPtr<IDXGIFactory4> dxgiFactory4;
+	Microsoft::WRL::ComPtr<IDXGISwapChain4> dxgiSwapChain4;
+	Microsoft::WRL::ComPtr<IDXGIFactory4> dxgiFactory4;
 	UINT createFactoryFlags = 0;
 #if defined(_DEBUG)
 	createFactoryFlags = DXGI_CREATE_FACTORY_DEBUG;
@@ -289,7 +306,7 @@ Microsoft::WRL::ComPtr<IDXGISwapChain4> Window::CreateSwapChain()
 	
 	ID3D12CommandQueue* pCommandQueue = app.GetCommandQueue()->GetD3D12CommandQueue().Get();
 
-	ComPtr<IDXGISwapChain1> swapChain1;
+	Microsoft::WRL::ComPtr<IDXGISwapChain1> swapChain1;
 	ThrowIfFailed(dxgiFactory4->CreateSwapChainForHwnd(
 		pCommandQueue,
 		m_hWnd,
@@ -311,18 +328,20 @@ Microsoft::WRL::ComPtr<IDXGISwapChain4> Window::CreateSwapChain()
 // Update the render target views for the swapchain back buffers.
 void Window::UpdateRenderTargetViews()
 {
-	auto device = Application::GetInstance().GetDevice();
+	Microsoft::WRL::ComPtr<ID3D12Device2> device = Application::GetInstance().GetDevice();
 
 	CD3DX12_CPU_DESCRIPTOR_HANDLE rtvHandle(m_d3d12RTVDescriptorHeap->GetCPUDescriptorHandleForHeapStart());
 
 	for (int i = 0; i < BufferCount; ++i)
 	{
-		ComPtr<ID3D12Resource> backBuffer;
+		Microsoft::WRL::ComPtr<ID3D12Resource> backBuffer;
 		ThrowIfFailed(m_dxgiSwapChain->GetBuffer(i, IID_PPV_ARGS(&backBuffer)));
 
 		device->CreateRenderTargetView(backBuffer.Get(), nullptr, rtvHandle);
 
-		m_d3d12BackBuffers[i] = backBuffer;
+		ResourceStateTracker::AddGlobalResourceState(backBuffer.Get(), D3D12_RESOURCE_STATE_COMMON);
+
+		m_ResourceBackBuffers[i].SetD3D12Resource(backBuffer);
 
 		rtvHandle.Offset(m_RTVDescriptorSize);
 	}
@@ -334,9 +353,9 @@ D3D12_CPU_DESCRIPTOR_HANDLE Window::GetCurrentRenderTargetView() const
 		m_CurrentBackBufferIndex, m_RTVDescriptorSize);
 }
 
-Microsoft::WRL::ComPtr<ID3D12Resource> Window::GetCurrentBackBuffer() const
+const Resource& Window::GetCurrentRenderTarget() const
 {
-	return m_d3d12BackBuffers[m_CurrentBackBufferIndex];
+	return m_ResourceBackBuffers[m_CurrentBackBufferIndex];
 }
 
 UINT Window::GetCurrentBackBufferIndex() const
@@ -346,10 +365,24 @@ UINT Window::GetCurrentBackBufferIndex() const
 
 UINT Window::Present()
 {
+	std::shared_ptr<CommandQueue> commandQueue = Application::GetInstance().GetCommandQueue(D3D12_COMMAND_LIST_TYPE_DIRECT);
+	std::shared_ptr<CommandList> commandList = commandQueue->GetCommandList();
+
+	commandList->TransitionBarrier(m_ResourceBackBuffers[m_CurrentBackBufferIndex], D3D12_RESOURCE_STATE_PRESENT);
+	commandQueue->ExecuteCommandList(commandList);
+
 	UINT syncInterval = m_vSync ? 1 : 0;
 	UINT presentFlags = m_IsTearingSupported && !m_vSync ? DXGI_PRESENT_ALLOW_TEARING : 0;
 	ThrowIfFailed(m_dxgiSwapChain->Present(syncInterval, presentFlags));
+
+	m_FenceValues[m_CurrentBackBufferIndex] = commandQueue->Signal();
+	m_FrameValues[m_CurrentBackBufferIndex] = Application::GetFrameCount();
+
 	m_CurrentBackBufferIndex = m_dxgiSwapChain->GetCurrentBackBufferIndex();
+
+	commandQueue->WaitForFenceValue(m_FenceValues[m_CurrentBackBufferIndex]);
+
+	Application::GetInstance().ReleaseStaleDescriptors(m_FrameValues[m_CurrentBackBufferIndex]);
 
 	return m_CurrentBackBufferIndex;
 }
