@@ -10,9 +10,12 @@
 #include <memory>
 #include <string>
 
-class Window;
-class RenderApp;
+#include "DescriptorAllocation.h"
+
 class CommandQueue;
+class DescriptorAllocator;
+class RenderApp;
+class Window;
 
 class Application
 {
@@ -45,10 +48,14 @@ public:
 	
 	std::shared_ptr<Window> GetWindowByName(const std::wstring& windowName);
 
-	// Run the application loop and message pump. Return the error code if an error occurred.
+	/**
+	* Run the application loop and message pump. Return the error code if an error occurred.
+	*/
 	int Run(std::shared_ptr<RenderApp> pRenderApp);
 
-	// Request to quit the application and close all windows. @param exitCode The error code to return to the invoking process.
+	/**
+	* Request to quit the application and close all windows. @param exitCode The error code to return to the invoking process.
+	*/
 	void Quit(int exitCode = 0);
 
 	Microsoft::WRL::ComPtr<ID3D12Device2> GetDevice() const;
@@ -61,33 +68,58 @@ public:
 	 */
 	std::shared_ptr<CommandQueue> GetCommandQueue(D3D12_COMMAND_LIST_TYPE type = D3D12_COMMAND_LIST_TYPE_DIRECT) const;
 
-	// Flush all command queues.
+	/**
+	* Flush all command queues.
+	*/
 	void Flush();
+
+	/**
+	* Allocate a number of CPU visible descriptors.
+	*/
+	DescriptorAllocation AllocateDescriptors(D3D12_DESCRIPTOR_HEAP_TYPE type, uint32_t numDescriptors = 1);
+
+	/**
+	* Release stale descriptors. This should only be called with a completed frame counter.
+	*/
+	void ReleaseStaleDescriptors(uint64_t finishedFrame);
 
 	Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> CreateDescriptorHeap(UINT nameDescriptors, D3D12_DESCRIPTOR_HEAP_TYPE type);
 	UINT GetDesciptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE type) const;
 
+	static uint64_t GetFrameCount()
+	{
+		return ms_FrameCount;
+	}
+
 protected:
 	Application(HINSTANCE hInst);
-	// Destroy the application instance and all windows associated with this application.
+	/**
+	* Destroy the application instance and all windows associated with this application.
+	*/
 	virtual ~Application();
+
+	void Initialize();
 
 	Microsoft::WRL::ComPtr<IDXGIAdapter4> GetAdapter(bool bUseWarp);
 	Microsoft::WRL::ComPtr<ID3D12Device2> CreateDevice(Microsoft::WRL::ComPtr<IDXGIAdapter4> adapter);
 	bool CheckTearingSupport();
 
 private:
+	friend LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam);
 	Application(const Application& copy) = delete;
 	Application& operator=(const Application& other) = delete;
 
 	HINSTANCE m_hInstance;
 
-	Microsoft::WRL::ComPtr<IDXGIAdapter4> m_dxgiAdapter;
 	Microsoft::WRL::ComPtr<ID3D12Device2> m_d3d12Device;
 
 	std::shared_ptr<CommandQueue> m_DirectCommandQueue;
 	std::shared_ptr<CommandQueue> m_ComputeCommandQueue;
 	std::shared_ptr<CommandQueue> m_CopyCommandQueue;
 
+	std::unique_ptr<DescriptorAllocator> m_DescriptorAllocators[D3D12_DESCRIPTOR_HEAP_TYPE_NUM_TYPES];
+
 	bool m_TearingSupported;
+
+	static uint64_t ms_FrameCount;
 };

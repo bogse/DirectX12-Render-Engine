@@ -8,6 +8,7 @@
 #include <dxgi1_6.h>
 
 #include "Events.h"
+#include "Resource.h"
 #include "HighResolutionClock.h"
 
 class RenderApp;
@@ -37,31 +38,47 @@ public:
 	void Show();
 	void Hide();
 
-	// Get the render target view for the current back buffer.
+	/*
+	* Get the render target view for the current back buffer.
+	*/
 	UINT GetCurrentBackBufferIndex() const;
 
-	// Present the swapchain's back buffer to the screen. Returns the current back buffer index after the present.
+	/*
+	* Present the swapchain's back buffer to the screen. Returns the current back buffer index after the present.
+	*/
 	UINT Present();
 
-	// Get the render target view for the current back buffer.
+	/*
+	* Get the render target view for the current back buffer.
+	*/
 	D3D12_CPU_DESCRIPTOR_HANDLE GetCurrentRenderTargetView() const;
 
-	// Get the back buffer resource for the current back buffer.
-	Microsoft::WRL::ComPtr<ID3D12Resource> GetCurrentBackBuffer() const;
+	/*
+	* Get the back buffer resource for the current back buffer.
+	*/
+	const Resource& GetCurrentRenderTarget() const;
 
 protected:
-	// The Window procedure needsto call protected methods of this class.
+	/*
+	* The Window procedure needsto call protected methods of this class.
+	*/
 	friend LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
-	// Only the application can create a window.
+	/*
+	* Only the application can create a window.
+	*/
 	friend class Application;
-	// The DirectXTemplate class needs to register itself with a window.
+	/*
+	* The DirectXTemplate class needs to register itself with a window.
+	*/
 	friend class RenderApp;
 
 	Window() = delete;
 	Window(HWND hWnd, const std::wstring& windowName, int clientWidth, int clientHeight, bool vSync);
 	virtual ~Window();
 
-	// Register a RenderApp with this window. This allows the window to callback functions in the RenderApp class.
+	/*
+	* Register a RenderApp with this window. This allows the window to callback functions in the RenderApp class.
+	*/
 	void RegisterCallbacks(std::shared_ptr<RenderApp> pRenderApp);
 
 	virtual void OnUpdate(UpdateEventArgs& eventArgs);
@@ -96,13 +113,15 @@ private:
 
 	HighResolutionClock m_UpdateClock;
 	HighResolutionClock m_RenderClock;
-	uint64_t m_FrameCounter;
+
+	UINT64 m_FenceValues[BufferCount];
+	uint64_t m_FrameValues[BufferCount];
 
 	std::weak_ptr<RenderApp> m_pRenderApp;
 
 	Microsoft::WRL::ComPtr<IDXGISwapChain4> m_dxgiSwapChain;
 	Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> m_d3d12RTVDescriptorHeap;
-	Microsoft::WRL::ComPtr<ID3D12Resource> m_d3d12BackBuffers[BufferCount];
+	Resource m_ResourceBackBuffers[BufferCount];
 
 	UINT m_RTVDescriptorSize;
 	UINT m_CurrentBackBufferIndex;

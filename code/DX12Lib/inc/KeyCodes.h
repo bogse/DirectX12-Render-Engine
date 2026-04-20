@@ -1,6 +1,8 @@
 #pragma once
 
-// Key code values for Windows
+/**
+* Key code values for Windows
+*/
 namespace KeyCode
 {
     enum class Key : unsigned int
