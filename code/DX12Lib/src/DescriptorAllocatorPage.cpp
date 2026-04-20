@@ -44,8 +44,8 @@ bool DescriptorAllocatorPage::HasSpace(uint32_t numDescriptors) const
 void DescriptorAllocatorPage::AddNewBlock(uint32_t offset, uint32_t numDescriptors)
 {
 	// Add block to free list. Create the bi-directional map for optimized lookups.
-	auto offsetIt = m_FreeListByOffset.emplace(offset, numDescriptors);
-	auto sizeIt = m_FreeListBySize.emplace(numDescriptors, offsetIt.first);
+	std::pair<FreeListByOffset::iterator, bool> offsetIt = m_FreeListByOffset.emplace(offset, numDescriptors);
+	FreeListBySize::iterator sizeIt = m_FreeListBySize.emplace(numDescriptors, offsetIt.first);
 	offsetIt.first->second.FreeListBySizeIt = sizeIt;
 }
 
@@ -61,7 +61,7 @@ DescriptorAllocation DescriptorAllocatorPage::Allocate(uint32_t numDescriptors)
 	}
 
 	// Get the first block that is large enough to satisfy the request.
-	auto smallestBlockIt = m_FreeListBySize.lower_bound(numDescriptors);
+	std::_Tree<FreeListBySize>::iterator smallestBlockIt = m_FreeListBySize.lower_bound(numDescriptors);
 	if (smallestBlockIt == m_FreeListBySize.end())
 	{
 		// There was no free block that could satisfy the request.

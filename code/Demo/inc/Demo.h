@@ -16,7 +16,6 @@ public:
 	using Super = RenderApp;
 
 	Demo(const std::wstring& name, int width, int height, bool vSync = false);
-	virtual ~Demo();
 
 	bool LoadContent() override;
 	void UnloadContent() override;

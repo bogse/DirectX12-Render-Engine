@@ -24,7 +24,7 @@ void ResourceStateTracker::ResourceBarrier(const D3D12_RESOURCE_BARRIER& barrier
 		// First check if there is already a known "final" state for the given resource.
 		// If there is, the resource has been used on the command list before and 
 		// already has a known state within the command list execution.
-		const auto iter = m_FinalResourceState.find(transitionBarrier.pResource);
+		const ResourceStateMap::iterator iter = m_FinalResourceState.find(transitionBarrier.pResource);
 		if (iter != m_FinalResourceState.end())
 		{
 			ResourceState& resourceState = iter->second;
@@ -33,7 +33,7 @@ void ResourceStateTracker::ResourceBarrier(const D3D12_RESOURCE_BARRIER& barrier
 				!resourceState.SubresourceState.empty())
 			{
 				// First transition all of the subresources if they are different than the StateAfter.
-				for (auto subresourceState : resourceState.SubresourceState)
+				for (std::pair<UINT, D3D12_RESOURCE_STATES> subresourceState : resourceState.SubresourceState)
 				{
 					if (transitionBarrier.StateAfter != subresourceState.second)
 					{
@@ -120,7 +120,7 @@ uint32_t ResourceStateTracker::FlushPendingResourceBarriers(CommandList& command
 		{
 			D3D12_RESOURCE_TRANSITION_BARRIER pendingTransition = pendingBarrier.Transition;
 
-			const auto& iter = ms_GlobalResourceState.find(pendingTransition.pResource);
+			const ResourceStateMap::iterator& iter = ms_GlobalResourceState.find(pendingTransition.pResource);
 			if (iter != ms_GlobalResourceState.end())
 			{
 				D3D12_RESOURCE_STATES globalState = (iter->second).GetSubresourceState(pendingTransition.Subresource);
@@ -151,7 +151,7 @@ void ResourceStateTracker::CommitFinalResourceStates()
 	assert(ms_IsLocked);
 
 	// Commit final resource states to the global resource state array (map).
-	for (const auto& resourceState : m_FinalResourceState)
+	for (const std::pair<ID3D12Resource*, ResourceState>& resourceState : m_FinalResourceState)
 	{
 		ms_GlobalResourceState[resourceState.first] = resourceState.second;
 	}

@@ -40,7 +40,7 @@ static VertexPosColor g_Vertices[8] = {
 	{ XMFLOAT3(-1.0f, -1.0f,  1.0f), XMFLOAT3(0.0f, 0.0f, 1.0f) }, // 4
 	{ XMFLOAT3(-1.0f,  1.0f,  1.0f), XMFLOAT3(0.0f, 1.0f, 1.0f) }, // 5
 	{ XMFLOAT3( 1.0f,  1.0f,  1.0f), XMFLOAT3(1.0f, 1.0f, 1.0f) }, // 6
-	{ XMFLOAT3( 1.0f, -1.0f,  1.0f), XMFLOAT3(1.0f, 0.0f, 1.0f) }  // 7
+	{ XMFLOAT3( 1.0f, -1.0f,  1.0f), XMFLOAT3(1.0f, 0.0f, 1.0f) },  // 7
 };
 
 static WORD g_Indices[36] =
@@ -62,10 +62,6 @@ Demo::Demo(const std::wstring& name, int width, int height, bool vSync)
 	m_VertexBuffer.SetName(L"Demo::VertexBuffer");
 	m_IndexBuffer.SetName(L"Demo::IndexBuffer");
 	m_DepthBuffer.SetName(L"Demo::DepthBuffer");
-}
-
-Demo::~Demo()
-{
 }
 
 bool Demo::LoadContent()
@@ -90,10 +86,10 @@ bool Demo::LoadContent()
 	Microsoft::WRL::ComPtr<ID3DBlob> pixelShaderBlob;
 	ThrowIfFailed(D3DReadFileToBlob(L"./PixelShader.cso", &pixelShaderBlob));
 
-	// Create the vertex input layout
+	// Create the vertex input layout.
 	D3D12_INPUT_ELEMENT_DESC inputLayout[] = {
-		{ "POSITION", 0 , DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
-		{ "COLOR"   , 0 , DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
+		{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
+		{ "COLOR"   , 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 }
 	};
 
 	// Create a root signature.
@@ -106,7 +102,7 @@ bool Demo::LoadContent()
 		featureData.HighestVersion = D3D_ROOT_SIGNATURE_VERSION_1_0;
 	}
 
-	// Allow input layout and delay unnecessary access to certain pipeline stages.
+	// Allow input layout and deny unnecessary access to certain pipeline stages.
 	D3D12_ROOT_SIGNATURE_FLAGS rootSignatureFlags =
 		D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT |
 		D3D12_ROOT_SIGNATURE_FLAG_DENY_HULL_SHADER_ROOT_ACCESS |
