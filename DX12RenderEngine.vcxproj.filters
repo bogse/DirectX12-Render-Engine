@@ -22,6 +22,15 @@
     <Filter Include="Demo\shaders">
       <UniqueIdentifier>{5cdf6b28-1a67-458a-b361-4ccefedd384b}</UniqueIdentifier>
     </Filter>
+    <Filter Include="ImGui">
+      <UniqueIdentifier>{00e609a3-3316-4ef5-96a9-466c07476a2f}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ImGui\inc">
+      <UniqueIdentifier>{5a1008e0-5238-41cb-8f14-c3af93ef89bf}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ImGui\src">
+      <UniqueIdentifier>{3c59ff71-b9e1-46b7-a1c0-b9d7b3e5699a}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="code\DX12Lib\src\Application.cpp">
@@ -83,6 +92,24 @@
     </ClCompile>
     <ClCompile Include="code\DX12Lib\src\VertexBuffer.cpp">
       <Filter>DX12Lib\src</Filter>
+    </ClCompile>
+    <ClCompile Include="extern\imgui\src\imgui.cpp">
+      <Filter>ImGui\src</Filter>
+    </ClCompile>
+    <ClCompile Include="extern\imgui\src\imgui_demo.cpp">
+      <Filter>ImGui\src</Filter>
+    </ClCompile>
+    <ClCompile Include="extern\imgui\src\imgui_draw.cpp">
+      <Filter>ImGui\src</Filter>
+    </ClCompile>
+    <ClCompile Include="extern\imgui\src\imgui_impl_dx12.cpp">
+      <Filter>ImGui\src</Filter>
+    </ClCompile>
+    <ClCompile Include="extern\imgui\src\imgui_tables.cpp">
+      <Filter>ImGui\src</Filter>
+    </ClCompile>
+    <ClCompile Include="extern\imgui\src\imgui_widgets.cpp">
+      <Filter>ImGui\src</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -154,6 +181,27 @@
     </ClInclude>
     <ClInclude Include="code\DX12Lib\inc\VertexBuffer.h">
       <Filter>DX12Lib\inc</Filter>
+    </ClInclude>
+    <ClInclude Include="extern\imgui\inc\imconfig.h">
+      <Filter>ImGui\inc</Filter>
+    </ClInclude>
+    <ClInclude Include="extern\imgui\inc\imgui.h">
+      <Filter>ImGui\inc</Filter>
+    </ClInclude>
+    <ClInclude Include="extern\imgui\inc\imgui_impl_dx12.h">
+      <Filter>ImGui\inc</Filter>
+    </ClInclude>
+    <ClInclude Include="extern\imgui\inc\imgui_internal.h">
+      <Filter>ImGui\inc</Filter>
+    </ClInclude>
+    <ClInclude Include="extern\imgui\inc\imstb_rectpack.h">
+      <Filter>ImGui\inc</Filter>
+    </ClInclude>
+    <ClInclude Include="extern\imgui\inc\imstb_textedit.h">
+      <Filter>ImGui\inc</Filter>
+    </ClInclude>
+    <ClInclude Include="extern\imgui\inc\imstb_truetype.h">
+      <Filter>ImGui\inc</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
