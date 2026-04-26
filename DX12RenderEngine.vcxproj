@@ -160,6 +160,7 @@
     <ClCompile Include="code\DX12Lib\src\DescriptorAllocatorPage.cpp" />
     <ClCompile Include="code\DX12Lib\src\DX12LibPCH.cpp" />
     <ClCompile Include="code\DX12Lib\src\DynamicDescriptorHeap.cpp" />
+    <ClCompile Include="code\DX12Lib\src\GUISystem.cpp" />
     <ClCompile Include="code\DX12Lib\src\HighResolutionClock.cpp" />
     <ClCompile Include="code\DX12Lib\src\IndexBuffer.cpp" />
     <ClCompile Include="code\DX12Lib\src\RenderApp.cpp" />
@@ -173,6 +174,7 @@
     <ClCompile Include="extern\imgui\src\imgui_demo.cpp" />
     <ClCompile Include="extern\imgui\src\imgui_draw.cpp" />
     <ClCompile Include="extern\imgui\src\imgui_impl_dx12.cpp" />
+    <ClCompile Include="extern\imgui\src\imgui_impl_win32.cpp" />
     <ClCompile Include="extern\imgui\src\imgui_tables.cpp" />
     <ClCompile Include="extern\imgui\src\imgui_widgets.cpp" />
   </ItemGroup>
@@ -189,6 +191,7 @@
     <ClInclude Include="code\DX12Lib\inc\DX12LibPCH.h" />
     <ClInclude Include="code\DX12Lib\inc\DynamicDescriptorHeap.h" />
     <ClInclude Include="code\DX12Lib\inc\Events.h" />
+    <ClInclude Include="code\DX12Lib\inc\GUISystem.h" />
     <ClInclude Include="code\DX12Lib\inc\Helpers.h" />
     <ClInclude Include="code\DX12Lib\inc\HighResolutionClock.h" />
     <ClInclude Include="code\DX12Lib\inc\IndexBuffer.h" />
@@ -203,6 +206,7 @@
     <ClInclude Include="extern\imgui\inc\imconfig.h" />
     <ClInclude Include="extern\imgui\inc\imgui.h" />
     <ClInclude Include="extern\imgui\inc\imgui_impl_dx12.h" />
+    <ClInclude Include="extern\imgui\inc\imgui_impl_win32.h" />
     <ClInclude Include="extern\imgui\inc\imgui_internal.h" />
     <ClInclude Include="extern\imgui\inc\imstb_rectpack.h" />
     <ClInclude Include="extern\imgui\inc\imstb_textedit.h" />

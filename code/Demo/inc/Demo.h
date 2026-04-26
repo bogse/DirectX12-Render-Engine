@@ -8,6 +8,7 @@
 
 #include <DirectXMath.h>
 
+class CommandList;
 class RootSignature;
 
 class Demo : public RenderApp
@@ -31,6 +32,19 @@ private:
 	// Resize the depth buffer to match the size of the client area.
 	void ResizeDepthBuffer(int width, int height);
 
+	void RenderScenePass(CommandList* commandList);
+	void RenderUIPass(CommandList* commandList);
+
+	void UpdateCubeVertices();
+
+private:
+	struct CubeAnimation
+	{
+		float m_RotationSpeed;
+		float m_CurrentAngle;
+		bool m_RotateCube;
+	};
+
 	// Vertex buffer for the cube.
 	VertexBuffer m_VertexBuffer;
 	IndexBuffer m_IndexBuffer;
@@ -47,9 +61,11 @@ private:
 	D3D12_VIEWPORT m_Viewport;
 	D3D12_RECT m_ScissorRect;
 
-	float m_FoV;
-
 	DirectX::XMMATRIX m_ModelMatrix;
 	DirectX::XMMATRIX m_ViewMatrix;
 	DirectX::XMMATRIX m_ProjectionMatrix;
+
+	CubeAnimation m_CubeAnimation;
+	float m_FoV;
+	bool m_VerticesDirty;
 };

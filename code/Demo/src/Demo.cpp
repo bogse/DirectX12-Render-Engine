@@ -4,6 +4,7 @@
 #include "CommandList.h"
 #include "CommandQueue.h"
 #include "DescriptorAllocation.h"
+#include "GUISystem.h"
 #include "Helpers.h"
 #include "RootSignature.h"
 #include "Window.h"
@@ -32,7 +33,9 @@ struct VertexPosColor
 	XMFLOAT3 Color;
 };
 
-static VertexPosColor g_Vertices[8] = {
+static constexpr int g_NumVertices = 8;
+
+static VertexPosColor g_Vertices[g_NumVertices] = {
 	{ XMFLOAT3(-1.0f, -1.0f, -1.0f), XMFLOAT3(0.0f, 0.0f, 0.0f) }, // 0
 	{ XMFLOAT3(-1.0f,  1.0f, -1.0f), XMFLOAT3(0.0f, 1.0f, 0.0f) }, // 1
 	{ XMFLOAT3( 1.0f,  1.0f, -1.0f), XMFLOAT3(1.0f, 1.0f, 0.0f) }, // 2
@@ -57,7 +60,9 @@ Demo::Demo(const std::wstring& name, int width, int height, bool vSync)
 	: Super(name, width, height, vSync)
 	, m_ScissorRect(CD3DX12_RECT(0, 0, LONG_MAX, LONG_MAX))
 	, m_Viewport(CD3DX12_VIEWPORT(0.0f, 0.0f, static_cast<float>(width), static_cast<float>(height)))
+	, m_CubeAnimation{ 90.f, 0.f, true }
 	, m_FoV(45.0)
+	, m_VerticesDirty(false)
 {
 	m_VertexBuffer.SetName(L"Demo::VertexBuffer");
 	m_IndexBuffer.SetName(L"Demo::IndexBuffer");
@@ -183,9 +188,15 @@ void Demo::OnUpdate(UpdateEventArgs& eventArgs)
 	}
 
 	// Update the model matrix.
-	float angle = static_cast<float>(eventArgs.m_TotalTime * 90.0);
+	if (m_CubeAnimation.m_RotateCube)
+	{
+		m_CubeAnimation.m_CurrentAngle += 
+			m_CubeAnimation.m_RotationSpeed * static_cast<float>(eventArgs.m_ElapsedTime);
+	}
+
 	const XMVECTOR rotationAxis = XMVectorSet(0.f, 1.f, 1.f, 0.f);
-	m_ModelMatrix = XMMatrixRotationAxis(rotationAxis, XMConvertToRadians(angle));
+	m_ModelMatrix = XMMatrixRotationAxis(
+		rotationAxis, XMConvertToRadians(m_CubeAnimation.m_CurrentAngle));
 
 	// Update the view matrix.
 	const XMVECTOR eyePosition = XMVectorSet(0.f, 0.f, -10.f, 1.f);
@@ -202,46 +213,13 @@ void Demo::OnRender(RenderEventArgs& eventArgs)
 {
 	Super::OnRender(eventArgs);
 
+	UpdateCubeVertices();
+
 	std::shared_ptr<CommandQueue> commandQueue = Application::GetInstance().GetCommandQueue(D3D12_COMMAND_LIST_TYPE_DIRECT);
 	std::shared_ptr<CommandList> commandList = commandQueue->GetCommandList();
 
-	D3D12_CPU_DESCRIPTOR_HANDLE rtv = m_pWindow->GetCurrentRenderTargetView();
-	D3D12_CPU_DESCRIPTOR_HANDLE dsv = m_DSV.GetDescriptorHandle();
-	// Clear the render targets.
-	{
-		const Resource& backBuffer = m_pWindow->GetCurrentRenderTarget();
-
-		commandList->TransitionBarrier(backBuffer, D3D12_RESOURCE_STATE_RENDER_TARGET);
-
-		FLOAT clearColor[] = { 0.4f, 0.6f, 0.9f, 1.0f };
-
-		commandList->ClearRTV(rtv, clearColor);
-		commandList->ClearDepth(dsv);
-	}
-
-	// Set pipeline state and root signature.
-	commandList->SetPipelineState(m_PipelineState.Get());
-	commandList->SetGraphicsRootSignature(*m_RootSignature);
-
-	// Setup the Input Assembler.
-	commandList->SetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-	commandList->SetVertexBuffer(0, m_VertexBuffer);
-	commandList->SetIndexBuffer(m_IndexBuffer);
-
-	// Setup the Rasterizer State.
-	commandList->SetViewport(m_Viewport);
-	commandList->SetScissorRect(m_ScissorRect);
-
-	// Bind the Render Targets to the Output Merger stage.
-	commandList->SetRenderTargets(&rtv, &dsv);
-
-	// Update the MVP matrix.
-	XMMATRIX mvpMatrix = XMMatrixMultiply(m_ModelMatrix, m_ViewMatrix);
-	mvpMatrix = XMMatrixMultiply(mvpMatrix, m_ProjectionMatrix);
-	commandList->SetGraphicsDynamicConstantBuffer(0, mvpMatrix);
-
-	// Draw.
-	commandList->DrawIndexed(_countof(g_Indices));
+	RenderScenePass(commandList.get());
+	RenderUIPass(commandList.get());
 
 	commandQueue->ExecuteCommandList(commandList);
 
@@ -333,4 +311,91 @@ void Demo::ResizeDepthBuffer(int width, int height)
 
 	// Create (initialize) the depth-stencil view.
 	device->CreateDepthStencilView(depthBuffer.Get(), nullptr, m_DSV.GetDescriptorHandle());
+}
+
+void Demo::RenderScenePass(CommandList* commandList)
+{
+	D3D12_CPU_DESCRIPTOR_HANDLE rtv = m_pWindow->GetCurrentRenderTargetView();
+	D3D12_CPU_DESCRIPTOR_HANDLE dsv = m_DSV.GetDescriptorHandle();
+	// Clear the render targets.
+	{
+		const Resource& backBuffer = m_pWindow->GetCurrentRenderTarget();
+
+		commandList->TransitionBarrier(backBuffer, D3D12_RESOURCE_STATE_RENDER_TARGET);
+
+		FLOAT clearColor[] = { 0.4f, 0.6f, 0.9f, 1.0f };
+
+		commandList->ClearRTV(rtv, clearColor);
+		commandList->ClearDepth(dsv);
+	}
+
+	// Set pipeline state and root signature.
+	commandList->SetPipelineState(m_PipelineState.Get());
+	commandList->SetGraphicsRootSignature(*m_RootSignature);
+
+	// Setup the Input Assembler.
+	commandList->SetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+	commandList->SetVertexBuffer(0, m_VertexBuffer);
+	commandList->SetIndexBuffer(m_IndexBuffer);
+
+	// Setup the Rasterizer State.
+	commandList->SetViewport(m_Viewport);
+	commandList->SetScissorRect(m_ScissorRect);
+
+	// Bind the Render Targets to the Output Merger stage.
+	commandList->SetRenderTargets(&rtv, &dsv);
+
+	// Update the MVP matrix.
+	XMMATRIX mvpMatrix = XMMatrixMultiply(m_ModelMatrix, m_ViewMatrix);
+	mvpMatrix = XMMatrixMultiply(mvpMatrix, m_ProjectionMatrix);
+	commandList->SetGraphicsDynamicConstantBuffer(0, mvpMatrix);
+
+	// Draw.
+	commandList->DrawIndexed(_countof(g_Indices));
+}
+
+void Demo::RenderUIPass(CommandList* commandList)
+{
+	GUISystem& gui = *Application::GetInstance().GetGUISystem();
+
+	gui.BeginFrame();
+
+	ImGui::Begin("Debug");
+
+	ImGui::SliderFloat("FoV", &m_FoV, 10.f, 90.f);
+
+	ImGui::Checkbox("Rotate Cube", &m_CubeAnimation.m_RotateCube);
+	ImGui::SliderFloat("Rotation Speed", &m_CubeAnimation.m_RotationSpeed, 0.f, 360.f);
+
+	for (int i = 0; i < g_NumVertices; ++i)
+	{
+		std::string label = "Vertex" + std::to_string(i);
+
+		if (ImGui::ColorEdit3(label.c_str(), &g_Vertices[i].Color.x))
+		{
+			m_VerticesDirty = true;
+		}
+	}
+
+	ImGui::End();
+
+	gui.EndFrame();
+
+	gui.Render(*commandList);
+}
+
+void Demo::UpdateCubeVertices()
+{
+	if (m_VerticesDirty)
+	{
+		std::shared_ptr<CommandQueue> copyCommandQueue = Application::GetInstance().GetCommandQueue(D3D12_COMMAND_LIST_TYPE_COPY);
+		std::shared_ptr<CommandList> copyCommandList = copyCommandQueue->GetCommandList();
+
+		copyCommandList->CopyVertexBuffer(m_VertexBuffer, _countof(g_Vertices), sizeof(VertexPosColor), g_Vertices);
+		m_VerticesDirty = false;
+
+		copyCommandQueue->ExecuteCommandList(copyCommandList);
+
+		m_VerticesDirty = false;
+	}
 }

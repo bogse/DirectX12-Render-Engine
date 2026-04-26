@@ -29,7 +29,7 @@ Window::Window(HWND hWnd, const std::wstring& windowName, int clientWidth, int c
 
 	m_dxgiSwapChain = CreateSwapChain();
 	m_d3d12RTVDescriptorHeap = app.CreateDescriptorHeap(BufferCount, D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
-	m_RTVDescriptorSize = app.GetDesciptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
+	m_RTVDescriptorSize = app.GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
 
 	UpdateRenderTargetViews();
 }
