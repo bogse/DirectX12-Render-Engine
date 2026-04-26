@@ -29,9 +29,4 @@ private:
 
 private:
 	Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> m_SrvHeap;
-
-	ID3D12Device* m_Device = nullptr;
-	CommandQueue* m_CommandQueue = nullptr;
-
-	bool m_Initialized = false;
 };

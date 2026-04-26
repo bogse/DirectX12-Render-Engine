@@ -10,18 +10,10 @@
 #include "CommandList.h"
 #include "Window.h"
 
-#include <cassert>
-
 extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
 bool GUISystem::Initialize(HWND hwnd, ID3D12Device* device, CommandQueue* commandQueue)
 {
-	if (m_Initialized)
-		return true;
-
-	m_Device = device;
-	m_CommandQueue = commandQueue;
-
 	IMGUI_CHECKVERSION();
 	ImGui::CreateContext();
 
@@ -50,8 +42,6 @@ bool GUISystem::Initialize(HWND hwnd, ID3D12Device* device, CommandQueue* comman
 	initInfo.LegacySingleSrvGpuDescriptor = gpuDescHandle;
 
 	ImGui_ImplDX12_Init(&initInfo);
-
-	m_Initialized = true;
 
 	return true;
 }
@@ -98,15 +88,10 @@ LRESULT GUISystem::WndProcHandler(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPa
 
 void GUISystem::Shutdown()
 {
-	if (!m_Initialized)
-		return;
-
 	ImGui_ImplDX12_Shutdown();
 	ImGui_ImplWin32_Shutdown();
 
 	ImGui::DestroyContext();
 
 	m_SrvHeap.Reset();
-
-	m_Initialized = false;
 }
