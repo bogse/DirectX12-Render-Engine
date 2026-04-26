@@ -5,6 +5,7 @@
 #include "CommandQueue.h"
 #include "DescriptorAllocator.h"
 #include "DescriptorAllocatorPage.h"
+#include "GUISystem.h"
 #include "RenderApp.h"
 #include "Window.h"
 
@@ -41,6 +42,9 @@ Application::Application(HINSTANCE hInst)
 Application::~Application()
 {
 	Flush();
+
+	m_GUISystem->Shutdown();
+	m_GUISystem.reset();
 }
 
 void Application::Initialize()
@@ -280,6 +284,15 @@ std::shared_ptr<Window> Application::CreateRenderWindow(const std::wstring& wind
 	g_Windows.insert(WindowMap::value_type(hWnd, pWindow));
 	g_WindowByName.insert(WindowNameMap::value_type(windowName, pWindow));
 
+	// Initialize imgui wrapper class.
+	m_GUISystem = std::make_unique<GUISystem>();
+
+	m_GUISystem->Initialize(
+		hWnd,
+		m_d3d12Device.Get(),
+		GetCommandQueue(D3D12_COMMAND_LIST_TYPE_DIRECT).get()
+	);
+
 	return pWindow;
 }
 
@@ -453,6 +466,13 @@ MouseButtonEventArgs::MouseButton DecodeMouseButton(UINT messageID)
 
 static LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
+	GUISystem* gui = Application::GetInstance().GetGUISystem();
+
+	if (gui && gui->WndProcHandler(hWnd, message, wParam, lParam))
+	{
+		return 1;
+	}
+
 	WindowPtr pWindow;
 	{
 		WindowMap::iterator iter = g_Windows.find(hWnd);

@@ -14,6 +14,7 @@
 
 class CommandQueue;
 class DescriptorAllocator;
+class GUISystem;
 class RenderApp;
 class Window;
 
@@ -86,6 +87,8 @@ public:
 	Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> CreateDescriptorHeap(UINT nameDescriptors, D3D12_DESCRIPTOR_HEAP_TYPE type);
 	UINT GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE type) const;
 
+	GUISystem* GetGUISystem() const { return m_GUISystem.get(); }
+
 	static uint64_t GetFrameCount()
 	{
 		return ms_FrameCount;
@@ -118,6 +121,8 @@ private:
 	std::shared_ptr<CommandQueue> m_CopyCommandQueue;
 
 	std::unique_ptr<DescriptorAllocator> m_DescriptorAllocators[D3D12_DESCRIPTOR_HEAP_TYPE_NUM_TYPES];
+
+	std::unique_ptr<GUISystem> m_GUISystem;
 
 	bool m_TearingSupported;
 
