@@ -287,10 +287,9 @@ void Demo::OnMouseWheel(MouseWheelEventArgs& eventArgs)
 
 void Demo::OnResize(ResizeEventArgs& eventArgs)
 {
-	Super::OnResize(eventArgs);
-
 	if (eventArgs.m_Width != GetClientWidth() || eventArgs.m_Height != GetClientHeight())
 	{
+		Super::OnResize(eventArgs);
 
 		m_Viewport = CD3DX12_VIEWPORT(0.0f, 0.0f,
 			static_cast<float>(eventArgs.m_Width), static_cast<float>(eventArgs.m_Height));

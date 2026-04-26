@@ -18,7 +18,7 @@ DynamicDescriptorHeap::DynamicDescriptorHeap(
 	, m_CurrentGPUDescriptorHandle(D3D12_DEFAULT)
 	, m_NumFreeHandles(0)
 {
-	m_DescriptorHandleIncrementSize = Application::GetInstance().GetDesciptorHandleIncrementSize(heapType);
+	m_DescriptorHandleIncrementSize = Application::GetInstance().GetDescriptorHandleIncrementSize(heapType);
 
 	// Allocate space for staging CPU visible descriptors.
 	m_DescriptorHandleCache = std::make_unique<D3D12_CPU_DESCRIPTOR_HANDLE[]>(m_NumDescriptorsPerHeap);
@@ -248,6 +248,6 @@ void DynamicDescriptorHeap::Reset()
 	// Reset the table cache
 	for (int i = 0; i < MaxDescriptorTables; ++i)
 	{
-		m_DescriptorTableCache[1].Reset();
+		m_DescriptorTableCache[i].Reset();
 	}
 }

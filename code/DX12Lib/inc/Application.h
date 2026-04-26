@@ -84,7 +84,7 @@ public:
 	void ReleaseStaleDescriptors(uint64_t finishedFrame);
 
 	Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> CreateDescriptorHeap(UINT nameDescriptors, D3D12_DESCRIPTOR_HEAP_TYPE type);
-	UINT GetDesciptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE type) const;
+	UINT GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE type) const;
 
 	static uint64_t GetFrameCount()
 	{

@@ -402,7 +402,7 @@ Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> Application::CreateDescriptorHeap(U
 	return descriptorHeap;
 }
 
-UINT Application::GetDesciptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE type) const
+UINT Application::GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE type) const
 {
 	return m_d3d12Device->GetDescriptorHandleIncrementSize(type);
 }
