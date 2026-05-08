@@ -117,6 +117,9 @@
     <ClCompile Include="code\DX12Lib\src\GUISystem.cpp">
       <Filter>DX12Lib\src</Filter>
     </ClCompile>
+    <ClCompile Include="code\DX12Lib\src\Mesh.cpp">
+      <Filter>DX12Lib\src</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="code\DX12Lib\inc\Application.h">
@@ -213,6 +216,9 @@
       <Filter>ImGui\inc</Filter>
     </ClInclude>
     <ClInclude Include="code\DX12Lib\inc\GUISystem.h">
+      <Filter>DX12Lib\inc</Filter>
+    </ClInclude>
+    <ClInclude Include="code\DX12Lib\inc\Mesh.h">
       <Filter>DX12Lib\inc</Filter>
     </ClInclude>
   </ItemGroup>

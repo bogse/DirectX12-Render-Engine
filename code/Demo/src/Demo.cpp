@@ -6,6 +6,7 @@
 #include "DescriptorAllocation.h"
 #include "GUISystem.h"
 #include "Helpers.h"
+#include "Mesh.h"
 #include "RootSignature.h"
 #include "Window.h"
 
@@ -26,46 +27,18 @@
 
 using namespace DirectX;
 
-// Vertex data for a colored cube.
-struct VertexPosColor
-{
-	XMFLOAT3 Position;
-	XMFLOAT3 Color;
-};
-
-static constexpr int g_NumVertices = 8;
-
-static VertexPosColor g_Vertices[g_NumVertices] = {
-	{ XMFLOAT3(-1.0f, -1.0f, -1.0f), XMFLOAT3(0.0f, 0.0f, 0.0f) }, // 0
-	{ XMFLOAT3(-1.0f,  1.0f, -1.0f), XMFLOAT3(0.0f, 1.0f, 0.0f) }, // 1
-	{ XMFLOAT3( 1.0f,  1.0f, -1.0f), XMFLOAT3(1.0f, 1.0f, 0.0f) }, // 2
-	{ XMFLOAT3( 1.0f, -1.0f, -1.0f), XMFLOAT3(1.0f, 0.0f, 0.0f) }, // 3
-	{ XMFLOAT3(-1.0f, -1.0f,  1.0f), XMFLOAT3(0.0f, 0.0f, 1.0f) }, // 4
-	{ XMFLOAT3(-1.0f,  1.0f,  1.0f), XMFLOAT3(0.0f, 1.0f, 1.0f) }, // 5
-	{ XMFLOAT3( 1.0f,  1.0f,  1.0f), XMFLOAT3(1.0f, 1.0f, 1.0f) }, // 6
-	{ XMFLOAT3( 1.0f, -1.0f,  1.0f), XMFLOAT3(1.0f, 0.0f, 1.0f) },  // 7
-};
-
-static WORD g_Indices[36] =
-{
-	0, 1, 2, 0, 2, 3,
-	4, 6, 5, 4, 7, 6,
-	4, 5, 1, 4, 1, 0,
-	3, 2, 6, 3, 6, 7,
-	1, 5, 6, 1, 6, 2,
-	4, 0, 3, 4, 3, 7
-};
-
 Demo::Demo(const std::wstring& name, int width, int height, bool vSync)
 	: Super(name, width, height, vSync)
 	, m_ScissorRect(CD3DX12_RECT(0, 0, LONG_MAX, LONG_MAX))
 	, m_Viewport(CD3DX12_VIEWPORT(0.0f, 0.0f, static_cast<float>(width), static_cast<float>(height)))
+	, m_ModelMatrix(DirectX::XMMatrixIdentity())
+	, m_ViewMatrix(DirectX::XMMatrixIdentity())
+	, m_ProjectionMatrix(DirectX::XMMatrixIdentity())
+	, m_CubeMesh(nullptr)
 	, m_CubeAnimation{ 90.f, 0.f, true }
 	, m_FoV(45.0)
-	, m_VerticesDirty(false)
+	, m_RenderWireframe(false)
 {
-	m_VertexBuffer.SetName(L"Demo::VertexBuffer");
-	m_IndexBuffer.SetName(L"Demo::IndexBuffer");
 	m_DepthBuffer.SetName(L"Demo::DepthBuffer");
 }
 
@@ -74,11 +47,8 @@ bool Demo::LoadContent()
 	std::shared_ptr<CommandQueue> commandQueue = Application::GetInstance().GetCommandQueue(D3D12_COMMAND_LIST_TYPE_COPY);
 	std::shared_ptr<CommandList> commandList = commandQueue->GetCommandList();
 
-	// Upload vertex buffer data.
-	commandList->CopyVertexBuffer(m_VertexBuffer, _countof(g_Vertices), sizeof(VertexPosColor), g_Vertices);
-
-	// Upload index buffer data.
-	commandList->CopyIndexBuffer(m_IndexBuffer, _countof(g_Indices), DXGI_FORMAT_R16_UINT, g_Indices);
+	// Create a cube mesh.
+	m_CubeMesh = Mesh::CreateCube(*commandList, 2.f);
 
 	// Allocate space for the Depth Stencil View descriptor.
 	m_DSV = Application::GetInstance().AllocateDescriptors(D3D12_DESCRIPTOR_HEAP_TYPE_DSV);
@@ -90,12 +60,6 @@ bool Demo::LoadContent()
 	// Load the pixel shader.
 	Microsoft::WRL::ComPtr<ID3DBlob> pixelShaderBlob;
 	ThrowIfFailed(D3DReadFileToBlob(L"./PixelShader.cso", &pixelShaderBlob));
-
-	// Create the vertex input layout.
-	D3D12_INPUT_ELEMENT_DESC inputLayout[] = {
-		{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
-		{ "COLOR"   , 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 }
-	};
 
 	// Create a root signature.
 	Microsoft::WRL::ComPtr<ID3D12Device2> device = Application::GetInstance().GetDevice();
@@ -124,33 +88,55 @@ bool Demo::LoadContent()
 
 	m_RootSignature = std::make_unique<RootSignature>(rootSignatureDescription.Desc_1_1, featureData.HighestVersion);
 
-	struct PipelineStateStream
+	auto CreatePSO = [this, &device, &vertexShaderBlob, &pixelShaderBlob](D3D12_FILL_MODE fillMode,
+		Microsoft::WRL::ComPtr<ID3D12PipelineState>& outPSO)
 	{
-		CD3DX12_PIPELINE_STATE_STREAM_ROOT_SIGNATURE		pRootSignature;
-		CD3DX12_PIPELINE_STATE_STREAM_INPUT_LAYOUT			InputLayout;
-		CD3DX12_PIPELINE_STATE_STREAM_PRIMITIVE_TOPOLOGY	PrimitiveTopologyType;
-		CD3DX12_PIPELINE_STATE_STREAM_VS					VS;
-		CD3DX12_PIPELINE_STATE_STREAM_PS					PS;
-		CD3DX12_PIPELINE_STATE_STREAM_DEPTH_STENCIL_FORMAT	DSVFormat;
-		CD3DX12_PIPELINE_STATE_STREAM_RENDER_TARGET_FORMATS RTVFormats;
-	} pipelineStateStream;
+		struct PipelineStateStream
+		{
+			CD3DX12_PIPELINE_STATE_STREAM_ROOT_SIGNATURE		pRootSignature;
+			CD3DX12_PIPELINE_STATE_STREAM_INPUT_LAYOUT			InputLayout;
+			CD3DX12_PIPELINE_STATE_STREAM_PRIMITIVE_TOPOLOGY	PrimitiveTopologyType;
+			CD3DX12_PIPELINE_STATE_STREAM_VS					VS;
+			CD3DX12_PIPELINE_STATE_STREAM_PS					PS;
+			CD3DX12_PIPELINE_STATE_STREAM_DEPTH_STENCIL_FORMAT	DSVFormat;
+			CD3DX12_PIPELINE_STATE_STREAM_RENDER_TARGET_FORMATS RTVFormats;
+			CD3DX12_PIPELINE_STATE_STREAM_RASTERIZER			RasterizerState;
+		} pipelineStateStream;
 
-	D3D12_RT_FORMAT_ARRAY rtvFormats = {};
-	rtvFormats.NumRenderTargets = 1;
-	rtvFormats.RTFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM;
+		D3D12_RT_FORMAT_ARRAY rtvFormats = {};
+		rtvFormats.NumRenderTargets = 1;
+		rtvFormats.RTFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM;
 
-	pipelineStateStream.pRootSignature = m_RootSignature->GetRootSignature().Get();
-	pipelineStateStream.InputLayout = { inputLayout, _countof(inputLayout) };
-	pipelineStateStream.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
-	pipelineStateStream.VS = CD3DX12_SHADER_BYTECODE(vertexShaderBlob.Get());
-	pipelineStateStream.PS = CD3DX12_SHADER_BYTECODE(pixelShaderBlob.Get());
-	pipelineStateStream.DSVFormat = DXGI_FORMAT_D32_FLOAT;
-	pipelineStateStream.RTVFormats = rtvFormats;
+		CD3DX12_RASTERIZER_DESC rasterizerDesc(D3D12_DEFAULT);
+		rasterizerDesc.FillMode = fillMode;
+		rasterizerDesc.CullMode = D3D12_CULL_MODE_BACK;
 
-	D3D12_PIPELINE_STATE_STREAM_DESC pipelineStateStreamDesc = {
-		sizeof(PipelineStateStream), &pipelineStateStream
+		pipelineStateStream.pRootSignature = m_RootSignature->GetRootSignature().Get();
+		pipelineStateStream.InputLayout =
+		{ 
+			VertexPositionNormalTexture::InputElements,
+			VertexPositionNormalTexture::InputElementCount 
+		};
+		pipelineStateStream.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
+		pipelineStateStream.VS = CD3DX12_SHADER_BYTECODE(vertexShaderBlob.Get());
+		pipelineStateStream.PS = CD3DX12_SHADER_BYTECODE(pixelShaderBlob.Get());
+		pipelineStateStream.DSVFormat = DXGI_FORMAT_D32_FLOAT;
+		pipelineStateStream.RTVFormats = rtvFormats;
+		pipelineStateStream.RasterizerState = rasterizerDesc;
+
+		D3D12_PIPELINE_STATE_STREAM_DESC pipelineStateStreamDesc = 
+		{
+			sizeof(PipelineStateStream), 
+			&pipelineStateStream
+		};
+
+		ThrowIfFailed(device->CreatePipelineState(
+			&pipelineStateStreamDesc,
+			IID_PPV_ARGS(&outPSO)));
 	};
-	ThrowIfFailed(device->CreatePipelineState(&pipelineStateStreamDesc, IID_PPV_ARGS(&m_PipelineState)));
+
+	CreatePSO(D3D12_FILL_MODE_SOLID, m_SolidPipelineState);
+	CreatePSO(D3D12_FILL_MODE_WIREFRAME, m_WireframePipelineState);
 
 	uint64_t fenceValue = commandQueue->ExecuteCommandList(commandList);
 	commandQueue->WaitForFenceValue(fenceValue);
@@ -212,8 +198,6 @@ void Demo::OnUpdate(UpdateEventArgs& eventArgs)
 void Demo::OnRender(RenderEventArgs& eventArgs)
 {
 	Super::OnRender(eventArgs);
-
-	UpdateCubeVertices();
 
 	std::shared_ptr<CommandQueue> commandQueue = Application::GetInstance().GetCommandQueue(D3D12_COMMAND_LIST_TYPE_DIRECT);
 	std::shared_ptr<CommandList> commandList = commandQueue->GetCommandList();
@@ -330,13 +314,15 @@ void Demo::RenderScenePass(CommandList* commandList)
 	}
 
 	// Set pipeline state and root signature.
-	commandList->SetPipelineState(m_PipelineState.Get());
+	if (m_RenderWireframe)
+	{
+		commandList->SetPipelineState(m_WireframePipelineState.Get());
+	}
+	else
+	{
+		commandList->SetPipelineState(m_SolidPipelineState.Get());
+	}
 	commandList->SetGraphicsRootSignature(*m_RootSignature);
-
-	// Setup the Input Assembler.
-	commandList->SetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-	commandList->SetVertexBuffer(0, m_VertexBuffer);
-	commandList->SetIndexBuffer(m_IndexBuffer);
 
 	// Setup the Rasterizer State.
 	commandList->SetViewport(m_Viewport);
@@ -351,7 +337,7 @@ void Demo::RenderScenePass(CommandList* commandList)
 	commandList->SetGraphicsDynamicConstantBuffer(0, mvpMatrix);
 
 	// Draw.
-	commandList->DrawIndexed(_countof(g_Indices));
+	m_CubeMesh->Draw(*commandList);
 }
 
 void Demo::RenderUIPass(CommandList* commandList)
@@ -364,38 +350,14 @@ void Demo::RenderUIPass(CommandList* commandList)
 
 	ImGui::SliderFloat("FoV", &m_FoV, 10.f, 90.f);
 
+	ImGui::Checkbox("Render wireframe", &m_RenderWireframe);
+
 	ImGui::Checkbox("Rotate Cube", &m_CubeAnimation.m_RotateCube);
 	ImGui::SliderFloat("Rotation Speed", &m_CubeAnimation.m_RotationSpeed, 0.f, 360.f);
-
-	for (int i = 0; i < g_NumVertices; ++i)
-	{
-		std::string label = "Vertex" + std::to_string(i);
-
-		if (ImGui::ColorEdit3(label.c_str(), &g_Vertices[i].Color.x))
-		{
-			m_VerticesDirty = true;
-		}
-	}
 
 	ImGui::End();
 
 	gui.EndFrame();
 
 	gui.Render(*commandList);
-}
-
-void Demo::UpdateCubeVertices()
-{
-	if (m_VerticesDirty)
-	{
-		std::shared_ptr<CommandQueue> copyCommandQueue = Application::GetInstance().GetCommandQueue(D3D12_COMMAND_LIST_TYPE_COPY);
-		std::shared_ptr<CommandList> copyCommandList = copyCommandQueue->GetCommandList();
-
-		copyCommandList->CopyVertexBuffer(m_VertexBuffer, _countof(g_Vertices), sizeof(VertexPosColor), g_Vertices);
-		m_VerticesDirty = false;
-
-		copyCommandQueue->ExecuteCommandList(copyCommandList);
-
-		m_VerticesDirty = false;
-	}
 }
