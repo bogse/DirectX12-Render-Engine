@@ -163,6 +163,7 @@
     <ClCompile Include="code\DX12Lib\src\GUISystem.cpp" />
     <ClCompile Include="code\DX12Lib\src\HighResolutionClock.cpp" />
     <ClCompile Include="code\DX12Lib\src\IndexBuffer.cpp" />
+    <ClCompile Include="code\DX12Lib\src\Mesh.cpp" />
     <ClCompile Include="code\DX12Lib\src\RenderApp.cpp" />
     <ClCompile Include="code\DX12Lib\src\Resource.cpp" />
     <ClCompile Include="code\DX12Lib\src\ResourceStateTracker.cpp" />
@@ -196,6 +197,7 @@
     <ClInclude Include="code\DX12Lib\inc\HighResolutionClock.h" />
     <ClInclude Include="code\DX12Lib\inc\IndexBuffer.h" />
     <ClInclude Include="code\DX12Lib\inc\KeyCodes.h" />
+    <ClInclude Include="code\DX12Lib\inc\Mesh.h" />
     <ClInclude Include="code\DX12Lib\inc\RenderApp.h" />
     <ClInclude Include="code\DX12Lib\inc\Resource.h" />
     <ClInclude Include="code\DX12Lib\inc\ResourceStateTracker.h" />

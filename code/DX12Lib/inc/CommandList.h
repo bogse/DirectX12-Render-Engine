@@ -71,7 +71,7 @@ public:
 		static_assert(sizeof(T) == 2 || sizeof(T) == 4);
 
 		DXGI_FORMAT indexFormat = (sizeof(T) == 2) ? DXGI_FORMAT_R16_UINT : DXGI_FORMAT_R32_UINT;
-		SetIndexBuffer(indexBuffer, indexBufferData.size(), indexFormat, indexBufferData.data());
+		CopyIndexBuffer(indexBuffer, indexBufferData.size(), indexFormat, indexBufferData.data());
 	}
 
 	/**

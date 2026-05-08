@@ -1,15 +1,14 @@
 #pragma once
 
 #include "DescriptorAllocation.h"
-#include "IndexBuffer.h"
 #include "RenderApp.h"
-#include "VertexBuffer.h"
 #include "Window.h"
 
 #include <DirectXMath.h>
 
 class CommandList;
 class RootSignature;
+class Mesh;
 
 class Demo : public RenderApp
 {
@@ -35,8 +34,6 @@ private:
 	void RenderScenePass(CommandList* commandList);
 	void RenderUIPass(CommandList* commandList);
 
-	void UpdateCubeVertices();
-
 private:
 	struct CubeAnimation
 	{
@@ -45,10 +42,6 @@ private:
 		bool m_RotateCube;
 	};
 
-	// Vertex buffer for the cube.
-	VertexBuffer m_VertexBuffer;
-	IndexBuffer m_IndexBuffer;
-
 	// Depth buffer.
 	Resource m_DepthBuffer;
 	// Descriptor (DSV) used to bind the depth buffer to the pipeline.
@@ -56,7 +49,8 @@ private:
 
 	std::unique_ptr<RootSignature> m_RootSignature;
 
-	Microsoft::WRL::ComPtr<ID3D12PipelineState> m_PipelineState;
+	Microsoft::WRL::ComPtr<ID3D12PipelineState> m_SolidPipelineState;
+	Microsoft::WRL::ComPtr<ID3D12PipelineState> m_WireframePipelineState;
 
 	D3D12_VIEWPORT m_Viewport;
 	D3D12_RECT m_ScissorRect;
@@ -65,7 +59,9 @@ private:
 	DirectX::XMMATRIX m_ViewMatrix;
 	DirectX::XMMATRIX m_ProjectionMatrix;
 
+	std::unique_ptr<Mesh> m_CubeMesh;
+
 	CubeAnimation m_CubeAnimation;
 	float m_FoV;
-	bool m_VerticesDirty;
+	bool m_RenderWireframe;
 };
