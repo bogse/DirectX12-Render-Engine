@@ -312,7 +312,7 @@ void Demo::RenderScenePass(CommandList* commandList)
 		commandList->ClearRTV(rtv, clearColor);
 		commandList->ClearDepth(dsv);
 	}
-	
+
 	// Set pipeline state and root signature.
 	if (m_RenderWireframe)
 	{

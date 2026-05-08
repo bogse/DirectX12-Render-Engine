@@ -45,10 +45,10 @@ std::unique_ptr<Mesh> Mesh::CreateCube(
 	const float size,
 	const bool useLHCoordinateSystem)
 {
-	const int faceCount = 6;
+	constexpr int faceCount = 6;
 
 	// Normal vectors for the 6 faces of a cube
-	static const DirectX::XMVECTORF32 faceNormals[faceCount] = {
+	constexpr DirectX::XMVECTORF32 faceNormals[faceCount] = {
 		{  0,  0,  1 }, // Front
 		{  0,  0, -1 }, // Back
 		{  1,  0,  0 }, // Right
@@ -57,7 +57,7 @@ std::unique_ptr<Mesh> Mesh::CreateCube(
 		{  0, -1,  0 }  // Bottom
 	};
 
-	static const DirectX::XMFLOAT2 textureCoordinates[4] = {
+	constexpr DirectX::XMFLOAT2 textureCoordinates[4] = {
 		{ 1, 0 },
 		{ 1, 1 },
 		{ 0, 1 },
@@ -67,17 +67,18 @@ std::unique_ptr<Mesh> Mesh::CreateCube(
 	VertexCollection vertices;
 	IndexCollection indices;
 
-	float sideLength = size / 2.0f;
+	const float sideLength = size / 2.0f;
 
 	for (int i = 0; i < faceCount; ++i)
 	{
-		DirectX::XMVECTOR normal = faceNormals[i];
+		const DirectX::XMVECTOR normal = faceNormals[i];
 
 		// Get two vectors perpendicular both to the face normal and to each other.
-		DirectX::XMVECTOR basis = (i >= 4) ? DirectX::g_XMIdentityR2 : DirectX::g_XMIdentityR1;
+		const DirectX::XMVECTOR basis = 
+			(i >= 4) ? DirectX::g_XMIdentityR2 : DirectX::g_XMIdentityR1;
 
-		DirectX::XMVECTOR side1 = DirectX::XMVector3Cross(normal, basis);
-		DirectX::XMVECTOR side2 = DirectX::XMVector3Cross(normal, side1);
+		const DirectX::XMVECTOR side1 = DirectX::XMVector3Cross(normal, basis);
+		const DirectX::XMVECTOR side2 = DirectX::XMVector3Cross(normal, side1);
 
 		size_t vbase = vertices.size();
 
