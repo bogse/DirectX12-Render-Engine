@@ -11,6 +11,8 @@ This is a DirectX 12 rendering engine built in C++ for learning and experimentat
 - Descriptor heap management
 - Resource management and state tracking
 - Upload buffer system
+- Dear ImGui integration for real-time debugging and tooling
+- Mesh class implementation for geometry handling and rendering
 
 ## Requirements
 - Windows 10/11
