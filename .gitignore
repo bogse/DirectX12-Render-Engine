@@ -1,19 +1,12 @@
 # Build outputs
-bin/
-obj/
 build/
-x64/
 
 # Visual Studio
+.vs/
 *.sln
 *.vcxproj
 *.vcxproj.filters
-*.vcxproj.user
 *.sln.docstates
-.vs/
 
 # User-specific files
 *.user
-
-# Project-specific output (if it's generated, not source)
-DX12RenderEngine/
