@@ -82,10 +82,14 @@ target_link_libraries(DX12Lib
         DirectX::Headers
 )
 
-# Precompiled Headers.
-target_precompile_headers(DX12Lib
-    PRIVATE
-        inc/DX12LibPCH.h
+# Instruct the MSVC compiler compilation phase to use the precompiled header file
+set_source_files_properties(${PCH_TARGET_SOURCES} PROPERTIES 
+    COMPILE_FLAGS "/Yu\"DX12LibPCH.h\""
+)
+
+# Instruct the MSVC compiler compilation phase to generate the binary precompiled block layout
+set_source_files_properties(src/DX12LibPCH.cpp PROPERTIES
+    COMPILE_FLAGS "/Yc\"DX12LibPCH.h\""
 )
 
 # Visual Studio Organization.

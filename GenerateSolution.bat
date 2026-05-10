@@ -6,6 +6,7 @@ if not exist build (
 
 cd build
 
-cmake .. -G "Visual Studio 17 2022"
+:: Change the generator (-G) or architecture (-A) for different Visual Studio versions
+cmake .. -G "Visual Studio 17 2022" -A x64
 
 cd ..
