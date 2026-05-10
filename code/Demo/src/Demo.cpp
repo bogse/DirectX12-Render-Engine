@@ -55,11 +55,11 @@ bool Demo::LoadContent()
 
 	// Load the vertex shader.
 	Microsoft::WRL::ComPtr<ID3DBlob> vertexShaderBlob;
-	ThrowIfFailed(D3DReadFileToBlob(L"./VertexShader.cso", &vertexShaderBlob));
+	ThrowIfFailed(D3DReadFileToBlob(L"shaders/VertexShader.cso", &vertexShaderBlob));
 
 	// Load the pixel shader.
 	Microsoft::WRL::ComPtr<ID3DBlob> pixelShaderBlob;
-	ThrowIfFailed(D3DReadFileToBlob(L"./PixelShader.cso", &pixelShaderBlob));
+	ThrowIfFailed(D3DReadFileToBlob(L"shaders/PixelShader.cso", &pixelShaderBlob));
 
 	// Create a root signature.
 	Microsoft::WRL::ComPtr<ID3D12Device2> device = Application::GetInstance().GetDevice();

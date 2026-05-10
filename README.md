@@ -19,3 +19,10 @@ This is a DirectX 12 rendering engine built in C++ for learning and experimentat
 - Visual Studio 2022
 - Windows SDK 10.0+
 - DirectX 12 compatible GPU
+- CMake (v4.3.2+ recommended)
+
+## Generating the Project
+
+Run the provided batch script from the project root:
+```bash
+GenerateSolution.bat
