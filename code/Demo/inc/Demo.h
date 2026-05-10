@@ -1,14 +1,14 @@
 #pragma once
 
-#include "DescriptorAllocation.h"
-#include "RenderApp.h"
-#include "Window.h"
+#include <DescriptorAllocation.h>
+#include <Mesh.h>
+#include <RootSignature.h>
+#include <RenderApp.h>
+#include <Window.h>
 
 #include <DirectXMath.h>
 
 class CommandList;
-class RootSignature;
-class Mesh;
 
 class Demo : public RenderApp
 {
