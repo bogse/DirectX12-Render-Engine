@@ -10,3 +10,6 @@ build/
 
 # User-specific files
 *.user
+
+# DirectXTex generated shader outputs
+thirdparty/DirectXTex/DirectXTex/Shaders/Compiled/

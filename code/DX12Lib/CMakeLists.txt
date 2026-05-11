@@ -79,6 +79,7 @@ target_link_libraries(DX12Lib
         dxgi
         dxguid
         ImGui::ImGui
+		DirectXTexDX12
         DirectX::Headers
 )
 

@@ -21,6 +21,7 @@ set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin) # Output directory f
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin) # Putput directory for executables (.EXE).
 
 # Integrate external vendor targets.
+add_subdirectory(thirdparty/DirectXTex)
 add_subdirectory(thirdparty/DirectXHeaders)
 add_subdirectory(thirdparty/ImGui)
 
