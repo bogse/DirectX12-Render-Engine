@@ -13,6 +13,10 @@ This is a DirectX 12 rendering engine built in C++ for learning and experimentat
 - Upload buffer system
 - Dear ImGui integration for real-time debugging and tooling
 - Mesh class implementation for geometry handling and rendering
+- Texture loading support:
+	- DDS via DDSTextureLoader12
+	- PNG / JPG / BMP and other WIC-supported formats via WICTextureLoader12
+	- HDR textures and advanced processing via DirectXTex
 
 ## Requirements
 - Windows 10/11
@@ -23,6 +27,4 @@ This is a DirectX 12 rendering engine built in C++ for learning and experimentat
 - MSVC v143 build tools
 
 ## Generating the Project
-Run the provided batch script from the project root:
-```bash
-GenerateSolution.bat
+Run the provided batch script from the project root: GenerateSolution.bat
