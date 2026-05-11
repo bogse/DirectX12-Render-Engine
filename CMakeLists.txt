@@ -1,5 +1,5 @@
 # Latest version of CMake when this file was created.
-cmake_minimum_required(VERSION 4.3.2)
+cmake_minimum_required(VERSION 3.21)
 
 # Define the root workspace name and specify C++ language support.
 project(DX12RenderEngine LANGUAGES CXX)

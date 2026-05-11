@@ -1,6 +1,3 @@
-# Latest version of CMake when this file was created.
-cmake_minimum_required(VERSION 4.3.2)
-
 # Define the library project framework name and specify C++ language support.
 project(DirectXTex LANGUAGES CXX)
 

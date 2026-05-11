@@ -26,5 +26,15 @@ This is a DirectX 12 rendering engine built in C++ for learning and experimentat
 - Windows SDK 10.0+
 - MSVC v143 build tools
 
-## Generating the Project
-Run the provided batch script from the project root: GenerateSolution.bat
+## Generating and Building the Project
+Ensure you have CMake and Visual Studio installed. Run the following commands from the project root directory using your terminal (Command Prompt, PowerShell, or VS Developer Command Prompt):
+
+```bash
+# 1. Configure the project and generate the build files
+cmake -B build
+
+# 2. Compile the engine (Release mode)
+cmake --build build --config Release
+```
+
+*Note: To compile the project for debugging, change `--config Release` to `--config Debug`.*
