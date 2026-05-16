@@ -47,6 +47,7 @@
 #include <algorithm>
 #include <cassert>
 #include <chrono>
+#include <filesystem>
 #include <map>
 #include <memory>
 #include <mutex>

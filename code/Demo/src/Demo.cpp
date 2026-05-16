@@ -38,6 +38,7 @@ Demo::Demo(const std::wstring& name, int width, int height, bool vSync)
 	, m_CubeAnimation{ 90.f, 0.f, true }
 	, m_FoV(45.0)
 	, m_RenderWireframe(false)
+	, m_EnableTextures(true)
 {
 	m_DepthBuffer.SetName(L"Demo::DepthBuffer");
 }
@@ -46,6 +47,11 @@ bool Demo::LoadContent()
 {
 	std::shared_ptr<CommandQueue> commandQueue = Application::GetInstance().GetCommandQueue(D3D12_COMMAND_LIST_TYPE_COPY);
 	std::shared_ptr<CommandList> commandList = commandQueue->GetCommandList();
+
+	// Load texture.
+	const std::wstring path = ASSET_DIR L"/Textures/DirectX12.png";
+	commandList->LoadTextureFromFile(m_DirectXTexture, path);
+	m_DirectXTexture.SetName(L"DirectX12.png");
 
 	// Create a cube mesh.
 	m_CubeMesh = Mesh::CreateCube(*commandList, 2.f);
@@ -76,15 +82,22 @@ bool Demo::LoadContent()
 		D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT |
 		D3D12_ROOT_SIGNATURE_FLAG_DENY_HULL_SHADER_ROOT_ACCESS |
 		D3D12_ROOT_SIGNATURE_FLAG_DENY_DOMAIN_SHADER_ROOT_ACCESS |
-		D3D12_ROOT_SIGNATURE_FLAG_DENY_GEOMETRY_SHADER_ROOT_ACCESS |
-		D3D12_ROOT_SIGNATURE_FLAG_DENY_PIXEL_SHADER_ROOT_ACCESS;
+		D3D12_ROOT_SIGNATURE_FLAG_DENY_GEOMETRY_SHADER_ROOT_ACCESS;
 
 	// A single 32-bit constant root parameter that is used by the vertex shader.
-	CD3DX12_ROOT_PARAMETER1 rootParameters[1];
+	CD3DX12_ROOT_PARAMETER1 rootParameters[2];
 	rootParameters[0].InitAsConstantBufferView(0, 0, D3D12_ROOT_DESCRIPTOR_FLAG_NONE, D3D12_SHADER_VISIBILITY_VERTEX);
 
+	CD3DX12_DESCRIPTOR_RANGE1 descriptorRange;
+	descriptorRange.Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 0);
+	rootParameters[1].InitAsDescriptorTable(1, &descriptorRange, D3D12_SHADER_VISIBILITY_PIXEL);
+
+	CD3DX12_STATIC_SAMPLER_DESC linearRepeatSampler;
+	linearRepeatSampler.Init(0, D3D12_FILTER_COMPARISON_MIN_MAG_MIP_LINEAR);
+
 	CD3DX12_VERSIONED_ROOT_SIGNATURE_DESC rootSignatureDescription;
-	rootSignatureDescription.Init_1_1(_countof(rootParameters), rootParameters, 0, nullptr, rootSignatureFlags);
+	rootSignatureDescription.Init_1_1(_countof(rootParameters),
+		rootParameters, 1, &linearRepeatSampler, rootSignatureFlags);
 
 	m_RootSignature = std::make_unique<RootSignature>(rootSignatureDescription.Desc_1_1, featureData.HighestVersion);
 
@@ -115,7 +128,7 @@ bool Demo::LoadContent()
 		pipelineStateStream.InputLayout =
 		{ 
 			VertexPositionNormalTexture::InputElements,
-			VertexPositionNormalTexture::InputElementCount 
+			VertexPositionNormalTexture::InputElementCount
 		};
 		pipelineStateStream.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
 		pipelineStateStream.VS = CD3DX12_SHADER_BYTECODE(vertexShaderBlob.Get());
@@ -124,7 +137,7 @@ bool Demo::LoadContent()
 		pipelineStateStream.RTVFormats = rtvFormats;
 		pipelineStateStream.RasterizerState = rasterizerDesc;
 
-		D3D12_PIPELINE_STATE_STREAM_DESC pipelineStateStreamDesc = 
+		D3D12_PIPELINE_STATE_STREAM_DESC pipelineStateStreamDesc =
 		{
 			sizeof(PipelineStateStream), 
 			&pipelineStateStream
@@ -331,9 +344,17 @@ void Demo::RenderScenePass(CommandList* commandList)
 	// Bind the Render Targets to the Output Merger stage.
 	commandList->SetRenderTargets(&rtv, &dsv);
 
+	// Bind the texture SRV to root parameter 1 (t0 in the pixel shader)
+	if (m_EnableTextures)
+	{
+		commandList->SetShaderResourceView(1, 0, m_DirectXTexture,
+			D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+	}
+
 	// Update the MVP matrix.
 	XMMATRIX mvpMatrix = XMMatrixMultiply(m_ModelMatrix, m_ViewMatrix);
 	mvpMatrix = XMMatrixMultiply(mvpMatrix, m_ProjectionMatrix);
+
 	commandList->SetGraphicsDynamicConstantBuffer(0, mvpMatrix);
 
 	// Draw.
@@ -351,6 +372,8 @@ void Demo::RenderUIPass(CommandList* commandList)
 	ImGui::SliderFloat("FoV", &m_FoV, 10.f, 90.f);
 
 	ImGui::Checkbox("Render wireframe", &m_RenderWireframe);
+
+	ImGui::Checkbox("Enable textures", &m_EnableTextures);
 
 	ImGui::Checkbox("Rotate Cube", &m_CubeAnimation.m_RotateCube);
 	ImGui::SliderFloat("Rotation Speed", &m_CubeAnimation.m_RotationSpeed, 0.f, 360.f);

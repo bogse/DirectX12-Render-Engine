@@ -24,7 +24,7 @@ Window::Window(HWND hWnd, const std::wstring& windowName, int clientWidth, int c
 
 	for (int i = 0; i < BufferCount; ++i)
 	{
-		m_ResourceBackBuffers[i].SetName(L"Backbuffer[" + std::to_wstring(i) + L"]");
+		m_BackBufferTextures[i].SetName(L"Backbuffer[" + std::to_wstring(i) + L"]");
 	}
 
 	m_dxgiSwapChain = CreateSwapChain();
@@ -71,9 +71,9 @@ void Window::Destroy()
 	// Remove back buffer resource from the global resource state tracker.
 	for (int i = 0; i < BufferCount; ++i)
 	{
-		ID3D12Resource* resource = m_ResourceBackBuffers[i].GetD3D12Resource().Get();
+		ID3D12Resource* resource = m_BackBufferTextures[i].GetD3D12Resource().Get();
 		ResourceStateTracker::RemoveGlobalResourceState(resource);
-		m_ResourceBackBuffers[i].Reset();
+		m_BackBufferTextures[i].Reset();
 	}
 
 	if (m_hWnd)
@@ -256,9 +256,9 @@ void Window::OnResize(ResizeEventArgs& eventArgs)
 
 		for (int i = 0; i < BufferCount; ++i)
 		{
-			ID3D12Resource* resource = m_ResourceBackBuffers[i].GetD3D12Resource().Get();
+			ID3D12Resource* resource = m_BackBufferTextures[i].GetD3D12Resource().Get();
 			ResourceStateTracker::RemoveGlobalResourceState(resource);
-			m_ResourceBackBuffers[i].Reset();
+			m_BackBufferTextures[i].Reset();
 		}
 
 		DXGI_SWAP_CHAIN_DESC swapChainDesc = {};
@@ -341,7 +341,7 @@ void Window::UpdateRenderTargetViews()
 
 		ResourceStateTracker::AddGlobalResourceState(backBuffer.Get(), D3D12_RESOURCE_STATE_COMMON);
 
-		m_ResourceBackBuffers[i].SetD3D12Resource(backBuffer);
+		m_BackBufferTextures[i].SetD3D12Resource(backBuffer);
 
 		rtvHandle.Offset(m_RTVDescriptorSize);
 	}
@@ -355,7 +355,7 @@ D3D12_CPU_DESCRIPTOR_HANDLE Window::GetCurrentRenderTargetView() const
 
 const Resource& Window::GetCurrentRenderTarget() const
 {
-	return m_ResourceBackBuffers[m_CurrentBackBufferIndex];
+	return m_BackBufferTextures[m_CurrentBackBufferIndex];
 }
 
 UINT Window::GetCurrentBackBufferIndex() const
@@ -368,7 +368,7 @@ UINT Window::Present()
 	std::shared_ptr<CommandQueue> commandQueue = Application::GetInstance().GetCommandQueue(D3D12_COMMAND_LIST_TYPE_DIRECT);
 	std::shared_ptr<CommandList> commandList = commandQueue->GetCommandList();
 
-	commandList->TransitionBarrier(m_ResourceBackBuffers[m_CurrentBackBufferIndex], D3D12_RESOURCE_STATE_PRESENT);
+	commandList->TransitionBarrier(m_BackBufferTextures[m_CurrentBackBufferIndex], D3D12_RESOURCE_STATE_PRESENT);
 	commandQueue->ExecuteCommandList(commandList);
 
 	UINT syncInterval = m_vSync ? 1 : 0;

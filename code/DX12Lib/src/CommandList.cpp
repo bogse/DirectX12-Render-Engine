@@ -8,10 +8,19 @@
 #include "Resource.h"
 #include "ResourceStateTracker.h"
 #include "RootSignature.h"
+#include "Texture.h"
 #include "UploadBuffer.h"
 #include "VertexBuffer.h"
 
-#include "d3dx12.h"
+#include <DDSTextureLoader12.h>
+#include <WICTextureLoader12.h>
+
+#include <d3dx12.h>
+
+#include <filesystem>
+
+std::map<std::wstring, ID3D12Resource*> CommandList::ms_TextureCache;
+std::mutex CommandList::ms_TextureCacheMutex;
 
 CommandList::CommandList(D3D12_COMMAND_LIST_TYPE type)
 	: m_d3d12CommandListType(type)
@@ -149,6 +158,100 @@ void CommandList::CopyIndexBuffer(IndexBuffer& indexBuffer, size_t numIndices, D
 	CopyBuffer(indexBuffer, numIndices, indexSizeInBytes, indexBufferData);
 }
 
+void CommandList::LoadTextureFromFile(Texture& texture, const std::wstring& filename)
+{
+	Microsoft::WRL::ComPtr<ID3D12Device2> device = Application::GetInstance().GetDevice();
+
+	std::filesystem::path filepath(filename);
+
+	if (!std::filesystem::exists(filepath))
+	{
+		throw std::invalid_argument("Invalid filename specified.");
+	}
+
+	std::map<std::wstring, ID3D12Resource*>::iterator iter =
+		ms_TextureCache.find(filename);
+
+	if (iter != ms_TextureCache.end())
+	{
+		texture.SetD3D12Resource(iter->second);
+	}
+	else
+	{
+		Microsoft::WRL::ComPtr<ID3D12Resource> textureResource;
+		std::unique_ptr<uint8_t[]> textureData;
+		std::vector<D3D12_SUBRESOURCE_DATA> subresourceData;
+
+		if (filepath.extension() == ".dds")
+		{
+			// Use DDS texture loaded.
+			ThrowIfFailed(DirectX::LoadDDSTextureFromFile(device.Get(),
+				filename.c_str(), &textureResource, textureData, subresourceData));
+		}
+		else
+		{
+			D3D12_SUBRESOURCE_DATA resourceData;
+			// Use WIC texture loader.
+			ThrowIfFailed(DirectX::LoadWICTextureFromFile(device.Get(),
+				filename.c_str(), &textureResource, textureData, resourceData));
+
+			subresourceData.push_back(resourceData);
+		}
+
+		// Update the global state tracker.
+		ResourceStateTracker::AddGlobalResourceState(textureResource.Get(), D3D12_RESOURCE_STATE_COPY_DEST);
+
+		texture.SetD3D12Resource(textureResource);
+		texture.CreateViews();
+
+		CopyTextureSubresource(texture, 0, static_cast<uint32_t>(subresourceData.size()),
+			subresourceData.data());
+
+		// Add the texture resource to the texture cache.
+		std::lock_guard<std::mutex> lock(ms_TextureCacheMutex);
+		ms_TextureCache[filename] = textureResource.Get();
+	}
+}
+
+void CommandList::CopyTextureSubresource(
+	Texture& texture,
+	uint32_t firstSubresource,
+	uint32_t numSubresources,
+	D3D12_SUBRESOURCE_DATA* subresourceData)
+{
+	Microsoft::WRL::ComPtr<ID3D12Device2> device = Application::GetInstance().GetDevice();
+	Microsoft::WRL::ComPtr<ID3D12Resource> destinationResource = texture.GetD3D12Resource();
+
+	if (destinationResource)
+	{
+		// Resource must be in the copy-destination state.
+		TransitionBarrier(texture, D3D12_RESOURCE_STATE_COPY_DEST, true);
+
+		UINT64 requiredSize = GetRequiredIntermediateSize(destinationResource.Get(),
+			firstSubresource, numSubresources);
+
+		// Create a temporary (intermediate) resource for uploading the subresources.
+		CD3DX12_HEAP_PROPERTIES heapProp(D3D12_HEAP_TYPE_UPLOAD);
+		CD3DX12_RESOURCE_DESC resourceDesc = CD3DX12_RESOURCE_DESC::Buffer(requiredSize);
+
+		Microsoft::WRL::ComPtr<ID3D12Resource> intermediateResource;
+		ThrowIfFailed(device->CreateCommittedResource(
+			&heapProp,
+			D3D12_HEAP_FLAG_NONE,
+			&resourceDesc,
+			D3D12_RESOURCE_STATE_GENERIC_READ,
+			nullptr,
+			IID_PPV_ARGS(&intermediateResource)
+		));
+
+		UpdateSubresources(m_d3d12CommandList.Get(), destinationResource.Get(),
+			intermediateResource.Get(), 0, firstSubresource, numSubresources, subresourceData);
+
+		m_TrackedObjects.push_back(intermediateResource);
+		m_TrackedObjects.push_back(destinationResource);
+	}
+}
+
 void CommandList::SetGraphicsDynamicConstantBuffer(uint32_t rootParameterIndex, size_t sizeInBytes, const void* bufferData)
 {
 	// Constant buffers must be 256-byte aligned.
@@ -273,6 +376,23 @@ void CommandList::SetGraphicsRootSignature(const RootSignature& rootSignature)
 	}
 }
 
+void CommandList::SetShaderResourceView(
+	uint32_t rootParameterIndex,
+	uint32_t descriptorOffset,
+	const Resource& resource,
+	D3D12_RESOURCE_STATES stateAfter)
+{
+	TransitionBarrier(resource, stateAfter);
+
+	D3D12_CPU_DESCRIPTOR_HANDLE srv =
+	{
+		resource.GetShaderResourceView()
+	};
+
+	m_DynamicDescriptorHeap[D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV]->
+		StageDescriptors(rootParameterIndex, descriptorOffset, 1, srv);
+}
+
 void CommandList::SetRenderTargets(const D3D12_CPU_DESCRIPTOR_HANDLE* rtvs,
 								   const D3D12_CPU_DESCRIPTOR_HANDLE* dsv,
 								   UINT numRTVs)
@@ -326,6 +446,7 @@ void CommandList::Reset()
 	for (int i = 0; i < D3D12_DESCRIPTOR_HEAP_TYPE_NUM_TYPES; ++i)
 	{
 		m_DynamicDescriptorHeap[i]->Reset();
+		m_DescriptorHeaps[i] = nullptr;
 	}
 
 	m_RootSignature = nullptr;

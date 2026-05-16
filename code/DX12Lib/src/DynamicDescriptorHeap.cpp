@@ -64,7 +64,7 @@ void DynamicDescriptorHeap::StageDescriptors(
 	uint32_t rootParameterIndex,
 	uint32_t offset,
 	uint32_t numDescriptors,
-	const D3D12_CPU_DESCRIPTOR_HANDLE srcDescriptor)
+	const D3D12_CPU_DESCRIPTOR_HANDLE srcDescriptors)
 {
 	// Cannot stage more than de maximum number of descriptors per heap.
 	// Cannot stage more than MaxDescriptorTables root parameters.
@@ -85,7 +85,7 @@ void DynamicDescriptorHeap::StageDescriptors(
 	D3D12_CPU_DESCRIPTOR_HANDLE* dstDescriptor = (descriptorTableCache.BaseDescriptor + offset);
 	for (uint32_t i = 0; i < numDescriptors; ++i)
 	{
-		dstDescriptor[i] = CD3DX12_CPU_DESCRIPTOR_HANDLE(srcDescriptor, i, m_DescriptorHandleIncrementSize);
+		dstDescriptor[i] = CD3DX12_CPU_DESCRIPTOR_HANDLE(srcDescriptors, i, m_DescriptorHandleIncrementSize);
 	}
 
 	// Set the root parameter index bit to make sure the descriptor table
@@ -189,7 +189,7 @@ void DynamicDescriptorHeap::CommitStagedDescriptors(
 			m_CurrentGPUDescriptorHandle.Offset(numSrcDescriptors, m_DescriptorHandleIncrementSize);
 			m_NumFreeHandles -= numSrcDescriptors;
 
-			// Flip the stale bit so the descriptor table is not recopied again unlees it is updated with a new descriptor.
+			// Flip the stale bit so the descriptor table is not recopied again unless it is updated with a new descriptor.
 			m_StaleDescriptorTableBitMask ^= (1 << rootIndex);		
 		}
 	}

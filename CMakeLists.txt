@@ -31,5 +31,9 @@ add_subdirectory(code/DX12Lib)
 # Integrate client execution sandboxes.
 add_subdirectory(code/Demo) 
 
+target_compile_definitions(Demo PRIVATE
+    ASSET_DIR="${CMAKE_SOURCE_DIR}/data"
+)
+
 # Set the startup project (Visual Studio only).
 set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT Demo)

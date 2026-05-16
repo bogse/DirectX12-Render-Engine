@@ -4,6 +4,7 @@
 #include <Mesh.h>
 #include <RootSignature.h>
 #include <RenderApp.h>
+#include <Texture.h>
 #include <Window.h>
 
 #include <DirectXMath.h>
@@ -42,8 +43,10 @@ private:
 		bool m_RotateCube;
 	};
 
+	Texture m_DirectXTexture;
+
 	// Depth buffer.
-	Resource m_DepthBuffer;
+	Texture m_DepthBuffer;
 	// Descriptor (DSV) used to bind the depth buffer to the pipeline.
 	DescriptorAllocation m_DSV;
 
@@ -64,4 +67,5 @@ private:
 	CubeAnimation m_CubeAnimation;
 	float m_FoV;
 	bool m_RenderWireframe;
+	bool m_EnableTextures;
 };
