@@ -7,13 +7,22 @@ add_executable(Demo WIN32)
 # C++ Standard.
 target_compile_features(Demo PRIVATE cxx_std_20)
 
+# Individual Shader File Paths (Single point of definition)
+set(VERTEX_SHADER_SRC "../../data/Shaders/VertexShader.hlsl")
+set(PIXEL_SHADER_SRC  "../../data/Shaders/PixelShader.hlsl")
+
+# List combining all shader tracking assets
+set(SHADER_SOURCES
+    ${VERTEX_SHADER_SRC}
+    ${PIXEL_SHADER_SRC}
+)
+
 # Explicitly list all source and header files for perfect Visual Studio tracking.
 target_sources(Demo PRIVATE
     inc/Demo.h
     src/main.cpp
     src/Demo.cpp
-    shaders/VertexShader.hlsl
-    shaders/PixelShader.hlsl
+    ${SHADER_SOURCES}
 )
 
 # Include Directories.
@@ -37,7 +46,7 @@ set_target_properties(Demo PROPERTIES
 
 # Native Visual Studio HLSL Shader Integration (Shader Model 5.1+).
 # Configure common pipeline compilation properties across all shaders.
-set_source_files_properties(shaders/VertexShader.hlsl shaders/PixelShader.hlsl PROPERTIES
+set_source_files_properties(${SHADER_SOURCES} PROPERTIES
     VS_SHADER_OBJECT_FILE_NAME "$(OutDir)shaders/%(Filename).cso"
     VS_SHADER_MODEL "5.1"
     VS_SHADER_DISABLE_OPTIMIZATIONS $<$<CONFIG:Debug>:ON>
@@ -45,15 +54,14 @@ set_source_files_properties(shaders/VertexShader.hlsl shaders/PixelShader.hlsl P
 )
 
 # Explicitly flag target pipeline stages for individual assets.
-set_source_files_properties(shaders/VertexShader.hlsl PROPERTIES VS_SHADER_TYPE Vertex)
-set_source_files_properties(shaders/PixelShader.hlsl PROPERTIES VS_SHADER_TYPE Pixel)
+set_source_files_properties(${VERTEX_SHADER_SRC} PROPERTIES VS_SHADER_TYPE Vertex)
+set_source_files_properties(${PIXEL_SHADER_SRC} PROPERTIES VS_SHADER_TYPE Pixel)
 
 
 # Visual Studio Solution Explorer Layout Matching.
 source_group("inc" FILES inc/Demo.h)
 source_group("src" FILES src/main.cpp src/Demo.cpp)
-source_group("shaders" FILES shaders/VertexShader.hlsl 
-							 shaders/PixelShader.hlsl)
+source_group("shaders" FILES ${SHADER_SOURCES})
 
 # Execute an automated post-build safety sequence to verify physical generation directory paths exist.
 add_custom_command(TARGET Demo POST_BUILD
