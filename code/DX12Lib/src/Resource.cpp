@@ -18,20 +18,9 @@ Microsoft::WRL::ComPtr<ID3D12Resource> Resource::GetD3D12Resource() const
 }
 
 void Resource::SetD3D12Resource(
-	Microsoft::WRL::ComPtr<ID3D12Resource> d3d12Resource,
-	const D3D12_CLEAR_VALUE* clearValue)
+	Microsoft::WRL::ComPtr<ID3D12Resource> d3d12Resource)
 {
 	m_d3d12Resource = d3d12Resource;
-
-	if (m_d3d12ClearValue)
-	{
-		m_d3d12ClearValue = std::make_unique<D3D12_CLEAR_VALUE>(*clearValue);
-	}
-	else
-	{
-		m_d3d12ClearValue.reset();
-	}
-
 	SetName(m_ResourceName);
 }
 

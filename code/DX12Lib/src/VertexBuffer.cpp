@@ -22,6 +22,11 @@ void VertexBuffer::CreateViews(size_t numElements, size_t elementSize)
 	m_VertexBufferView.StrideInBytes = static_cast<UINT>(m_VertexStride);
 }
 
+D3D12_CPU_DESCRIPTOR_HANDLE VertexBuffer::GetShaderResourceView() const
+{
+	throw std::exception("VertexBuffer::GetShaderResourceView should not be called.");
+}
+
 size_t VertexBuffer::GetNumVertices() const
 {
 	return m_NumVertices;

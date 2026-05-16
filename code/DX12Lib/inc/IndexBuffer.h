@@ -10,6 +10,11 @@ public:
 
 	void CreateViews(size_t numElements, size_t elementSize) override;
 
+	/**
+	* Get the SRV for a resource.
+	*/
+	D3D12_CPU_DESCRIPTOR_HANDLE GetShaderResourceView() const override;
+
 	size_t GetNumIndicies() const;
 	DXGI_FORMAT GetIndexFormat() const;
 

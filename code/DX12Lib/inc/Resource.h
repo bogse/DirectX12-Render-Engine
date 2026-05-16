@@ -22,9 +22,14 @@ public:
 
 	/**
 	* Replace the D3D12 resource.
+	* Should only be called by the CommandList.
 	*/
-	virtual void SetD3D12Resource(Microsoft::WRL::ComPtr<ID3D12Resource> d3d12Resource,
-		const D3D12_CLEAR_VALUE* clearValue = nullptr);
+	virtual void SetD3D12Resource(Microsoft::WRL::ComPtr<ID3D12Resource> d3d12Resource);
+
+	/**
+	* Get the SRV for a resource.
+	*/
+	virtual D3D12_CPU_DESCRIPTOR_HANDLE GetShaderResourceView() const = 0;
 
 	/**
 	* Set the name of the resource. Useful for debugging purposes.

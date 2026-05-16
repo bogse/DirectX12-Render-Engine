@@ -8,8 +8,8 @@
 #include <dxgi1_6.h>
 
 #include "Events.h"
-#include "Resource.h"
 #include "HighResolutionClock.h"
+#include "Texture.h"
 
 class RenderApp;
 
@@ -121,7 +121,7 @@ private:
 
 	Microsoft::WRL::ComPtr<IDXGISwapChain4> m_dxgiSwapChain;
 	Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> m_d3d12RTVDescriptorHeap;
-	Resource m_ResourceBackBuffers[BufferCount];
+	Texture m_BackBufferTextures[BufferCount];
 
 	UINT m_RTVDescriptorSize;
 	UINT m_CurrentBackBufferIndex;

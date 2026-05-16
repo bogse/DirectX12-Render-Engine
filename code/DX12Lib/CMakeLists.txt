@@ -15,10 +15,9 @@ add_library(DX12Lib STATIC)
 # C++ Standard.
 target_compile_features(DX12Lib PUBLIC cxx_std_20)
 
-# Explicitly list all source and header files for perfect Visual Studio tracking.
-target_sources(DX12Lib PRIVATE
-
-    # Headers.
+# Explicitly list all source and header files.
+# Headers files.
+set(DX12_HEADERS
     inc/DX12LibPCH.h
     inc/Application.h
     inc/Buffer.h
@@ -39,11 +38,14 @@ target_sources(DX12Lib PRIVATE
     inc/Resource.h
     inc/ResourceStateTracker.h
     inc/RootSignature.h
+	inc/Texture.h
     inc/UploadBuffer.h
     inc/VertexBuffer.h
     inc/Window.h
+)
 
-    # Source Files.
+# Source files.
+set(DX12_SOURCES
     src/DX12LibPCH.cpp
     src/Application.cpp
     src/Buffer.cpp
@@ -61,15 +63,23 @@ target_sources(DX12Lib PRIVATE
     src/Resource.cpp
     src/ResourceStateTracker.cpp
     src/RootSignature.cpp
+	src/Texture.cpp
     src/UploadBuffer.cpp
     src/VertexBuffer.cpp
     src/Window.cpp
+)
+
+# Source and header files Visual Studio tracking.
+target_sources(DX12Lib PRIVATE
+	${DX12_HEADERS}
+	${DX12_SOURCES}
 )
 
 # Include Directories.
 target_include_directories(DX12Lib
     PUBLIC
         ${CMAKE_CURRENT_SOURCE_DIR}/inc
+		${CMAKE_CURRENT_SOURCE_DIR}/../DirectXTex
 )
 
 # Link Libraries.
@@ -94,51 +104,5 @@ set_source_files_properties(src/DX12LibPCH.cpp PROPERTIES
 )
 
 # Visual Studio Organization.
-source_group("inc" FILES
-    inc/DX12LibPCH.h
-    inc/Application.h
-    inc/Buffer.h
-    inc/CommandList.h
-    inc/CommandQueue.h
-    inc/DescriptorAllocation.h
-    inc/DescriptorAllocator.h
-    inc/DescriptorAllocatorPage.h
-    inc/DynamicDescriptorHeap.h
-    inc/Events.h
-    inc/GUISystem.h
-    inc/Helpers.h
-    inc/HighResolutionClock.h
-    inc/IndexBuffer.h
-    inc/KeyCodes.h
-    inc/Mesh.h
-    inc/RenderApp.h
-    inc/Resource.h
-    inc/ResourceStateTracker.h
-    inc/RootSignature.h
-    inc/UploadBuffer.h
-    inc/VertexBuffer.h
-    inc/Window.h
-)
-
-source_group("src" FILES
-    src/DX12LibPCH.cpp
-    src/Application.cpp
-    src/Buffer.cpp
-    src/CommandList.cpp
-    src/CommandQueue.cpp
-    src/DescriptorAllocation.cpp
-    src/DescriptorAllocator.cpp
-    src/DescriptorAllocatorPage.cpp
-    src/DynamicDescriptorHeap.cpp
-    src/GUISystem.cpp
-    src/HighResolutionClock.cpp
-    src/IndexBuffer.cpp
-    src/Mesh.cpp
-    src/RenderApp.cpp
-    src/Resource.cpp
-    src/ResourceStateTracker.cpp
-    src/RootSignature.cpp
-    src/UploadBuffer.cpp
-    src/VertexBuffer.cpp
-    src/Window.cpp
-)
+source_group("inc" FILES ${DX12_HEADERS})
+source_group("src" FILES ${DX12_SOURCES})
