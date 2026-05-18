@@ -4,7 +4,6 @@
 #include "CommandList.h"
 #include "CommandQueue.h"
 #include "DescriptorAllocation.h"
-#include "DynamicDescriptorHeap.h"
 #include "GUISystem.h"
 #include "Helpers.h"
 #include "Mesh.h"
