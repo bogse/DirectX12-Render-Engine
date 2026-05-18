@@ -27,6 +27,19 @@
 
 using namespace DirectX;
 
+constexpr int imGuiVertexCount = 8;
+
+static DirectX::XMFLOAT4 imGuiColors[imGuiVertexCount] = {
+	{ 0.0f, 0.0f, 0.0f, 1.0f }, // Corner 0 : Black
+	{ 1.0f, 0.0f, 0.0f, 1.0f }, // Corner 1 : Red
+	{ 0.0f, 1.0f, 0.0f, 1.0f }, // Corner 2 : Green
+	{ 1.0f, 1.0f, 0.0f, 1.0f }, // Corner 3 : Yellow
+	{ 0.0f, 0.0f, 1.0f, 1.0f }, // Corner 4 : Blue
+	{ 1.0f, 0.0f, 1.0f, 1.0f }, // Corner 5 : Magenta
+	{ 0.0f, 1.0f, 1.0f, 1.0f }, // Corner 6 : Cyan
+	{ 1.0f, 1.0f, 1.0f, 1.0f }  // Corner 7 : White
+};
+
 Demo::Demo(const std::wstring& name, int width, int height, bool vSync)
 	: Super(name, width, height, vSync)
 	, m_ScissorRect(CD3DX12_RECT(0, 0, LONG_MAX, LONG_MAX))
@@ -84,13 +97,17 @@ bool Demo::LoadContent()
 		D3D12_ROOT_SIGNATURE_FLAG_DENY_DOMAIN_SHADER_ROOT_ACCESS |
 		D3D12_ROOT_SIGNATURE_FLAG_DENY_GEOMETRY_SHADER_ROOT_ACCESS;
 
-	// A single 32-bit constant root parameter that is used by the vertex shader.
-	CD3DX12_ROOT_PARAMETER1 rootParameters[2];
+	// Root parameters:
+	// 0 - Vertex shader constant buffer (b0)
+	// 1 - Pixel shader constant buffer (b1)
+	// 2 - Shader resource view descriptor table (t0)
+	CD3DX12_ROOT_PARAMETER1 rootParameters[3];
 	rootParameters[0].InitAsConstantBufferView(0, 0, D3D12_ROOT_DESCRIPTOR_FLAG_NONE, D3D12_SHADER_VISIBILITY_VERTEX);
+	rootParameters[1].InitAsConstantBufferView(1, 0, D3D12_ROOT_DESCRIPTOR_FLAG_NONE, D3D12_SHADER_VISIBILITY_PIXEL);
 
 	CD3DX12_DESCRIPTOR_RANGE1 descriptorRange;
 	descriptorRange.Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 0);
-	rootParameters[1].InitAsDescriptorTable(1, &descriptorRange, D3D12_SHADER_VISIBILITY_PIXEL);
+	rootParameters[2].InitAsDescriptorTable(1, &descriptorRange, D3D12_SHADER_VISIBILITY_PIXEL);
 
 	CD3DX12_STATIC_SAMPLER_DESC linearRepeatSampler;
 	linearRepeatSampler.Init(0, D3D12_FILTER_COMPARISON_MIN_MAG_MIP_LINEAR);
@@ -127,8 +144,8 @@ bool Demo::LoadContent()
 		pipelineStateStream.pRootSignature = m_RootSignature->GetRootSignature().Get();
 		pipelineStateStream.InputLayout =
 		{ 
-			VertexPositionNormalTexture::InputElements,
-			VertexPositionNormalTexture::InputElementCount
+			VertexPositionNormalColorTexture::InputElements,
+			VertexPositionNormalColorTexture::InputElementCount
 		};
 		pipelineStateStream.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
 		pipelineStateStream.VS = CD3DX12_SHADER_BYTECODE(vertexShaderBlob.Get());
@@ -344,10 +361,10 @@ void Demo::RenderScenePass(CommandList* commandList)
 	// Bind the Render Targets to the Output Merger stage.
 	commandList->SetRenderTargets(&rtv, &dsv);
 
-	// Bind the texture SRV to root parameter 1 (t0 in the pixel shader)
+	// Bind the texture SRV to root parameter 2 (t0 in the pixel shader)
 	if (m_EnableTextures)
 	{
-		commandList->SetShaderResourceView(1, 0, m_DirectXTexture,
+		commandList->SetShaderResourceView(2, 0, m_DirectXTexture,
 			D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
 	}
 
@@ -356,6 +373,17 @@ void Demo::RenderScenePass(CommandList* commandList)
 	mvpMatrix = XMMatrixMultiply(mvpMatrix, m_ProjectionMatrix);
 
 	commandList->SetGraphicsDynamicConstantBuffer(0, mvpMatrix);
+
+	if (m_EnableTextures)
+	{
+		m_PipelineOptions.EnableTextures = 1;
+	}
+	else
+	{
+		m_PipelineOptions.EnableTextures = 0;
+	}
+
+	commandList->SetGraphicsDynamicConstantBuffer(1, m_PipelineOptions);
 
 	// Draw.
 	m_CubeMesh->Draw(*commandList);
@@ -370,6 +398,65 @@ void Demo::RenderUIPass(CommandList* commandList)
 	ImGui::Begin("Debug");
 
 	ImGui::SliderFloat("FoV", &m_FoV, 10.f, 90.f);
+
+	bool bufferDirty = false;
+
+	if (ImGui::CollapsingHeader("Vertex Colors"))
+	{
+		for (size_t i = 0; i < imGuiVertexCount; ++i)
+		{
+			std::string label = "Vertex " + std::to_string(i);
+			if (ImGui::ColorEdit4(label.c_str(), &imGuiColors[i].x))
+			{
+				bufferDirty = true;
+			}
+		}
+	}
+
+	static float uniformColor[4] = { 1.f, 1.f, 1.f, 1.f };
+
+	if (ImGui::ColorEdit4("Uniform color", uniformColor))
+	{
+		for (size_t i = 0; i < imGuiVertexCount; ++i)
+		{
+			imGuiColors[i] =
+			{
+				uniformColor[0],
+				uniformColor[1],
+				uniformColor[2],
+				uniformColor[3]
+			};
+		}
+
+		bufferDirty = true;
+	}
+
+	if (bufferDirty)
+	{
+		m_CubeMesh->UpdateColors(*commandList, imGuiColors);
+	}
+
+	static ImTextureID textureID = ImTextureID_Invalid;
+	const Application& app = Application::GetInstance();
+	ID3D12Device2* device = app.GetDevice().Get();
+	GUISystem* guiSystem = app.GetGUISystem();
+
+	if (ImGui::CollapsingHeader("Texture Debugger"))
+	{
+		if (!textureID)
+		{
+			D3D12_CPU_DESCRIPTOR_HANDLE textureCpuHandle = m_DirectXTexture.GetShaderResourceView();
+
+			textureID = guiSystem->RegisterTexture(device, textureCpuHandle);
+		}
+
+		ImGui::Image(textureID, ImVec2(126, 126));
+	}
+	else if (textureID)
+	{
+		guiSystem->UnregisterTexture(device);
+		textureID = ImTextureID_Invalid;
+	}
 
 	ImGui::Checkbox("Render wireframe", &m_RenderWireframe);
 

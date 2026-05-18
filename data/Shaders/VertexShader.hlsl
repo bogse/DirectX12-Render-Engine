@@ -9,6 +9,7 @@ struct VertexPositionNormalTexture
 {
     float3 Position : POSITION;
     float3 Normal   : NORMAL;
+    float4 Color    : COLOR;
     float2 TexCoord : TEXCOORD;
 };
 
@@ -16,6 +17,7 @@ struct VertexShaderOutput
 {
     float4 Position : SV_Position;
     float3 Normal   : NORMAL;
+    float4 Color    : COLOR;
     float2 TexCoord : TEXCOORD;
 };
 
@@ -25,6 +27,7 @@ VertexShaderOutput main(VertexPositionNormalTexture IN)
     
     OUT.Position = mul(ModelViewProjectionCB.MVP, float4(IN.Position, 1.0f));
     OUT.Normal = mul(ModelViewProjectionCB.MVP, float4(IN.Normal, 0.0f)).xyz;
+    OUT.Color = IN.Color;
     OUT.TexCoord = IN.TexCoord;
     
     return OUT;
