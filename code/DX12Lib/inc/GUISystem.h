@@ -24,6 +24,9 @@ public:
 
 	LRESULT WndProcHandler(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
+	ImTextureID RegisterTexture(ID3D12Device* device, D3D12_CPU_DESCRIPTOR_HANDLE textureSrv);
+	void UnregisterTexture(ID3D12Device* device);
+
 private:
 	void CreateDescriptorHeap(ID3D12Device* device);
 

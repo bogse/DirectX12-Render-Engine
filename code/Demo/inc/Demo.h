@@ -43,6 +43,13 @@ private:
 		bool m_RotateCube;
 	};
 
+	struct PipelineOptionsCB
+	{
+		int EnableTextures;
+	};
+
+	PipelineOptionsCB m_PipelineOptions;
+
 	Texture m_DirectXTexture;
 
 	// Depth buffer.

@@ -50,7 +50,7 @@ void GUISystem::CreateDescriptorHeap(ID3D12Device* device)
 {
 	D3D12_DESCRIPTOR_HEAP_DESC desc = {};
 	desc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
-	desc.NumDescriptors = 1;
+	desc.NumDescriptors = 1000;
 	desc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
 	desc.NodeMask = 0;
 
@@ -84,6 +84,50 @@ void GUISystem::Render(CommandList& commandList)
 LRESULT GUISystem::WndProcHandler(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 {
 	return ImGui_ImplWin32_WndProcHandler(hwnd, msg, wParam, lParam);
+}
+
+ImTextureID GUISystem::RegisterTexture(ID3D12Device* device, D3D12_CPU_DESCRIPTOR_HANDLE textureSrv)
+{
+	ID3D12DescriptorHeap* descriptorHeap = m_SrvHeap.Get();
+
+	UINT descSize = device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+
+	// Support only one texture for the moment.
+	// Slot 0 is already used bu ImGui's font atlas.
+	int slotIndex = 1;
+
+	D3D12_CPU_DESCRIPTOR_HANDLE cpuHandle = descriptorHeap->GetCPUDescriptorHandleForHeapStart();
+	cpuHandle.ptr += slotIndex * descSize;
+
+	D3D12_GPU_DESCRIPTOR_HANDLE gpuHandle = descriptorHeap->GetGPUDescriptorHandleForHeapStart();
+	gpuHandle.ptr += slotIndex * descSize;
+
+	device->CopyDescriptorsSimple(
+		1,
+		cpuHandle,
+		textureSrv,
+		D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+
+	return (ImTextureID)gpuHandle.ptr;
+}
+
+void GUISystem::UnregisterTexture(ID3D12Device* device)
+{
+	ID3D12DescriptorHeap* descriptorHeap = m_SrvHeap.Get();
+	UINT descSize = device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+
+	int slotIndex = 1;
+
+	D3D12_CPU_DESCRIPTOR_HANDLE cpuHandle = descriptorHeap->GetCPUDescriptorHandleForHeapStart();
+	cpuHandle.ptr += slotIndex * descSize;
+
+	D3D12_SHADER_RESOURCE_VIEW_DESC nullSrvDesc = {};
+	nullSrvDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+	nullSrvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
+	nullSrvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+	nullSrvDesc.Texture2D.MipLevels = 1;
+
+	device->CreateShaderResourceView(nullptr, &nullSrvDesc, cpuHandle);
 }
 
 void GUISystem::Shutdown()
