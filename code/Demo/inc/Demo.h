@@ -38,9 +38,16 @@ private:
 private:
 	struct CubeAnimation
 	{
-		float m_RotationSpeed;
-		float m_CurrentAngle;
-		bool m_RotateCube;
+		float m_RotationSpeedDegPerSec;
+		float m_RotationAngleDeg;
+		bool m_EnableRotation;
+	};
+
+	struct Transform
+	{
+		DirectX::XMFLOAT3 m_Position;
+		DirectX::XMFLOAT3 m_RotationDeg;
+		DirectX::XMFLOAT3 m_Scale;
 	};
 
 	struct PipelineOptionsCB
@@ -72,6 +79,8 @@ private:
 	std::unique_ptr<Mesh> m_CubeMesh;
 
 	CubeAnimation m_CubeAnimation;
+	Transform m_CubeTransform;
+
 	float m_FoV;
 	bool m_RenderWireframe;
 	bool m_EnableTextures;
