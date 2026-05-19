@@ -79,7 +79,7 @@ private:
 	std::unique_ptr<Mesh> m_CubeMesh;
 
 	CubeAnimation m_CubeAnimation;
-	Transform m_Transform;
+	Transform m_CubeTransform;
 
 	float m_FoV;
 	bool m_RenderWireframe;

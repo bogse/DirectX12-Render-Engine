@@ -50,7 +50,7 @@ Demo::Demo(const std::wstring& name, int width, int height, bool vSync)
 	, m_ProjectionMatrix(DirectX::XMMatrixIdentity())
 	, m_CubeMesh(nullptr)
 	, m_CubeAnimation{ 90.f, 0.f, true }
-	, m_Transform
+	, m_CubeTransform
 	{
 		{ 0.f, 0.f, 0.f },
 		{ 0.f, 0.f, 0.f },
@@ -220,14 +220,14 @@ void Demo::OnUpdate(UpdateEventArgs& eventArgs)
 	}
 
 	XMMATRIX scale = XMMatrixScaling(
-		m_Transform.m_Scale.x,
-		m_Transform.m_Scale.y,
-		m_Transform.m_Scale.z);
+		m_CubeTransform.m_Scale.x,
+		m_CubeTransform.m_Scale.y,
+		m_CubeTransform.m_Scale.z);
 
 	XMMATRIX rotation = XMMatrixRotationRollPitchYaw(
-		XMConvertToRadians(m_Transform.m_RotationDeg.x),
-		XMConvertToRadians(m_Transform.m_RotationDeg.y),
-		XMConvertToRadians(m_Transform.m_RotationDeg.z));
+		XMConvertToRadians(m_CubeTransform.m_RotationDeg.x),
+		XMConvertToRadians(m_CubeTransform.m_RotationDeg.y),
+		XMConvertToRadians(m_CubeTransform.m_RotationDeg.z));
 
 	const XMVECTOR rotationAxis = XMVectorSet(0.f, 1.f, 1.f, 0.f);
 	XMMATRIX animatedRotation = XMMatrixRotationAxis(
@@ -236,9 +236,9 @@ void Demo::OnUpdate(UpdateEventArgs& eventArgs)
 	rotation = rotation * animatedRotation;
 
 	XMMATRIX translation = XMMatrixTranslation(
-		m_Transform.m_Position.x,
-		m_Transform.m_Position.y,
-		m_Transform.m_Position.z);
+		m_CubeTransform.m_Position.x,
+		m_CubeTransform.m_Position.y,
+		m_CubeTransform.m_Position.z);
 
 	m_ModelMatrix = scale * rotation * translation;
 
@@ -464,6 +464,10 @@ void Demo::RenderUIPass(CommandList* commandList)
 		m_CubeMesh->UpdateColors(*commandList, imGuiColors);
 	}
 
+	ImGui::Checkbox("Render wireframe", &m_RenderWireframe);
+
+	ImGui::Checkbox("Enable textures", &m_EnableTextures);
+
 	static ImTextureID textureID = ImTextureID_Invalid;
 	const Application& app = Application::GetInstance();
 	ID3D12Device2* device = app.GetDevice().Get();
@@ -486,18 +490,14 @@ void Demo::RenderUIPass(CommandList* commandList)
 		textureID = ImTextureID_Invalid;
 	}
 
-	ImGui::Checkbox("Render wireframe", &m_RenderWireframe);
-
-	ImGui::Checkbox("Enable textures", &m_EnableTextures);
-
 	if (ImGui::CollapsingHeader("Transform"))
 	{
 		ImGui::TextWrapped(
 			"Warning: If the transform doesn't match the cube, "
 			"reset the Animation Rotation Angle.");
-		ImGui::DragFloat3("Position", &m_Transform.m_Position.x, 0.1f);
-		ImGui::DragFloat3("Rotation", &m_Transform.m_RotationDeg.x, 1.f, 0.f, 360.f);
-		ImGui::DragFloat3("Scale", &m_Transform.m_Scale.x, 0.1f);
+		ImGui::DragFloat3("Position", &m_CubeTransform.m_Position.x, 0.1f);
+		ImGui::DragFloat3("Rotation", &m_CubeTransform.m_RotationDeg.x, 1.f, 0.f, 360.f);
+		ImGui::DragFloat3("Scale", &m_CubeTransform.m_Scale.x, 0.1f);
 	}
 
 	if (ImGui::CollapsingHeader("Animation"))
