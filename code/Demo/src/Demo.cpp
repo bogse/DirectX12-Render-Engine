@@ -42,6 +42,7 @@ static DirectX::XMFLOAT4 imGuiColors[imGuiVertexCount] = {
 
 Demo::Demo(const std::wstring& name, int width, int height, bool vSync)
 	: Super(name, width, height, vSync)
+	, m_PipelineOptions{true}
 	, m_ScissorRect(CD3DX12_RECT(0, 0, LONG_MAX, LONG_MAX))
 	, m_Viewport(CD3DX12_VIEWPORT(0.0f, 0.0f, static_cast<float>(width), static_cast<float>(height)))
 	, m_ModelMatrix(DirectX::XMMatrixIdentity())
@@ -49,7 +50,13 @@ Demo::Demo(const std::wstring& name, int width, int height, bool vSync)
 	, m_ProjectionMatrix(DirectX::XMMatrixIdentity())
 	, m_CubeMesh(nullptr)
 	, m_CubeAnimation{ 90.f, 0.f, true }
-	, m_FoV(45.0)
+	, m_Transform
+	{
+		{ 0.f, 0.f, 0.f },
+		{ 0.f, 0.f, 0.f },
+		{ 1.f, 1.f, 1.f }
+	}
+	, m_FoV(45.f)
 	, m_RenderWireframe(false)
 	, m_EnableTextures(true)
 {
@@ -210,9 +217,28 @@ void Demo::OnUpdate(UpdateEventArgs& eventArgs)
 			m_CubeAnimation.m_RotationSpeed * static_cast<float>(eventArgs.m_ElapsedTime);
 	}
 
+	XMMATRIX scale = XMMatrixScaling(
+		m_Transform.m_Scale.x,
+		m_Transform.m_Scale.y,
+		m_Transform.m_Scale.z);
+
+	XMMATRIX rotation = XMMatrixRotationRollPitchYaw(
+		XMConvertToRadians(m_Transform.m_Rotation.x),
+		XMConvertToRadians(m_Transform.m_Rotation.y),
+		XMConvertToRadians(m_Transform.m_Rotation.z));
+
 	const XMVECTOR rotationAxis = XMVectorSet(0.f, 1.f, 1.f, 0.f);
-	m_ModelMatrix = XMMatrixRotationAxis(
+	XMMATRIX animatedRotation = XMMatrixRotationAxis(
 		rotationAxis, XMConvertToRadians(m_CubeAnimation.m_CurrentAngle));
+
+	rotation = rotation * animatedRotation;
+
+	XMMATRIX translation = XMMatrixTranslation(
+		m_Transform.m_Position.x,
+		m_Transform.m_Position.y,
+		m_Transform.m_Position.z);
+
+	m_ModelMatrix = scale * rotation * translation;
 
 	// Update the view matrix.
 	const XMVECTOR eyePosition = XMVectorSet(0.f, 0.f, -10.f, 1.f);
@@ -461,6 +487,13 @@ void Demo::RenderUIPass(CommandList* commandList)
 	ImGui::Checkbox("Render wireframe", &m_RenderWireframe);
 
 	ImGui::Checkbox("Enable textures", &m_EnableTextures);
+
+	if (ImGui::CollapsingHeader("Transform"))
+	{
+		ImGui::DragFloat3("Position", &m_Transform.m_Position.x, 0.1f);
+		ImGui::DragFloat3("Rotation", &m_Transform.m_Rotation.x, 1.f);
+		ImGui::DragFloat3("Scale", &m_Transform.m_Scale.x, 0.1f);
+	}
 
 	ImGui::Checkbox("Rotate Cube", &m_CubeAnimation.m_RotateCube);
 	ImGui::SliderFloat("Rotation Speed", &m_CubeAnimation.m_RotationSpeed, 0.f, 360.f);

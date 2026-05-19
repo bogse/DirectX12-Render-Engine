@@ -43,6 +43,13 @@ private:
 		bool m_RotateCube;
 	};
 
+	struct Transform
+	{
+		DirectX::XMFLOAT3 m_Position;
+		DirectX::XMFLOAT3 m_Rotation;
+		DirectX::XMFLOAT3 m_Scale;
+	};
+
 	struct PipelineOptionsCB
 	{
 		int EnableTextures;
@@ -72,6 +79,8 @@ private:
 	std::unique_ptr<Mesh> m_CubeMesh;
 
 	CubeAnimation m_CubeAnimation;
+	Transform m_Transform;
+
 	float m_FoV;
 	bool m_RenderWireframe;
 	bool m_EnableTextures;
