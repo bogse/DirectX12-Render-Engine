@@ -211,10 +211,12 @@ void Demo::OnUpdate(UpdateEventArgs& eventArgs)
 	}
 
 	// Update the model matrix.
-	if (m_CubeAnimation.m_RotateCube)
+	if (m_CubeAnimation.m_EnableRotation)
 	{
-		m_CubeAnimation.m_CurrentAngle += 
-			m_CubeAnimation.m_RotationSpeed * static_cast<float>(eventArgs.m_ElapsedTime);
+		m_CubeAnimation.m_RotationAngleDeg += 
+			m_CubeAnimation.m_RotationSpeedDegPerSec * static_cast<float>(eventArgs.m_ElapsedTime);
+
+		m_CubeAnimation.m_RotationAngleDeg = fmod(m_CubeAnimation.m_RotationAngleDeg, 360.f);
 	}
 
 	XMMATRIX scale = XMMatrixScaling(
@@ -223,13 +225,13 @@ void Demo::OnUpdate(UpdateEventArgs& eventArgs)
 		m_Transform.m_Scale.z);
 
 	XMMATRIX rotation = XMMatrixRotationRollPitchYaw(
-		XMConvertToRadians(m_Transform.m_Rotation.x),
-		XMConvertToRadians(m_Transform.m_Rotation.y),
-		XMConvertToRadians(m_Transform.m_Rotation.z));
+		XMConvertToRadians(m_Transform.m_RotationDeg.x),
+		XMConvertToRadians(m_Transform.m_RotationDeg.y),
+		XMConvertToRadians(m_Transform.m_RotationDeg.z));
 
 	const XMVECTOR rotationAxis = XMVectorSet(0.f, 1.f, 1.f, 0.f);
 	XMMATRIX animatedRotation = XMMatrixRotationAxis(
-		rotationAxis, XMConvertToRadians(m_CubeAnimation.m_CurrentAngle));
+		rotationAxis, XMConvertToRadians(m_CubeAnimation.m_RotationAngleDeg));
 
 	rotation = rotation * animatedRotation;
 
@@ -490,13 +492,20 @@ void Demo::RenderUIPass(CommandList* commandList)
 
 	if (ImGui::CollapsingHeader("Transform"))
 	{
+		ImGui::TextWrapped(
+			"Warning: If the transform doesn't match the cube, "
+			"reset the Animation Rotation Angle.");
 		ImGui::DragFloat3("Position", &m_Transform.m_Position.x, 0.1f);
-		ImGui::DragFloat3("Rotation", &m_Transform.m_Rotation.x, 1.f);
+		ImGui::DragFloat3("Rotation", &m_Transform.m_RotationDeg.x, 1.f, 0.f, 360.f);
 		ImGui::DragFloat3("Scale", &m_Transform.m_Scale.x, 0.1f);
 	}
 
-	ImGui::Checkbox("Rotate Cube", &m_CubeAnimation.m_RotateCube);
-	ImGui::SliderFloat("Rotation Speed", &m_CubeAnimation.m_RotationSpeed, 0.f, 360.f);
+	if (ImGui::CollapsingHeader("Animation"))
+	{
+		ImGui::Checkbox("Enable Rotation", &m_CubeAnimation.m_EnableRotation);
+		ImGui::SliderFloat("Rotation Speed", &m_CubeAnimation.m_RotationSpeedDegPerSec, 0.f, 360.f);
+		ImGui::SliderFloat("Rotation Angle", &m_CubeAnimation.m_RotationAngleDeg, 0.f, 360.f);
+	}
 
 	ImGui::End();
 
