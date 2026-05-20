@@ -35,6 +35,10 @@ private:
 	void RenderScenePass(CommandList* commandList);
 	void RenderUIPass(CommandList* commandList);
 
+	void UpdateAnimation(float deltaTime);
+	void UpdateCameraMatrices();
+	void UpdateModelMatrix();
+
 private:
 	struct CubeAnimation
 	{

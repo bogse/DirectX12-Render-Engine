@@ -190,67 +190,13 @@ void Demo::UnloadContent()
 
 void Demo::OnUpdate(UpdateEventArgs& eventArgs)
 {
-	static uint64_t frameCount = 0;
-	static double totalTime = 0.0;
-
 	Super::OnUpdate(eventArgs);
-
-	totalTime += eventArgs.m_ElapsedTime;
-	frameCount++;
-
-	if (totalTime > 1.0)
-	{
-		double fps = frameCount / totalTime;
-
-		char buffer[512];
-		sprintf_s(buffer, "FPS: %f\n", fps);
-		OutputDebugStringA(buffer);
-
-		frameCount = 0;
-		totalTime = 0.0;
-	}
-
-	// Update the model matrix.
-	if (m_CubeAnimation.m_EnableRotation)
-	{
-		m_CubeAnimation.m_RotationAngleDeg += 
-			m_CubeAnimation.m_RotationSpeedDegPerSec * static_cast<float>(eventArgs.m_ElapsedTime);
-
-		m_CubeAnimation.m_RotationAngleDeg = fmod(m_CubeAnimation.m_RotationAngleDeg, 360.f);
-	}
-
-	XMMATRIX scale = XMMatrixScaling(
-		m_CubeTransform.m_Scale.x,
-		m_CubeTransform.m_Scale.y,
-		m_CubeTransform.m_Scale.z);
-
-	XMMATRIX rotation = XMMatrixRotationRollPitchYaw(
-		XMConvertToRadians(m_CubeTransform.m_RotationDeg.x),
-		XMConvertToRadians(m_CubeTransform.m_RotationDeg.y),
-		XMConvertToRadians(m_CubeTransform.m_RotationDeg.z));
-
-	const XMVECTOR rotationAxis = XMVectorSet(0.f, 1.f, 1.f, 0.f);
-	XMMATRIX animatedRotation = XMMatrixRotationAxis(
-		rotationAxis, XMConvertToRadians(m_CubeAnimation.m_RotationAngleDeg));
-
-	rotation = rotation * animatedRotation;
-
-	XMMATRIX translation = XMMatrixTranslation(
-		m_CubeTransform.m_Position.x,
-		m_CubeTransform.m_Position.y,
-		m_CubeTransform.m_Position.z);
-
-	m_ModelMatrix = scale * rotation * translation;
-
-	// Update the view matrix.
-	const XMVECTOR eyePosition = XMVectorSet(0.f, 0.f, -10.f, 1.f);
-	const XMVECTOR focusPoint = XMVectorSet(0.f, 0.f, 0.f, 1.f);
-	const XMVECTOR upDirection = XMVectorSet(0.f, 1.f, 0.f, 0.f);
-	m_ViewMatrix = XMMatrixLookAtLH(eyePosition, focusPoint, upDirection);
-
-	// Update the projection matrix.
-	float aspectRatio = GetClientWidth() / static_cast<float>(GetClientHeight());
-	m_ProjectionMatrix = XMMatrixPerspectiveFovLH(XMConvertToRadians(m_FoV), aspectRatio, 0.1f, 100.0f);
+	
+	const float deltaTime = static_cast<float>(eventArgs.m_ElapsedTime);
+	
+	UpdateAnimation(deltaTime);
+	UpdateModelMatrix();
+	UpdateCameraMatrices();
 }
 
 void Demo::OnRender(RenderEventArgs& eventArgs)
@@ -425,6 +371,12 @@ void Demo::RenderUIPass(CommandList* commandList)
 
 	ImGui::Begin("Debug");
 
+	if (ImGui::CollapsingHeader("Performance"))
+	{
+		ImGui::Text("FPS: %.2f", m_FPS);
+		ImGui::Text("Frame Time: %.2f ms", m_FPS > 0.f ? 1000.f / m_FPS : 0.f);
+	}
+
 	ImGui::SliderFloat("FoV", &m_FoV, 10.f, 90.f);
 
 	bool bufferDirty = false;
@@ -512,4 +464,54 @@ void Demo::RenderUIPass(CommandList* commandList)
 	gui.EndFrame();
 
 	gui.Render(*commandList);
+}
+
+void Demo::UpdateAnimation(float deltaTime)
+{
+	if (m_CubeAnimation.m_EnableRotation)
+	{
+		m_CubeAnimation.m_RotationAngleDeg +=
+			m_CubeAnimation.m_RotationSpeedDegPerSec * deltaTime;
+
+		m_CubeAnimation.m_RotationAngleDeg = fmod(m_CubeAnimation.m_RotationAngleDeg, 360.f);
+	}
+}
+
+void Demo::UpdateCameraMatrices()
+{
+	// Update the view matrix.
+	const XMVECTOR eyePosition = XMVectorSet(0.f, 0.f, -10.f, 1.f);
+	const XMVECTOR focusPoint = XMVectorSet(0.f, 0.f, 0.f, 1.f);
+	const XMVECTOR upDirection = XMVectorSet(0.f, 1.f, 0.f, 0.f);
+	m_ViewMatrix = XMMatrixLookAtLH(eyePosition, focusPoint, upDirection);
+
+	// Update the projection matrix.
+	float aspectRatio = GetClientWidth() / static_cast<float>(GetClientHeight());
+	m_ProjectionMatrix = XMMatrixPerspectiveFovLH(XMConvertToRadians(m_FoV), aspectRatio, 0.1f, 100.0f);
+}
+
+void Demo::UpdateModelMatrix()
+{
+	XMMATRIX scale = XMMatrixScaling(
+		m_CubeTransform.m_Scale.x,
+		m_CubeTransform.m_Scale.y,
+		m_CubeTransform.m_Scale.z);
+
+	XMMATRIX rotation = XMMatrixRotationRollPitchYaw(
+		XMConvertToRadians(m_CubeTransform.m_RotationDeg.x),
+		XMConvertToRadians(m_CubeTransform.m_RotationDeg.y),
+		XMConvertToRadians(m_CubeTransform.m_RotationDeg.z));
+
+	const XMVECTOR rotationAxis = XMVectorSet(0.f, 1.f, 1.f, 0.f);
+	XMMATRIX animatedRotation = XMMatrixRotationAxis(
+		rotationAxis, XMConvertToRadians(m_CubeAnimation.m_RotationAngleDeg));
+
+	rotation = rotation * animatedRotation;
+
+	XMMATRIX translation = XMMatrixTranslation(
+		m_CubeTransform.m_Position.x,
+		m_CubeTransform.m_Position.y,
+		m_CubeTransform.m_Position.z);
+
+	m_ModelMatrix = scale * rotation * translation;
 }

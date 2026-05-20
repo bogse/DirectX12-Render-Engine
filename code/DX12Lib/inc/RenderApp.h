@@ -45,6 +45,7 @@ protected:
 	virtual void OnWindowDestroy();
 
 	std::shared_ptr<Window> m_pWindow;
+	float m_FPS;
 
 private:
 	std::wstring m_Name;

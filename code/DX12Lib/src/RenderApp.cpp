@@ -41,6 +41,18 @@ void RenderApp::Destroy()
 
 void RenderApp::OnUpdate(UpdateEventArgs& eventArgs)
 {
+	static uint64_t frameCount = 0;
+	static double totalTime = 0.0;
+
+	totalTime += eventArgs.m_ElapsedTime;
+	frameCount++;
+
+	if (totalTime > 1.0)
+	{
+		m_FPS = frameCount / totalTime;
+		frameCount = 0;
+		totalTime = 0.0;
+	}
 }
 
 void RenderApp::OnRender(RenderEventArgs& eventArgs)
