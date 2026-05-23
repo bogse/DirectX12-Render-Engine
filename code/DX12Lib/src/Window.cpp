@@ -17,6 +17,8 @@ Window::Window(HWND hWnd, const std::wstring& windowName, int clientWidth, int c
 	, m_Fullscreen(false)
 	, m_FenceValues{0}
 	, m_FrameValues{0}
+	, m_PreviousMouseX(0)
+	, m_PreviousMouseY(0)
 {
 	Application& app = Application::GetInstance();
 
@@ -214,6 +216,12 @@ void Window::OnKeyReleased(KeyEventArgs& eventArgs)
 
 void Window::OnMouseMoved(MouseMotionEventArgs& eventArgs)
 {
+	eventArgs.m_RelX = eventArgs.m_X - m_PreviousMouseX;
+	eventArgs.m_RelY = eventArgs.m_Y - m_PreviousMouseY;
+
+	m_PreviousMouseX = eventArgs.m_X;
+	m_PreviousMouseY = eventArgs.m_Y;
+
 	if (std::shared_ptr<RenderApp> pRenderApp = m_pRenderApp.lock())
 	{
 		pRenderApp->OnMouseMoved(eventArgs);

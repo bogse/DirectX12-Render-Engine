@@ -32,7 +32,7 @@ public:
 	}
 
 	KeyCode::Key	m_Key;	// The Key Code that was pressed or release.
-	unsigned int		m_Char;	// The 32-bit character code that was pressed. This value will be 0 if it is a non-printable character.
+	unsigned int	m_Char;	// The 32-bit character code that was pressed. This value will be 0 if it is a non-printable character.
 	KeyState		m_State;	// Key pressed or released.
 	bool			m_Control;// Control modifier pressed.
 	bool			m_Shift;	// Shift modifier pressed.
@@ -50,6 +50,8 @@ public:
 		, m_Shift(shift)
 		, m_X(x)
 		, m_Y(y)
+		, m_RelX(0)
+		, m_RelY(0)
 	{
 	}
 
