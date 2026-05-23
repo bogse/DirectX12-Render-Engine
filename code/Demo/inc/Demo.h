@@ -1,5 +1,7 @@
 #pragma once
 
+#include <Camera.h>
+#include <CameraController.h>
 #include <DescriptorAllocation.h>
 #include <Mesh.h>
 #include <RootSignature.h>
@@ -25,6 +27,10 @@ protected:
 	void OnUpdate(UpdateEventArgs& eventArgs) override;
 	void OnRender(RenderEventArgs& eventArgs) override;
 	void OnKeyPressed(KeyEventArgs& eventArgs) override;
+	void OnKeyReleased(KeyEventArgs& eventArgs) override;
+	void OnMouseButtonPressed(MouseButtonEventArgs& eventArgs) override;
+	void OnMouseButtonReleased(MouseButtonEventArgs& eventArgs) override;
+	void OnMouseMoved(MouseMotionEventArgs& eventArgs) override;
 	void OnMouseWheel(MouseWheelEventArgs& eventArgs) override;
 	void OnResize(ResizeEventArgs& eventArgs) override;
 
@@ -36,7 +42,6 @@ private:
 	void RenderUIPass(CommandList* commandList);
 
 	void UpdateAnimation(float deltaTime);
-	void UpdateCameraMatrices();
 	void UpdateModelMatrix();
 
 private:
@@ -77,15 +82,15 @@ private:
 	D3D12_RECT m_ScissorRect;
 
 	DirectX::XMMATRIX m_ModelMatrix;
-	DirectX::XMMATRIX m_ViewMatrix;
-	DirectX::XMMATRIX m_ProjectionMatrix;
+
+	Camera m_Camera;
+	CameraController m_CameraController;
 
 	std::unique_ptr<Mesh> m_CubeMesh;
 
 	CubeAnimation m_CubeAnimation;
 	Transform m_CubeTransform;
 
-	float m_FoV;
 	bool m_RenderWireframe;
 	bool m_EnableTextures;
 };

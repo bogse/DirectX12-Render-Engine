@@ -46,8 +46,8 @@ Demo::Demo(const std::wstring& name, int width, int height, bool vSync)
 	, m_ScissorRect(CD3DX12_RECT(0, 0, LONG_MAX, LONG_MAX))
 	, m_Viewport(CD3DX12_VIEWPORT(0.0f, 0.0f, static_cast<float>(width), static_cast<float>(height)))
 	, m_ModelMatrix(DirectX::XMMatrixIdentity())
-	, m_ViewMatrix(DirectX::XMMatrixIdentity())
-	, m_ProjectionMatrix(DirectX::XMMatrixIdentity())
+	, m_Camera(Camera())
+	, m_CameraController(m_Camera)
 	, m_CubeMesh(nullptr)
 	, m_CubeAnimation{ 90.f, 0.f, true }
 	, m_CubeTransform
@@ -56,10 +56,11 @@ Demo::Demo(const std::wstring& name, int width, int height, bool vSync)
 		{ 0.f, 0.f, 0.f },
 		{ 1.f, 1.f, 1.f }
 	}
-	, m_FoV(45.f)
 	, m_RenderWireframe(false)
 	, m_EnableTextures(true)
 {
+	DirectX::XMVECTOR cameraPos = DirectX::XMVectorSet(0.f, 0.f, -10.f, 1.f);
+	m_Camera.SetPosition(cameraPos);
 	m_DepthBuffer.SetName(L"Demo::DepthBuffer");
 }
 
@@ -194,9 +195,10 @@ void Demo::OnUpdate(UpdateEventArgs& eventArgs)
 	
 	const float deltaTime = static_cast<float>(eventArgs.m_ElapsedTime);
 	
+	m_CameraController.Update(deltaTime);
+	m_Camera.Update();
 	UpdateAnimation(deltaTime);
 	UpdateModelMatrix();
-	UpdateCameraMatrices();
 }
 
 void Demo::OnRender(RenderEventArgs& eventArgs)
@@ -239,16 +241,33 @@ void Demo::OnKeyPressed(KeyEventArgs& eventArgs)
 		break;
 	}
 	}
+
+	m_CameraController.OnKeyPressed(eventArgs.m_Key);
+}
+
+void Demo::OnKeyReleased(KeyEventArgs& eventArgs)
+{
+	m_CameraController.OnKeyReleased(eventArgs.m_Key);
+}
+
+void Demo::OnMouseButtonPressed(MouseButtonEventArgs& eventArgs)
+{
+	m_CameraController.OnMouseButtonPressed(eventArgs.m_RightButton);
+}
+
+void Demo::OnMouseButtonReleased(MouseButtonEventArgs& eventArgs)
+{
+	m_CameraController.OnMouseButtonReleased(eventArgs.m_RightButton);
+}
+
+void Demo::OnMouseMoved(MouseMotionEventArgs& eventArgs)
+{
+	m_CameraController.OnMouseMoved(eventArgs.m_RelX, eventArgs.m_RelY);
 }
 
 void Demo::OnMouseWheel(MouseWheelEventArgs& eventArgs)
 {
-	m_FoV -= eventArgs.m_WheelDelta;
-	m_FoV = std::clamp(m_FoV, 12.0f, 90.0f);
-
-	char buffer[256];
-	sprintf_s(buffer, "FoV: %f\n", m_FoV);
-	OutputDebugStringA(buffer);
+	m_CameraController.OnMouseWheel(eventArgs.m_WheelDelta);
 }
 
 void Demo::OnResize(ResizeEventArgs& eventArgs)
@@ -256,6 +275,11 @@ void Demo::OnResize(ResizeEventArgs& eventArgs)
 	if (eventArgs.m_Width != GetClientWidth() || eventArgs.m_Height != GetClientHeight())
 	{
 		Super::OnResize(eventArgs);
+
+		const float aspectRatio = static_cast<float>(eventArgs.m_Width) /
+								  static_cast<float>(eventArgs.m_Height);
+
+		m_Camera.SetAspectRatio(aspectRatio);
 
 		m_Viewport = CD3DX12_VIEWPORT(0.0f, 0.0f,
 			static_cast<float>(eventArgs.m_Width), static_cast<float>(eventArgs.m_Height));
@@ -343,8 +367,9 @@ void Demo::RenderScenePass(CommandList* commandList)
 	}
 
 	// Update the MVP matrix.
-	XMMATRIX mvpMatrix = XMMatrixMultiply(m_ModelMatrix, m_ViewMatrix);
-	mvpMatrix = XMMatrixMultiply(mvpMatrix, m_ProjectionMatrix);
+	const XMMATRIX viewMatrix = m_Camera.GetViewMatrix();
+	const XMMATRIX projectionMatrix = m_Camera.GetProjectionMatrix();
+	const XMMATRIX mvpMatrix = m_ModelMatrix * viewMatrix * projectionMatrix;
 
 	commandList->SetGraphicsDynamicConstantBuffer(0, mvpMatrix);
 
@@ -376,8 +401,6 @@ void Demo::RenderUIPass(CommandList* commandList)
 		ImGui::Text("FPS: %.2f", m_FPS);
 		ImGui::Text("Frame Time: %.2f ms", m_FPS > 0.f ? 1000.f / m_FPS : 0.f);
 	}
-
-	ImGui::SliderFloat("FoV", &m_FoV, 10.f, 90.f);
 
 	bool bufferDirty = false;
 
@@ -447,7 +470,7 @@ void Demo::RenderUIPass(CommandList* commandList)
 		ImGui::TextWrapped(
 			"Warning: If the transform doesn't match the cube, "
 			"reset the Animation Rotation Angle.");
-		ImGui::DragFloat3("Position", &m_CubeTransform.m_Position.x, 0.1f);
+		ImGui::DragFloat3("Position##Cube", &m_CubeTransform.m_Position.x, 0.1f);
 		ImGui::DragFloat3("Rotation", &m_CubeTransform.m_RotationDeg.x, 1.f, 0.f, 360.f);
 		ImGui::DragFloat3("Scale", &m_CubeTransform.m_Scale.x, 0.1f);
 	}
@@ -457,6 +480,72 @@ void Demo::RenderUIPass(CommandList* commandList)
 		ImGui::Checkbox("Enable Rotation", &m_CubeAnimation.m_EnableRotation);
 		ImGui::SliderFloat("Rotation Speed", &m_CubeAnimation.m_RotationSpeedDegPerSec, 0.f, 360.f);
 		ImGui::SliderFloat("Rotation Angle", &m_CubeAnimation.m_RotationAngleDeg, 0.f, 360.f);
+	}
+
+	if (ImGui::CollapsingHeader("Camera"))
+	{
+		DirectX::XMFLOAT3 cameraPosition = m_Camera.GetPosition();
+
+		if (ImGui::SliderFloat3("Position##Camera", &cameraPosition.x, -100.f, 100.f))
+		{
+			DirectX::XMVECTOR newCameraPosition = DirectX::XMLoadFloat3(&cameraPosition);
+			m_Camera.SetPosition(newCameraPosition);
+		}
+
+		float fov = m_Camera.GetFOV();
+		if (ImGui::SliderFloat("FOV", &fov, 10.f, 90.f))
+		{
+			m_Camera.SetFOV(fov);
+		}
+
+		float aspectRatio = m_Camera.GetAspectRatio();
+		if (ImGui::SliderFloat("Aspect Ratio", &aspectRatio, 0.1f, 4.0f))
+		{
+			m_Camera.SetAspectRatio(aspectRatio);
+		}
+
+		float nearPlane = m_Camera.GetNearPlane();
+		if (ImGui::DragFloat("Near Plane", &nearPlane, 0.1f, 0.1f, 100.f))
+		{
+			m_Camera.SetNearPlane(nearPlane);
+		}
+
+		float farPlane = m_Camera.GetFarPlane();
+		if (ImGui::DragFloat("Far Plane", &farPlane, 1.f, nearPlane + 1.f, 10000.f))
+		{
+			m_Camera.SetFarPlane(farPlane);
+		}
+	}
+
+	if (ImGui::CollapsingHeader("Camera Controller"))
+	{
+		float controllerYaw = m_CameraController.GetYaw();
+
+		if (ImGui::SliderFloat("Yaw", &controllerYaw, -180.f, 180.f))
+		{
+			m_CameraController.SetYaw(controllerYaw);
+		}
+
+		float controllerPitch = m_CameraController.GetPitch();
+
+		if (ImGui::SliderFloat("Pitch", &controllerPitch, -89.f, 89.f))
+		{
+			m_CameraController.SetPitch(controllerPitch);
+		}
+
+		float moveSpeed = m_CameraController.GetMoveSpeed();
+
+		if (ImGui::DragFloat("Move Speed", &moveSpeed, 0.5f, 0.1f, 500.f))
+		{
+			m_CameraController.SetMoveSpeed(moveSpeed);
+		}
+
+		float mouseSensitivity = m_CameraController.GetMouseSensitivity();
+
+		if (ImGui::DragFloat("Mouse Sensitivity", &mouseSensitivity, 0.01f, 0.01f, 1.f))
+		{
+			m_CameraController.SetMouseSensitivity(mouseSensitivity);
+		}
 	}
 
 	ImGui::End();
@@ -475,19 +564,6 @@ void Demo::UpdateAnimation(float deltaTime)
 
 		m_CubeAnimation.m_RotationAngleDeg = fmod(m_CubeAnimation.m_RotationAngleDeg, 360.f);
 	}
-}
-
-void Demo::UpdateCameraMatrices()
-{
-	// Update the view matrix.
-	const XMVECTOR eyePosition = XMVectorSet(0.f, 0.f, -10.f, 1.f);
-	const XMVECTOR focusPoint = XMVectorSet(0.f, 0.f, 0.f, 1.f);
-	const XMVECTOR upDirection = XMVectorSet(0.f, 1.f, 0.f, 0.f);
-	m_ViewMatrix = XMMatrixLookAtLH(eyePosition, focusPoint, upDirection);
-
-	// Update the projection matrix.
-	float aspectRatio = GetClientWidth() / static_cast<float>(GetClientHeight());
-	m_ProjectionMatrix = XMMatrixPerspectiveFovLH(XMConvertToRadians(m_FoV), aspectRatio, 0.1f, 100.0f);
 }
 
 void Demo::UpdateModelMatrix()
