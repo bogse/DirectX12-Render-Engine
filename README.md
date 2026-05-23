@@ -18,6 +18,7 @@ This is a DirectX 12 rendering engine built in C++ for learning and experimentat
 	- PNG / JPG / BMP and other WIC-supported formats via WICTextureLoader12
 	- HDR textures and advanced processing via DirectXTex
 - Texture support
+- Perspective camera support
 
 ## Requirements
 - Windows 10/11

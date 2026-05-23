@@ -21,6 +21,8 @@ set(DX12_HEADERS
     inc/DX12LibPCH.h
     inc/Application.h
     inc/Buffer.h
+	inc/Camera.h
+	inc/CameraController.h
     inc/CommandList.h
     inc/CommandQueue.h
     inc/DescriptorAllocation.h
@@ -49,6 +51,8 @@ set(DX12_SOURCES
     src/DX12LibPCH.cpp
     src/Application.cpp
     src/Buffer.cpp
+	src/Camera.cpp
+	src/CameraController.cpp
     src/CommandList.cpp
     src/CommandQueue.cpp
     src/DescriptorAllocation.cpp
