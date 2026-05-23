@@ -75,7 +75,6 @@ void CameraController::Update(float deltaTime)
 	if (m_MoveDown)
 		movement = DirectX::XMVectorSubtract(movement, up);
 
-
 	if (!DirectX::XMVector3Equal(movement, DirectX::XMVectorZero()))
 	{
 		// Avoid faster diagonal movement

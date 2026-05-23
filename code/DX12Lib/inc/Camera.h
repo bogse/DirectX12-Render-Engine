@@ -27,12 +27,11 @@ public:
 	float GetNearPlane() const { return m_NearPlane; }
 	float GetFarPlane() const { return m_FarPlane; }
 
-	void SetProjection(const float fov, const float aspectRatio,
-		const float nearZ, const float farZ);
-
 	void SetPosition(const DirectX::FXMVECTOR position);
 	void SetRotation(const DirectX::XMVECTOR rotation);
 
+	void SetProjection(const float fov, const float aspectRatio,
+		const float nearZ, const float farZ);
 	void SetFOV(const float fov);
 	void SetAspectRatio(const float aspectRatio);
 	void SetNearPlane(const float nearPlane);

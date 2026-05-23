@@ -44,17 +44,6 @@ void Camera::Update()
 	}
 }
 
-void Camera::SetProjection(const float fov, const float aspectRatio,
-	const float nearZ, const float farZ)
-{
-	m_FOV = fov;
-	m_AspectRatio = aspectRatio;
-	m_NearPlane = nearZ;
-	m_FarPlane = farZ;
-
-	m_IsProjectionDirty = true;
-}
-
 void Camera::SetPosition(const DirectX::XMVECTOR position)
 {
 	DirectX::XMStoreFloat3(&m_Position, position);
@@ -67,6 +56,17 @@ void Camera::SetRotation(const DirectX::XMVECTOR rotation)
 	DirectX::XMStoreFloat4(&m_Rotation, rotation);
 
 	m_IsViewDirty = true;
+}
+
+void Camera::SetProjection(const float fov, const float aspectRatio,
+	const float nearZ, const float farZ)
+{
+	m_FOV = fov;
+	m_AspectRatio = aspectRatio;
+	m_NearPlane = nearZ;
+	m_FarPlane = farZ;
+
+	m_IsProjectionDirty = true;
 }
 
 void Camera::SetFOV(const float fov)
