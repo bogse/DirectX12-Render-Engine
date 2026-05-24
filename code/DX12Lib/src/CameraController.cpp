@@ -106,90 +106,6 @@ void CameraController::Update(float deltaTime)
 	}
 }
 
-void CameraController::OnKeyPressed(const KeyCode::Key key)
-{
-	switch (key)
-	{
-	case KeyCode::Key::W:
-	{
-		m_MoveForward = true;
-		break;
-	}
-	case KeyCode::Key::S:
-	{
-		m_MoveBackward = true;
-		break;
-	}
-	case KeyCode::Key::A:
-	{
-		m_MoveLeft = true;
-		break;
-	}
-	case KeyCode::Key::D:
-	{
-		m_MoveRight = true;
-		break;
-	}
-	case KeyCode::Key::E:
-	{
-		m_MoveUp = true;
-		break;
-	}
-	case KeyCode::Key::Q:
-	{
-		m_MoveDown = true;
-		break;
-	}
-	case KeyCode::Key::ShiftKey:
-	{
-		m_MoveSpeed = FastMoveSpeed;
-		break;
-	}
-	}
-}
-
-void CameraController::OnKeyReleased(const KeyCode::Key key)
-{
-	switch (key)
-	{
-	case KeyCode::Key::W:
-	{
-		m_MoveForward = false;
-		break;
-	}
-	case KeyCode::Key::S:
-	{
-		m_MoveBackward = false;
-		break;
-	}
-	case KeyCode::Key::A:
-	{
-		m_MoveLeft = false;
-		break;
-	}
-	case KeyCode::Key::D:
-	{
-		m_MoveRight = false;
-		break;
-	}
-	case KeyCode::Key::E:
-	{
-		m_MoveUp = false;
-		break;
-	}
-	case KeyCode::Key::Q:
-	{
-		m_MoveDown = false;
-		break;
-	}
-	case KeyCode::Key::ShiftKey:
-	{
-		m_MoveSpeed = BaseMoveSpeed;
-		break;
-	}
-	}
-}
-
 void CameraController::OnMouseMoved(const int deltaX, const int deltaY)
 {
 	if (!m_RightMouseDown)
@@ -199,18 +115,6 @@ void CameraController::OnMouseMoved(const int deltaX, const int deltaY)
 	m_Pitch -= deltaY * m_MouseSensitivity;
 
 	m_Pitch = std::clamp(m_Pitch, -89.f, 89.f);
-}
-
-void CameraController::OnMouseButtonPressed(const bool isRightKeyPressed)
-{
-	if (isRightKeyPressed)
-		m_RightMouseDown = true;
-}
-
-void CameraController::OnMouseButtonReleased(const bool isRightKeyPressed)
-{
-	if (!isRightKeyPressed)
-		m_RightMouseDown = false;
 }
 
 void CameraController::OnMouseWheel(const float wheelDelta)

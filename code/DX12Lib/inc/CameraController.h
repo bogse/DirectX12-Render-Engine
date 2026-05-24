@@ -14,11 +14,7 @@ public:
 
 	void Update(float deltaTime);
 
-	void OnKeyPressed(const KeyCode::Key key);
-	void OnKeyReleased(const KeyCode::Key key);
 	void OnMouseMoved(const int deltaX, const int deltaY);
-	void OnMouseButtonPressed(const bool isRightKeyPressed);
-	void OnMouseButtonReleased(const bool isRightKeyPressed);
 	void OnMouseWheel(const float wheelDelta);
 
 	float GetYaw() const { return m_Yaw; }
