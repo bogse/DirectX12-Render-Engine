@@ -34,6 +34,7 @@ set(DX12_HEADERS
     inc/Helpers.h
     inc/HighResolutionClock.h
     inc/IndexBuffer.h
+	inc/Input.h
     inc/KeyCodes.h
     inc/Mesh.h
     inc/RenderApp.h

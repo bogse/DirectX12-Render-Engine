@@ -6,6 +6,7 @@
 #include "DescriptorAllocator.h"
 #include "DescriptorAllocatorPage.h"
 #include "GUISystem.h"
+#include "Input.h"
 #include "RenderApp.h"
 #include "Window.h"
 
@@ -521,6 +522,8 @@ static LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM l
 
 			KeyEventArgs keyEventArgs(key, c, KeyEventArgs::Pressed, shift, control, alt);
 			pWindow->OnKeyPressed(keyEventArgs);
+
+			Input::SetKeyState(key, true);
 			break;
 		}
 		case WM_SYSKEYUP:
@@ -546,6 +549,8 @@ static LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM l
 
 			KeyEventArgs keyEventArgs(key, c, KeyEventArgs::Released, shift, control, alt);
 			pWindow->OnKeyReleased(keyEventArgs);
+
+			Input::SetKeyState(key, false);
 			break;
 		}
 		// The default window procedure will play a system notification sound
@@ -582,9 +587,12 @@ static LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM l
 
 			MouseButtonEventArgs mouseButtonEventArgs(DecodeMouseButton(message), MouseButtonEventArgs::Pressed, lButton, mButton, rButton, control, shift, x, y);
 			pWindow->OnMouseButtonPressed(mouseButtonEventArgs);
+
+			if (message == WM_LBUTTONDOWN)		Input::SetKeyState(KeyCode::Key::LButton, true);
+			else if (message == WM_RBUTTONDOWN)	Input::SetKeyState(KeyCode::Key::RButton, true);
+			else if (message == WM_MBUTTONDOWN)	Input::SetKeyState(KeyCode::Key::MButton, true);
 			break;
 		}
-		{
 		case WM_LBUTTONUP:
 		case WM_RBUTTONUP:
 		case WM_MBUTTONUP:
@@ -600,6 +608,11 @@ static LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM l
 
 			MouseButtonEventArgs mouseButtonEventArgs(DecodeMouseButton(message), MouseButtonEventArgs::Released, lButton, mButton, rButton, control, shift, x, y);
 			pWindow->OnMouseButtonReleased(mouseButtonEventArgs);
+
+			if (message == WM_LBUTTONUP)		Input::SetKeyState(KeyCode::Key::LButton, false);
+			else if (message == WM_RBUTTONUP)	Input::SetKeyState(KeyCode::Key::RButton, false);
+			else if (message == WM_MBUTTONUP)	Input::SetKeyState(KeyCode::Key::MButton, false);
+
 			break;
 		}
 		case WM_MOUSEWHEEL:
@@ -636,6 +649,11 @@ static LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM l
 			pWindow->OnResize(resizeEventArgs);
 			break;
 		}
+		case WM_KILLFOCUS:
+		{
+			Input::ClearStates();
+			break;
+		}
 		case WM_DESTROY:
 		{
 			// If a window is being destroyed, remove it from the window maps.
@@ -650,7 +668,6 @@ static LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM l
 		}
 		default:
 			return DefWindowProcW(hWnd, message, wParam, lParam);
-		}
 		}
 	}
 	else

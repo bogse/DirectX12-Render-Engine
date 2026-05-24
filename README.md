@@ -19,6 +19,7 @@ This is a DirectX 12 rendering engine built in C++ for learning and experimentat
 	- HDR textures and advanced processing via DirectXTex
 - Texture support
 - Perspective camera support
+- Input system
 
 ## Requirements
 - Windows 10/11

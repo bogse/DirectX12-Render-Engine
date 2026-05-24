@@ -27,9 +27,6 @@ protected:
 	void OnUpdate(UpdateEventArgs& eventArgs) override;
 	void OnRender(RenderEventArgs& eventArgs) override;
 	void OnKeyPressed(KeyEventArgs& eventArgs) override;
-	void OnKeyReleased(KeyEventArgs& eventArgs) override;
-	void OnMouseButtonPressed(MouseButtonEventArgs& eventArgs) override;
-	void OnMouseButtonReleased(MouseButtonEventArgs& eventArgs) override;
 	void OnMouseMoved(MouseMotionEventArgs& eventArgs) override;
 	void OnMouseWheel(MouseWheelEventArgs& eventArgs) override;
 	void OnResize(ResizeEventArgs& eventArgs) override;

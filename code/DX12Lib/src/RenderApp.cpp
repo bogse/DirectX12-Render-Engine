@@ -10,6 +10,7 @@ RenderApp::RenderApp(const std::wstring& name, int width, int height, bool vSync
 	, m_Width(width)
 	, m_Height(height)
 	, m_vSync(vSync)
+	, m_FPS(0.f)
 {
 }
 

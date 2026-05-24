@@ -229,35 +229,24 @@ void Demo::OnKeyPressed(KeyEventArgs& eventArgs)
 		break;
 	}
 	case KeyCode::Key::Enter:
+	{
 		if (eventArgs.m_Alt)
 		{
+			m_pWindow->ToggleFullscreen();
+		}
+		break;
+	}
 	case KeyCode::Key::F11:
+	{
 		m_pWindow->ToggleFullscreen();
 		break;
-		}
+	}
 	case KeyCode::Key::V:
 	{
 		m_pWindow->ToggleVSync();
 		break;
 	}
 	}
-
-	m_CameraController.OnKeyPressed(eventArgs.m_Key);
-}
-
-void Demo::OnKeyReleased(KeyEventArgs& eventArgs)
-{
-	m_CameraController.OnKeyReleased(eventArgs.m_Key);
-}
-
-void Demo::OnMouseButtonPressed(MouseButtonEventArgs& eventArgs)
-{
-	m_CameraController.OnMouseButtonPressed(eventArgs.m_RightButton);
-}
-
-void Demo::OnMouseButtonReleased(MouseButtonEventArgs& eventArgs)
-{
-	m_CameraController.OnMouseButtonReleased(eventArgs.m_RightButton);
 }
 
 void Demo::OnMouseMoved(MouseMotionEventArgs& eventArgs)

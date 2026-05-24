@@ -32,6 +32,8 @@ public:
 	void SetMouseSensitivity(const float mouseSensitivity) { m_MouseSensitivity = mouseSensitivity; }
 
 private:
+	void HandleInput();
+
 	Camera& m_Camera;
 
 	float m_Yaw;

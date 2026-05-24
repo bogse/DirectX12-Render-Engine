@@ -1,6 +1,7 @@
 #include "DX12LibPCH.h"
 
 #include "CameraController.h"
+#include "Input.h"
 #include "KeyCodes.h"
 
 #include <algorithm>
@@ -32,6 +33,8 @@ CameraController::CameraController(Camera& camera)
 
 void CameraController::Update(float deltaTime)
 {
+	HandleInput();
+
 	const DirectX::XMVECTOR rotation =
 		DirectX::XMQuaternionRotationRollPitchYaw(
 			DirectX::XMConvertToRadians(m_Pitch),
@@ -213,4 +216,16 @@ void CameraController::OnMouseButtonReleased(const bool isRightKeyPressed)
 void CameraController::OnMouseWheel(const float wheelDelta)
 {
 	m_MouseWheelDelta += wheelDelta;
+}
+
+void CameraController::HandleInput()
+{
+	m_MoveForward = Input::IsKeyPressed(KeyCode::Key::W);
+	m_MoveBackward = Input::IsKeyPressed(KeyCode::Key::S);
+	m_MoveLeft = Input::IsKeyPressed(KeyCode::Key::A);
+	m_MoveRight = Input::IsKeyPressed(KeyCode::Key::D);
+	m_MoveUp = Input::IsKeyPressed(KeyCode::Key::E);
+	m_MoveDown = Input::IsKeyPressed(KeyCode::Key::Q);
+	m_RightMouseDown = Input::IsKeyPressed(KeyCode::Key::RButton);
+	m_MoveSpeed = Input::IsKeyPressed(KeyCode::Key::ShiftKey) ? FastMoveSpeed : BaseMoveSpeed;
 }
