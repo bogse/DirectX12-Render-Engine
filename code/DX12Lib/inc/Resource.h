@@ -13,6 +13,23 @@ class Resource
 {
 public:
 	Resource(const std::wstring& name = L"");
+	Resource(const D3D12_RESOURCE_DESC& resourceDesc,
+		const D3D12_CLEAR_VALUE* clearValue = nullptr,
+		D3D12_RESOURCE_STATES initialState = D3D12_RESOURCE_STATE_COMMON,
+		const std::wstring& name = L"");
+
+	/**
+	* Copy not allowed for performance reasons.
+	*/
+	Resource(const Resource& copy) = delete;
+	Resource& operator=(const Resource& other) = delete;
+
+	/**
+	* Move semantics allowed.
+	*/
+	Resource(Resource&& move) noexcept;
+	Resource& operator=(Resource&& other) noexcept;
+
 	virtual ~Resource();
 
 	/**

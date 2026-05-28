@@ -24,6 +24,7 @@ std::mutex CommandList::ms_TextureCacheMutex;
 
 CommandList::CommandList(D3D12_COMMAND_LIST_TYPE type)
 	: m_d3d12CommandListType(type)
+	, m_RootSignature(nullptr)
 {
 	Microsoft::WRL::ComPtr<ID3D12Device2> device = Application::GetInstance().GetDevice();
 
@@ -353,9 +354,19 @@ void CommandList::ClearRTV(D3D12_CPU_DESCRIPTOR_HANDLE& rtv, FLOAT* clearColor)
 	m_d3d12CommandList->ClearRenderTargetView(rtv, clearColor, 0, nullptr);
 }
 
-void CommandList::ClearDepth(D3D12_CPU_DESCRIPTOR_HANDLE& dsv, FLOAT depth)
+void CommandList::ClearDepthStencilTexture(
+	const Texture& texture,
+	D3D12_CLEAR_FLAGS clearFlags,
+	float depth,
+	uint8_t stencil)
 {
-	m_d3d12CommandList->ClearDepthStencilView(dsv, D3D12_CLEAR_FLAG_DEPTH, depth, 0, 0, nullptr);
+	TransitionBarrier(texture, D3D12_RESOURCE_STATE_DEPTH_WRITE,
+		D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES, true);
+
+	m_d3d12CommandList->ClearDepthStencilView(texture.GetDepthStencilView(),
+		D3D12_CLEAR_FLAG_DEPTH, depth, 0, 0, nullptr);
+
+	TrackResource(texture);
 }
 
 void CommandList::SetGraphicsRootSignature(const RootSignature& rootSignature)

@@ -59,9 +59,15 @@ Demo::Demo(const std::wstring& name, int width, int height, bool vSync)
 	, m_RenderWireframe(false)
 	, m_EnableTextures(true)
 {
+	CD3DX12_CLEAR_VALUE clearValue(DXGI_FORMAT_D32_FLOAT, 1.f, 0);
+	m_DepthBuffer = Texture(
+		CD3DX12_RESOURCE_DESC::Tex2D(
+			DXGI_FORMAT_D32_FLOAT, width, height,
+			1, 0, 1, 0, D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL),
+		&clearValue,
+		D3D12_RESOURCE_STATE_COMMON, L"DepthBuffer");
 	DirectX::XMVECTOR cameraPos = DirectX::XMVectorSet(0.f, 0.f, -10.f, 1.f);
 	m_Camera.SetPosition(cameraPos);
-	m_DepthBuffer.SetName(L"Demo::DepthBuffer");
 }
 
 bool Demo::LoadContent()
@@ -76,9 +82,6 @@ bool Demo::LoadContent()
 
 	// Create a cube mesh.
 	m_CubeMesh = Mesh::CreateCube(*commandList, 2.f);
-
-	// Allocate space for the Depth Stencil View descriptor.
-	m_DSV = Application::GetInstance().AllocateDescriptors(D3D12_DESCRIPTOR_HEAP_TYPE_DSV);
 
 	// Load the vertex shader.
 	Microsoft::WRL::ComPtr<ID3DBlob> vertexShaderBlob;
@@ -285,39 +288,12 @@ void Demo::ResizeDepthBuffer(int width, int height)
 	width = std::max(1, width);
 	height = std::max(1, height);
 
-	Microsoft::WRL::ComPtr<ID3D12Device2> device = Application::GetInstance().GetDevice();
-
-	// Resize screen dependent resources.
-	// Create a depth buffer.
-	D3D12_CLEAR_VALUE optimizedClearValue = {};
-	optimizedClearValue.Format = DXGI_FORMAT_D32_FLOAT;
-	optimizedClearValue.DepthStencil = { 1.0, 0 };
-
-	CD3DX12_HEAP_PROPERTIES heapProperties(D3D12_HEAP_TYPE_DEFAULT);
-	CD3DX12_RESOURCE_DESC depthDesc(CD3DX12_RESOURCE_DESC::Tex2D(DXGI_FORMAT_D32_FLOAT, width, height,
-		1, 0, 1, 0, D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL));
-
-	Microsoft::WRL::ComPtr<ID3D12Resource> depthBuffer;
-
-	ThrowIfFailed(device->CreateCommittedResource(
-		&heapProperties,
-		D3D12_HEAP_FLAG_NONE,
-		&depthDesc,
-		D3D12_RESOURCE_STATE_DEPTH_WRITE,
-		&optimizedClearValue,
-		IID_PPV_ARGS(&depthBuffer)
-	));
-
-	m_DepthBuffer.SetD3D12Resource(depthBuffer);
-
-	// Create (initialize) the depth-stencil view.
-	device->CreateDepthStencilView(depthBuffer.Get(), nullptr, m_DSV.GetDescriptorHandle());
+	m_DepthBuffer.Resize(width, height);
 }
 
 void Demo::RenderScenePass(CommandList* commandList)
 {
 	D3D12_CPU_DESCRIPTOR_HANDLE rtv = m_pWindow->GetCurrentRenderTargetView();
-	D3D12_CPU_DESCRIPTOR_HANDLE dsv = m_DSV.GetDescriptorHandle();
 	// Clear the render targets.
 	{
 		const Resource& backBuffer = m_pWindow->GetCurrentRenderTarget();
@@ -327,7 +303,7 @@ void Demo::RenderScenePass(CommandList* commandList)
 		FLOAT clearColor[] = { 0.4f, 0.6f, 0.9f, 1.0f };
 
 		commandList->ClearRTV(rtv, clearColor);
-		commandList->ClearDepth(dsv);
+		commandList->ClearDepthStencilTexture(m_DepthBuffer, D3D12_CLEAR_FLAG_DEPTH);
 	}
 
 	// Set pipeline state and root signature.
@@ -346,7 +322,8 @@ void Demo::RenderScenePass(CommandList* commandList)
 	commandList->SetScissorRect(m_ScissorRect);
 
 	// Bind the Render Targets to the Output Merger stage.
-	commandList->SetRenderTargets(&rtv, &dsv);
+	const D3D12_CPU_DESCRIPTOR_HANDLE& dsvHandle = m_DepthBuffer.GetDepthStencilView();
+	commandList->SetRenderTargets(&rtv, &dsvHandle);
 
 	// Bind the texture SRV to root parameter 2 (t0 in the pixel shader)
 	if (m_EnableTextures)
