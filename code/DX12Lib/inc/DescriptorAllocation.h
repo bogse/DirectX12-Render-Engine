@@ -42,8 +42,8 @@ public:
 	/*
 	* Move is allowed.
 	*/
-	DescriptorAllocation(DescriptorAllocation&& allocation);
-	DescriptorAllocation& operator=(DescriptorAllocation&& other);
+	DescriptorAllocation(DescriptorAllocation&& allocation) noexcept;
+	DescriptorAllocation& operator=(DescriptorAllocation&& other) noexcept;
 
 	/**
 	* Check if is a valid descriptor.
