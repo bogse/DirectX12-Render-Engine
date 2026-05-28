@@ -9,6 +9,61 @@ Resource::Resource(const std::wstring& name)
 	: m_ResourceName(name)
 {}
 
+Resource::Resource(
+	const D3D12_RESOURCE_DESC & resourceDesc,
+	const D3D12_CLEAR_VALUE * clearValue,
+	D3D12_RESOURCE_STATES initialState,
+	const std::wstring & name)
+{
+	const Microsoft::WRL::ComPtr<ID3D12Device2>& device = Application::GetInstance().GetDevice();
+
+	if (clearValue)
+	{
+		m_d3d12ClearValue = std::make_unique<D3D12_CLEAR_VALUE>(*clearValue);
+	}
+
+	const CD3DX12_HEAP_PROPERTIES heapProperties(D3D12_HEAP_TYPE_DEFAULT);
+	ThrowIfFailed(device->CreateCommittedResource(
+		&heapProperties,
+		D3D12_HEAP_FLAG_NONE,
+		&resourceDesc,
+		initialState,
+		m_d3d12ClearValue.get(),
+		IID_PPV_ARGS(&m_d3d12Resource)
+	));
+
+	ResourceStateTracker::AddGlobalResourceState(m_d3d12Resource.Get(), initialState);
+
+	SetName(name);
+}
+
+Resource::Resource(Resource&& move) noexcept
+	: m_d3d12Resource(std::move(move.m_d3d12Resource))
+	, m_d3d12ClearValue(std::move(move.m_d3d12ClearValue))
+	, m_ResourceName(std::move(move.m_ResourceName))
+{
+}
+
+Resource& Resource::operator=(Resource&& other) noexcept
+{
+	if (this != &other)
+	{
+		// Unregister old pointer from the tracker before we lose it.
+		if (m_d3d12Resource)
+		{
+			ResourceStateTracker::RemoveGlobalResourceState(m_d3d12Resource.Get());
+		}
+
+		m_d3d12Resource	  = std::move(other.m_d3d12Resource);
+		m_d3d12ClearValue = std::move(other.m_d3d12ClearValue);
+		m_ResourceName	  = std::move(other.m_ResourceName);
+
+		// No tracker updates needed. It is already registered and raw address didn't change.
+	}
+
+	return *this;
+}
+
 Resource::~Resource()
 {}
 

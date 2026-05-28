@@ -65,10 +65,7 @@ private:
 
 	Texture m_DirectXTexture;
 
-	// Depth buffer.
 	Texture m_DepthBuffer;
-	// Descriptor (DSV) used to bind the depth buffer to the pipeline.
-	DescriptorAllocation m_DSV;
 
 	std::unique_ptr<RootSignature> m_RootSignature;
 

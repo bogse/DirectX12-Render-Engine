@@ -157,9 +157,10 @@ public:
 	void ClearRTV(D3D12_CPU_DESCRIPTOR_HANDLE& rtv, FLOAT* clearColor);
 	
 	/*
-	* Clear the depth of a depth-stencil view.
+	* Clear the depth/stencil texture.
 	*/
-	void ClearDepth(D3D12_CPU_DESCRIPTOR_HANDLE& dsv, FLOAT depth = 1.0f);
+	void ClearDepthStencilTexture(const Texture& texture,
+		D3D12_CLEAR_FLAGS clearFlags, float depth = 1.0f, uint8_t stencil = 0);
 
 	/**
 	* Set the current root signature on the command list.
