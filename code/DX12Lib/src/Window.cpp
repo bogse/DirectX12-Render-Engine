@@ -30,8 +30,6 @@ Window::Window(HWND hWnd, const std::wstring& windowName, int clientWidth, int c
 	}
 
 	m_dxgiSwapChain = CreateSwapChain();
-	m_d3d12RTVDescriptorHeap = app.CreateDescriptorHeap(BufferCount, D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
-	m_RTVDescriptorSize = app.GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
 
 	UpdateRenderTargetViews();
 }
@@ -336,32 +334,19 @@ Microsoft::WRL::ComPtr<IDXGISwapChain4> Window::CreateSwapChain()
 // Update the render target views for the swapchain back buffers.
 void Window::UpdateRenderTargetViews()
 {
-	Microsoft::WRL::ComPtr<ID3D12Device2> device = Application::GetInstance().GetDevice();
-
-	CD3DX12_CPU_DESCRIPTOR_HANDLE rtvHandle(m_d3d12RTVDescriptorHeap->GetCPUDescriptorHandleForHeapStart());
-
 	for (int i = 0; i < BufferCount; ++i)
 	{
 		Microsoft::WRL::ComPtr<ID3D12Resource> backBuffer;
 		ThrowIfFailed(m_dxgiSwapChain->GetBuffer(i, IID_PPV_ARGS(&backBuffer)));
 
-		device->CreateRenderTargetView(backBuffer.Get(), nullptr, rtvHandle);
-
 		ResourceStateTracker::AddGlobalResourceState(backBuffer.Get(), D3D12_RESOURCE_STATE_COMMON);
 
 		m_BackBufferTextures[i].SetD3D12Resource(backBuffer);
-
-		rtvHandle.Offset(m_RTVDescriptorSize);
+		m_BackBufferTextures[i].CreateViews();
 	}
 }
 
-D3D12_CPU_DESCRIPTOR_HANDLE Window::GetCurrentRenderTargetView() const
-{
-	return CD3DX12_CPU_DESCRIPTOR_HANDLE(m_d3d12RTVDescriptorHeap->GetCPUDescriptorHandleForHeapStart(),
-		m_CurrentBackBufferIndex, m_RTVDescriptorSize);
-}
-
-const Resource& Window::GetCurrentRenderTarget() const
+const Texture& Window::GetCurrentRenderTarget() const
 {
 	return m_BackBufferTextures[m_CurrentBackBufferIndex];
 }

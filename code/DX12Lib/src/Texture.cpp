@@ -25,6 +25,7 @@ Texture::Texture(Texture&& move) noexcept
 	: Resource(std::move(move))
 	, m_ShaderResourceView(std::move(move.m_ShaderResourceView))
 	, m_DepthStencilView(std::move(move.m_DepthStencilView))
+	, m_RenderTargetView(std::move(move.m_RenderTargetView))
 {
 }
 
@@ -36,6 +37,7 @@ Texture& Texture::operator=(Texture&& other) noexcept
 
 		m_ShaderResourceView = std::move(other.m_ShaderResourceView);
 		m_DepthStencilView   = std::move(other.m_DepthStencilView);
+		m_RenderTargetView	 = std::move(other.m_RenderTargetView);
 	}
 
 	return *this;
@@ -77,6 +79,18 @@ void Texture::CreateViews()
 		}
 
 		device->CreateDepthStencilView(m_d3d12Resource.Get(), nullptr, m_DepthStencilView.GetDescriptorHandle());
+	}
+
+	if ((desc.Flags & D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET) != 0)
+	{
+		m_RenderTargetView = Application::GetInstance().AllocateDescriptors(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
+
+		if (m_RenderTargetView.IsNull())
+		{
+			throw::std::runtime_error("Descriptor Heap out of memory during RTV creation.");
+		}
+
+		device->CreateRenderTargetView(m_d3d12Resource.Get(), nullptr, m_RenderTargetView.GetDescriptorHandle());
 	}
 }
 
@@ -120,4 +134,9 @@ D3D12_CPU_DESCRIPTOR_HANDLE Texture::GetShaderResourceView() const
 D3D12_CPU_DESCRIPTOR_HANDLE Texture::GetDepthStencilView() const
 {
 	return m_DepthStencilView.GetDescriptorHandle();
+}
+
+D3D12_CPU_DESCRIPTOR_HANDLE Texture::GetRenderTargetView() const
+{
+	return m_RenderTargetView.GetDescriptorHandle();
 }

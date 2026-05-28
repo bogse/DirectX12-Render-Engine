@@ -349,9 +349,14 @@ void CommandList::SetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY primitiveTopology)
 	m_d3d12CommandList->IASetPrimitiveTopology(primitiveTopology);
 }
 
-void CommandList::ClearRTV(D3D12_CPU_DESCRIPTOR_HANDLE& rtv, FLOAT* clearColor)
+void CommandList::ClearRenderTargetTexture(const Texture& texture, const float clearColor[4])
 {
-	m_d3d12CommandList->ClearRenderTargetView(rtv, clearColor, 0, nullptr);
+	TransitionBarrier(texture, D3D12_RESOURCE_STATE_RENDER_TARGET);
+
+	m_d3d12CommandList->ClearRenderTargetView(texture.GetRenderTargetView(),
+		clearColor, 0, nullptr);
+
+	TrackResource(texture);
 }
 
 void CommandList::ClearDepthStencilTexture(
@@ -404,11 +409,40 @@ void CommandList::SetShaderResourceView(
 		StageDescriptors(rootParameterIndex, descriptorOffset, 1, srv);
 }
 
-void CommandList::SetRenderTargets(const D3D12_CPU_DESCRIPTOR_HANDLE* rtvs,
-								   const D3D12_CPU_DESCRIPTOR_HANDLE* dsv,
-								   UINT numRTVs)
+void CommandList::SetRenderTarget(const Texture* renderTarget, const Texture* depthTexture)
 {
-	m_d3d12CommandList->OMSetRenderTargets(numRTVs, rtvs, FALSE, dsv);
+	SetRenderTargets({ renderTarget }, depthTexture);
+}
+
+void CommandList::SetRenderTargets(
+	const std::vector<const Texture*>& renderTargets,
+	const Texture* depthTexture)
+{
+	std::vector<D3D12_CPU_DESCRIPTOR_HANDLE> renderTargetDescriptors;
+	renderTargetDescriptors.reserve(renderTargets.size());
+
+	for (const Texture* texture : renderTargets)
+	{
+		if (texture)
+		{
+			TransitionBarrier(*texture, D3D12_RESOURCE_STATE_RENDER_TARGET);
+			renderTargetDescriptors.push_back(texture->GetRenderTargetView());
+
+			TrackResource(*texture);
+		}
+	}
+
+	CD3DX12_CPU_DESCRIPTOR_HANDLE depthStencilDescriptor(D3D12_DEFAULT);
+	if (depthTexture)
+	{
+		TransitionBarrier(*depthTexture, D3D12_RESOURCE_STATE_DEPTH_WRITE);
+		depthStencilDescriptor = depthTexture->GetDepthStencilView();
+
+		TrackResource(*depthTexture);
+	}
+
+	m_d3d12CommandList->OMSetRenderTargets(static_cast<UINT>(renderTargetDescriptors.size()),
+		renderTargetDescriptors.data(), FALSE, &depthStencilDescriptor);
 }
 
 void CommandList::DrawIndexed(uint32_t indexCount, uint32_t instanceCount,

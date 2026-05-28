@@ -4,7 +4,6 @@
 #include <Windows.h>
 
 #include <wrl.h>
-#include <d3d12.h>
 #include <dxgi1_6.h>
 
 #include "Events.h"
@@ -49,14 +48,9 @@ public:
 	UINT Present();
 
 	/*
-	* Get the render target view for the current back buffer.
-	*/
-	D3D12_CPU_DESCRIPTOR_HANDLE GetCurrentRenderTargetView() const;
-
-	/*
 	* Get the back buffer resource for the current back buffer.
 	*/
-	const Resource& GetCurrentRenderTarget() const;
+	const Texture& GetCurrentRenderTarget() const;
 
 protected:
 	/*
@@ -120,10 +114,9 @@ private:
 	std::weak_ptr<RenderApp> m_pRenderApp;
 
 	Microsoft::WRL::ComPtr<IDXGISwapChain4> m_dxgiSwapChain;
-	Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> m_d3d12RTVDescriptorHeap;
+
 	Texture m_BackBufferTextures[BufferCount];
 
-	UINT m_RTVDescriptorSize;
 	UINT m_CurrentBackBufferIndex;
 
 	RECT m_WindowRect;
