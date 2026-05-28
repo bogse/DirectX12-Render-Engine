@@ -293,16 +293,12 @@ void Demo::ResizeDepthBuffer(int width, int height)
 
 void Demo::RenderScenePass(CommandList* commandList)
 {
-	D3D12_CPU_DESCRIPTOR_HANDLE rtv = m_pWindow->GetCurrentRenderTargetView();
+	const Texture& renderTarget = m_pWindow->GetCurrentRenderTarget();
 	// Clear the render targets.
 	{
-		const Resource& backBuffer = m_pWindow->GetCurrentRenderTarget();
-
-		commandList->TransitionBarrier(backBuffer, D3D12_RESOURCE_STATE_RENDER_TARGET);
-
 		FLOAT clearColor[] = { 0.4f, 0.6f, 0.9f, 1.0f };
 
-		commandList->ClearRTV(rtv, clearColor);
+		commandList->ClearRenderTargetTexture(renderTarget, clearColor);
 		commandList->ClearDepthStencilTexture(m_DepthBuffer, D3D12_CLEAR_FLAG_DEPTH);
 	}
 
@@ -322,8 +318,7 @@ void Demo::RenderScenePass(CommandList* commandList)
 	commandList->SetScissorRect(m_ScissorRect);
 
 	// Bind the Render Targets to the Output Merger stage.
-	const D3D12_CPU_DESCRIPTOR_HANDLE& dsvHandle = m_DepthBuffer.GetDepthStencilView();
-	commandList->SetRenderTargets(&rtv, &dsvHandle);
+	commandList->SetRenderTarget(&renderTarget, &m_DepthBuffer);
 
 	// Bind the texture SRV to root parameter 2 (t0 in the pixel shader)
 	if (m_EnableTextures)

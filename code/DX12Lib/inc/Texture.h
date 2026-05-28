@@ -52,7 +52,13 @@ public:
 	*/
 	virtual D3D12_CPU_DESCRIPTOR_HANDLE GetDepthStencilView() const;
 
+	/**
+	* Get the RTV for a texture.
+	*/
+	virtual D3D12_CPU_DESCRIPTOR_HANDLE GetRenderTargetView() const;
+
 private:
 	DescriptorAllocation m_ShaderResourceView;
 	DescriptorAllocation m_DepthStencilView;
+	DescriptorAllocation m_RenderTargetView;
 };

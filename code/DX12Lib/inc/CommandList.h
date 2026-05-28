@@ -152,9 +152,9 @@ public:
 	void SetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY primitiveTopology);
 
 	/*
-	* Clear render target view.
+	* Clear the render target texture.
 	*/
-	void ClearRTV(D3D12_CPU_DESCRIPTOR_HANDLE& rtv, FLOAT* clearColor);
+	void ClearRenderTargetTexture(const Texture& texture, const float clearColor[4]);
 	
 	/*
 	* Clear the depth/stencil texture.
@@ -175,11 +175,11 @@ public:
 		D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
 
 	/**
-	* Bind the Render Targets to the Output Merger stage.
+	* Bind the Render Targets for the graphics rendering pipeline.
 	*/
-	void SetRenderTargets(const D3D12_CPU_DESCRIPTOR_HANDLE* rtvs, 
-						  const D3D12_CPU_DESCRIPTOR_HANDLE* dsv,
-						  UINT numRTVs = 1);
+	void SetRenderTarget(const Texture* renderTarget, const Texture* depthTexture = nullptr);
+	void SetRenderTargets(const std::vector<const Texture*>& renderTargets,
+		const Texture* depthTexture = nullptr);
 
 	/**
 	* Draw geometry.
