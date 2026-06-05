@@ -5,21 +5,21 @@ This is a DirectX 12 rendering engine built in C++ for learning and experimentat
 ## Features: 
 - Win32 window creation and message loop
 - DirectX 12 initialization
-- Basic rendering pipeline setup
-- Shader support (Vertex and Pixel shaders)
 - Command list abstraction
 - Descriptor heap management
 - Resource management and state tracking
 - Upload buffer system
-- Dear ImGui integration for real-time debugging and tooling
+- Basic rendering pipeline setup
+- Shader support (Vertex and Pixel shaders)
+- Multiple Render Target (MRT) and Depth Buffer architecture
 - Mesh class implementation for geometry handling and rendering
-- Texture loading support:
+- Texture support:
 	- DDS via DDSTextureLoader12
 	- PNG / JPG / BMP and other WIC-supported formats via WICTextureLoader12
 	- HDR textures and advanced processing via DirectXTex
-- Texture support
 - Perspective camera support
 - Input system
+- Dear ImGui integration for real-time debugging and tooling
 
 ## Requirements
 - Windows 10/11
