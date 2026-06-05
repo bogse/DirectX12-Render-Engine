@@ -368,6 +368,7 @@ UINT Window::Present(const std::shared_ptr<Texture>& texture)
 	ThrowIfFailed(m_dxgiSwapChain->Present(syncInterval, presentFlags));
 
 	m_FenceValues[m_CurrentBackBufferIndex] = commandQueue->Signal();
+	m_FrameValues[m_CurrentBackBufferIndex] = Application::GetFrameCount();
 
 	m_CurrentBackBufferIndex = m_dxgiSwapChain->GetCurrentBackBufferIndex();
 
