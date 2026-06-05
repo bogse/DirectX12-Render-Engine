@@ -59,13 +59,6 @@ Demo::Demo(const std::wstring& name, int width, int height, bool vSync)
 	, m_RenderWireframe(false)
 	, m_EnableTextures(true)
 {
-	CD3DX12_CLEAR_VALUE clearValue(DXGI_FORMAT_D32_FLOAT, 1.f, 0);
-	m_DepthBuffer = Texture(
-		CD3DX12_RESOURCE_DESC::Tex2D(
-			DXGI_FORMAT_D32_FLOAT, width, height,
-			1, 0, 1, 0, D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL),
-		&clearValue,
-		D3D12_RESOURCE_STATE_COMMON, L"DepthBuffer");
 	DirectX::XMVECTOR cameraPos = DirectX::XMVectorSet(0.f, 0.f, -10.f, 1.f);
 	m_Camera.SetPosition(cameraPos);
 }
@@ -82,6 +75,46 @@ bool Demo::LoadContent()
 
 	// Create a cube mesh.
 	m_CubeMesh = Mesh::CreateCube(*commandList, 2.f);
+
+	// Create an off-screen render target with a single color buffer and a depth buffer.
+	const DXGI_SAMPLE_DESC& sampleDesc = m_RenderTarget.GetSampleDesc();
+
+	const CD3DX12_RESOURCE_DESC colorDesc = CD3DX12_RESOURCE_DESC::Tex2D(
+		DXGI_FORMAT_R8G8B8A8_UNORM,
+		GetClientWidth(), GetClientHeight(),
+		1, 1,
+		sampleDesc.Count, sampleDesc.Quality,
+		D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET);
+
+	D3D12_CLEAR_VALUE colorClearValue;
+	colorClearValue.Format = colorDesc.Format;
+	colorClearValue.Color[0] = 0.4f;
+	colorClearValue.Color[1] = 0.6f;
+	colorClearValue.Color[2] = 0.9f;
+	colorClearValue.Color[3] = 1.0f;
+
+	std::shared_ptr<Texture> colorTexture = std::make_shared<Texture>(
+		colorDesc, &colorClearValue, D3D12_RESOURCE_STATE_RENDER_TARGET, L"Color Render Target");
+
+	// Create a depth buffer.
+	const CD3DX12_RESOURCE_DESC depthDesc = CD3DX12_RESOURCE_DESC::Tex2D(
+		DXGI_FORMAT_D32_FLOAT,
+		GetClientWidth(),
+		GetClientHeight(),
+		1, 1,
+		sampleDesc.Count, sampleDesc.Quality,
+		D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL);
+
+	D3D12_CLEAR_VALUE depthClearValue;
+	depthClearValue.Format = depthDesc.Format;
+	depthClearValue.DepthStencil = { 1.f, 0u };
+
+	std::shared_ptr<Texture> depthTexture = std::make_shared<Texture>(
+		depthDesc, &depthClearValue, D3D12_RESOURCE_STATE_DEPTH_WRITE, L"Depth Render Target");
+
+	// Attach the textures to the render target.
+	m_RenderTarget.AttachTexture(AttachmentPoint::Color0, std::move(colorTexture));
+	m_RenderTarget.AttachTexture(AttachmentPoint::DepthStencil, std::move(depthTexture));
 
 	// Load the vertex shader.
 	Microsoft::WRL::ComPtr<ID3DBlob> vertexShaderBlob;
@@ -142,11 +175,8 @@ bool Demo::LoadContent()
 			CD3DX12_PIPELINE_STATE_STREAM_DEPTH_STENCIL_FORMAT	DSVFormat;
 			CD3DX12_PIPELINE_STATE_STREAM_RENDER_TARGET_FORMATS RTVFormats;
 			CD3DX12_PIPELINE_STATE_STREAM_RASTERIZER			RasterizerState;
+			CD3DX12_PIPELINE_STATE_STREAM_SAMPLE_DESC			SampleDesc;
 		} pipelineStateStream;
-
-		D3D12_RT_FORMAT_ARRAY rtvFormats = {};
-		rtvFormats.NumRenderTargets = 1;
-		rtvFormats.RTFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM;
 
 		CD3DX12_RASTERIZER_DESC rasterizerDesc(D3D12_DEFAULT);
 		rasterizerDesc.FillMode = fillMode;
@@ -161,8 +191,9 @@ bool Demo::LoadContent()
 		pipelineStateStream.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
 		pipelineStateStream.VS = CD3DX12_SHADER_BYTECODE(vertexShaderBlob.Get());
 		pipelineStateStream.PS = CD3DX12_SHADER_BYTECODE(pixelShaderBlob.Get());
-		pipelineStateStream.DSVFormat = DXGI_FORMAT_D32_FLOAT;
-		pipelineStateStream.RTVFormats = rtvFormats;
+		pipelineStateStream.DSVFormat = m_RenderTarget.GetDepthStencilFormat();
+		pipelineStateStream.RTVFormats = m_RenderTarget.GetRenderTargetFormats();
+		pipelineStateStream.SampleDesc = m_RenderTarget.GetSampleDesc();
 		pipelineStateStream.RasterizerState = rasterizerDesc;
 
 		D3D12_PIPELINE_STATE_STREAM_DESC pipelineStateStreamDesc =
@@ -181,9 +212,6 @@ bool Demo::LoadContent()
 
 	uint64_t fenceValue = commandQueue->ExecuteCommandList(commandList);
 	commandQueue->WaitForFenceValue(fenceValue);
-
-	// Resize/Create the depth buffer.
-	ResizeDepthBuffer(GetClientWidth(), GetClientHeight());
 
 	return true;
 }
@@ -217,7 +245,8 @@ void Demo::OnRender(RenderEventArgs& eventArgs)
 	commandQueue->ExecuteCommandList(commandList);
 
 	// Present.
-	m_pWindow->Present();
+	std::shared_ptr<Texture> finalColorTex = m_RenderTarget.GetTexture(AttachmentPoint::Color0);
+	m_pWindow->Present(finalColorTex);
 }
 
 void Demo::OnKeyPressed(KeyEventArgs& eventArgs)
@@ -276,30 +305,20 @@ void Demo::OnResize(ResizeEventArgs& eventArgs)
 		m_Viewport = CD3DX12_VIEWPORT(0.0f, 0.0f,
 			static_cast<float>(eventArgs.m_Width), static_cast<float>(eventArgs.m_Height));
 
-		ResizeDepthBuffer(eventArgs.m_Width, eventArgs.m_Height);
+		m_RenderTarget.Resize(eventArgs.m_Width, eventArgs.m_Height);
 	}
-}
-
-void Demo::ResizeDepthBuffer(int width, int height)
-{
-	// Flush any GPU commands that might be referencing the depth buffer.
-	Application::GetInstance().Flush();
-
-	width = std::max(1, width);
-	height = std::max(1, height);
-
-	m_DepthBuffer.Resize(width, height);
 }
 
 void Demo::RenderScenePass(CommandList* commandList)
 {
-	const Texture& renderTarget = m_pWindow->GetCurrentRenderTarget();
 	// Clear the render targets.
 	{
 		FLOAT clearColor[] = { 0.4f, 0.6f, 0.9f, 1.0f };
 
-		commandList->ClearRenderTargetTexture(renderTarget, clearColor);
-		commandList->ClearDepthStencilTexture(m_DepthBuffer, D3D12_CLEAR_FLAG_DEPTH);
+		commandList->ClearRenderTargetTexture(
+			*m_RenderTarget.GetTexture(AttachmentPoint::Color0), clearColor);
+		commandList->ClearDepthStencilTexture(
+			*m_RenderTarget.GetTexture(AttachmentPoint::DepthStencil), D3D12_CLEAR_FLAG_DEPTH);
 	}
 
 	// Set pipeline state and root signature.
@@ -318,7 +337,7 @@ void Demo::RenderScenePass(CommandList* commandList)
 	commandList->SetScissorRect(m_ScissorRect);
 
 	// Bind the Render Targets to the Output Merger stage.
-	commandList->SetRenderTarget(&renderTarget, &m_DepthBuffer);
+	commandList->SetRenderTarget(m_RenderTarget);
 
 	// Bind the texture SRV to root parameter 2 (t0 in the pixel shader)
 	if (m_EnableTextures)

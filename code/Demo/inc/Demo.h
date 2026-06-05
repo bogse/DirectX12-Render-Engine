@@ -3,8 +3,9 @@
 #include <Camera.h>
 #include <CameraController.h>
 #include <Mesh.h>
-#include <RootSignature.h>
 #include <RenderApp.h>
+#include <RenderTarget.h>
+#include <RootSignature.h>
 #include <Texture.h>
 #include <Window.h>
 
@@ -31,9 +32,6 @@ protected:
 	void OnResize(ResizeEventArgs& eventArgs) override;
 
 private:
-	// Resize the depth buffer to match the size of the client area.
-	void ResizeDepthBuffer(int width, int height);
-
 	void RenderScenePass(CommandList* commandList);
 	void RenderUIPass(CommandList* commandList);
 
@@ -64,7 +62,7 @@ private:
 
 	Texture m_DirectXTexture;
 
-	Texture m_DepthBuffer;
+	RenderTarget m_RenderTarget;
 
 	std::unique_ptr<RootSignature> m_RootSignature;
 

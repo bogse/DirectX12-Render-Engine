@@ -351,17 +351,16 @@ const Texture& Window::GetCurrentRenderTarget() const
 	return m_BackBufferTextures[m_CurrentBackBufferIndex];
 }
 
-UINT Window::GetCurrentBackBufferIndex() const
-{
-	return m_CurrentBackBufferIndex;
-}
-
-UINT Window::Present()
+UINT Window::Present(const std::shared_ptr<Texture>& texture)
 {
 	std::shared_ptr<CommandQueue> commandQueue = Application::GetInstance().GetCommandQueue(D3D12_COMMAND_LIST_TYPE_DIRECT);
 	std::shared_ptr<CommandList> commandList = commandQueue->GetCommandList();
 
-	commandList->TransitionBarrier(m_BackBufferTextures[m_CurrentBackBufferIndex], D3D12_RESOURCE_STATE_PRESENT);
+	const Texture& backBuffer = m_BackBufferTextures[m_CurrentBackBufferIndex];
+	if (texture)
+		commandList->CopyResource(backBuffer, *texture);
+
+	commandList->TransitionBarrier(backBuffer, D3D12_RESOURCE_STATE_PRESENT);
 	commandQueue->ExecuteCommandList(commandList);
 
 	UINT syncInterval = m_vSync ? 1 : 0;

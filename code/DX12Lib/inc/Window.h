@@ -38,14 +38,9 @@ public:
 	void Hide();
 
 	/*
-	* Get the render target view for the current back buffer.
-	*/
-	UINT GetCurrentBackBufferIndex() const;
-
-	/*
 	* Present the swapchain's back buffer to the screen. Returns the current back buffer index after the present.
 	*/
-	UINT Present();
+	UINT Present(const std::shared_ptr<Texture>& texture = nullptr);
 
 	/*
 	* Get the back buffer resource for the current back buffer.

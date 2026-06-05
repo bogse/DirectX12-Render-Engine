@@ -18,6 +18,7 @@ class Buffer;
 class ConstantBuffer;
 class DynamicDescriptorHeap;
 class IndexBuffer;
+class RenderTarget;
 class Resource;
 class ResourceStateTracker;
 class RootSignature;
@@ -51,6 +52,11 @@ public:
 	* Flush any barriers that have been pushed to the command list.
 	*/
 	void FlushResourceBarriers();
+
+	/**
+	* Copy resources.
+	*/
+	void CopyResource(const Resource& destinationResource, const Resource& sourceResource);
 
 	/**
 	* Copy the contents of a vertex buffer.
@@ -175,11 +181,9 @@ public:
 		D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
 
 	/**
-	* Bind the Render Targets for the graphics rendering pipeline.
+	* Bind the Render Target for the graphics rendering pipeline.
 	*/
-	void SetRenderTarget(const Texture* renderTarget, const Texture* depthTexture = nullptr);
-	void SetRenderTargets(const std::vector<const Texture*>& renderTargets,
-		const Texture* depthTexture = nullptr);
+	void SetRenderTarget(const RenderTarget& renderTarget);
 
 	/**
 	* Draw geometry.

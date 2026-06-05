@@ -72,6 +72,15 @@ Microsoft::WRL::ComPtr<ID3D12Resource> Resource::GetD3D12Resource() const
 	return m_d3d12Resource;
 }
 
+D3D12_RESOURCE_DESC Resource::GetD3D12ResourceDesc() const
+{
+	D3D12_RESOURCE_DESC resDesc = {};
+	if (m_d3d12Resource)
+		resDesc = m_d3d12Resource->GetDesc();
+
+	return resDesc;
+}
+
 void Resource::SetD3D12Resource(
 	Microsoft::WRL::ComPtr<ID3D12Resource> d3d12Resource)
 {

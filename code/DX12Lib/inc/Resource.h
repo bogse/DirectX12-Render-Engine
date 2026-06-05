@@ -37,6 +37,8 @@ public:
 	*/
 	Microsoft::WRL::ComPtr<ID3D12Resource> GetD3D12Resource() const;
 
+	D3D12_RESOURCE_DESC GetD3D12ResourceDesc() const;
+
 	/**
 	* Replace the D3D12 resource.
 	* Should only be called by the CommandList.
