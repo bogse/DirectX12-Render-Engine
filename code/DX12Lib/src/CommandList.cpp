@@ -5,6 +5,7 @@
 #include "Application.h"
 #include "DynamicDescriptorHeap.h"
 #include "IndexBuffer.h"
+#include "RenderTarget.h"
 #include "Resource.h"
 #include "ResourceStateTracker.h"
 #include "RootSignature.h"
@@ -77,6 +78,19 @@ void CommandList::TransitionBarrier(const Resource& resource, D3D12_RESOURCE_STA
 void CommandList::FlushResourceBarriers()
 {
 	m_ResourceStateTracker->FlushResourceBarriers(*this);
+}
+
+void CommandList::CopyResource(const Resource& destinationResource, const Resource& sourceResource)
+{
+	TransitionBarrier(destinationResource, D3D12_RESOURCE_STATE_COPY_DEST);
+	TransitionBarrier(sourceResource, D3D12_RESOURCE_STATE_COPY_SOURCE);
+	FlushResourceBarriers();
+
+	m_d3d12CommandList->CopyResource(destinationResource.GetD3D12Resource().Get(),
+		sourceResource.GetD3D12Resource().Get());
+
+	m_TrackedObjects.push_back(destinationResource.GetD3D12Resource());
+	m_TrackedObjects.push_back(sourceResource.GetD3D12Resource());
 }
 
 void CommandList::TrackObject(Microsoft::WRL::ComPtr<ID3D12Object> object)
@@ -409,21 +423,20 @@ void CommandList::SetShaderResourceView(
 		StageDescriptors(rootParameterIndex, descriptorOffset, 1, srv);
 }
 
-void CommandList::SetRenderTarget(const Texture* renderTarget, const Texture* depthTexture)
-{
-	SetRenderTargets({ renderTarget }, depthTexture);
-}
-
-void CommandList::SetRenderTargets(
-	const std::vector<const Texture*>& renderTargets,
-	const Texture* depthTexture)
+void CommandList::SetRenderTarget(const RenderTarget& renderTarget)
 {
 	std::vector<D3D12_CPU_DESCRIPTOR_HANDLE> renderTargetDescriptors;
-	renderTargetDescriptors.reserve(renderTargets.size());
+	renderTargetDescriptors.reserve(static_cast<size_t>(AttachmentPoint::NumAttachmentPoints));
 
-	for (const Texture* texture : renderTargets)
+	const RenderTarget::TextureArray& textures = renderTarget.GetTextures();
+
+	constexpr int minColorSlot = static_cast<int>(AttachmentPoint::MinColorSlot);
+	constexpr int maxColorSlot = static_cast<int>(AttachmentPoint::MaxColorSlot);
+	for (int i = minColorSlot; i <= maxColorSlot; ++i)
 	{
-		if (texture)
+		const std::shared_ptr<Texture>& texture = textures[i];
+
+		if (texture && texture->GetD3D12Resource())
 		{
 			TransitionBarrier(*texture, D3D12_RESOURCE_STATE_RENDER_TARGET);
 			renderTargetDescriptors.push_back(texture->GetRenderTargetView());
@@ -432,8 +445,11 @@ void CommandList::SetRenderTargets(
 		}
 	}
 
+	const std::shared_ptr<Texture>& depthTexture =
+		renderTarget.GetTexture(AttachmentPoint::DepthStencil);
+
 	CD3DX12_CPU_DESCRIPTOR_HANDLE depthStencilDescriptor(D3D12_DEFAULT);
-	if (depthTexture)
+	if (depthTexture && depthTexture->GetD3D12Resource())
 	{
 		TransitionBarrier(*depthTexture, D3D12_RESOURCE_STATE_DEPTH_WRITE);
 		depthStencilDescriptor = depthTexture->GetDepthStencilView();
@@ -441,8 +457,10 @@ void CommandList::SetRenderTargets(
 		TrackResource(*depthTexture);
 	}
 
+	D3D12_CPU_DESCRIPTOR_HANDLE* pDSV = depthStencilDescriptor.ptr != 0 ? &depthStencilDescriptor : nullptr;
+
 	m_d3d12CommandList->OMSetRenderTargets(static_cast<UINT>(renderTargetDescriptors.size()),
-		renderTargetDescriptors.data(), FALSE, &depthStencilDescriptor);
+		renderTargetDescriptors.data(), FALSE, pDSV);
 }
 
 void CommandList::DrawIndexed(uint32_t indexCount, uint32_t instanceCount,

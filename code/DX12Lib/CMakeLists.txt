@@ -38,6 +38,7 @@ set(DX12_HEADERS
     inc/KeyCodes.h
     inc/Mesh.h
     inc/RenderApp.h
+	inc/RenderTarget.h
     inc/Resource.h
     inc/ResourceStateTracker.h
     inc/RootSignature.h
@@ -65,6 +66,7 @@ set(DX12_SOURCES
     src/IndexBuffer.cpp
     src/Mesh.cpp
     src/RenderApp.cpp
+	src/RenderTarget.cpp
     src/Resource.cpp
     src/ResourceStateTracker.cpp
     src/RootSignature.cpp
