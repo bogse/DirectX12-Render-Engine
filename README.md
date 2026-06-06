@@ -13,11 +13,7 @@ This is a DirectX 12 rendering engine built in C++ for learning and experimentat
 - Shader support (Vertex and Pixel shaders)
 - Multiple Render Target (MRT) and Depth Buffer architecture
 - Mesh class implementation for geometry handling and rendering
-- Texture support:
-	- DDS via DDSTextureLoader12
-	- PNG / JPG / BMP and other WIC-supported formats via WICTextureLoader12
-	- HDR textures and advanced processing via DirectXTex
-- Perspective camera support
+- Texture support via DirectXTex standalone pipeline (DDS, PNG, JPG, BMP, TGA, and HDR formats)
 - Input system
 - Dear ImGui integration for real-time debugging and tooling
 
