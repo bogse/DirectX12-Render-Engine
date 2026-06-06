@@ -13,11 +13,6 @@
 #include "UploadBuffer.h"
 #include "VertexBuffer.h"
 
-#include <DDSTextureLoader12.h>
-#include <WICTextureLoader12.h>
-
-#include <d3dx12.h>
-
 #include <filesystem>
 
 std::map<std::wstring, ID3D12Resource*> CommandList::ms_TextureCache;
@@ -150,6 +145,9 @@ void CommandList::CopyBuffer(Buffer& buffer, size_t numElements, size_t elementS
 			subresourceData.RowPitch = bufferSize;
 			subresourceData.SlicePitch = subresourceData.RowPitch;
 
+			m_ResourceStateTracker->TransitionResource(d3d12Resource.Get(), D3D12_RESOURCE_STATE_COPY_DEST);
+			FlushResourceBarriers();
+
 			UpdateSubresources(m_d3d12CommandList.Get(), d3d12Resource.Get(), uploadResource.Get(), 0, 0, 1, &subresourceData);
 
 			// Add references to resources so they stay in scope until the command list is reset.
@@ -173,10 +171,11 @@ void CommandList::CopyIndexBuffer(IndexBuffer& indexBuffer, size_t numIndices, D
 	CopyBuffer(indexBuffer, numIndices, indexSizeInBytes, indexBufferData);
 }
 
-void CommandList::LoadTextureFromFile(Texture& texture, const std::wstring& filename)
+void CommandList::LoadTextureFromFile(
+	Texture& texture,
+	const std::wstring& filename,
+	const bool sRGB)
 {
-	Microsoft::WRL::ComPtr<ID3D12Device2> device = Application::GetInstance().GetDevice();
-
 	std::filesystem::path filepath(filename);
 
 	if (!std::filesystem::exists(filepath))
@@ -184,48 +183,127 @@ void CommandList::LoadTextureFromFile(Texture& texture, const std::wstring& file
 		throw std::invalid_argument("Invalid filename specified.");
 	}
 
+	std::lock_guard<std::mutex> lock(ms_TextureCacheMutex);
+
 	std::map<std::wstring, ID3D12Resource*>::iterator iter =
 		ms_TextureCache.find(filename);
 
 	if (iter != ms_TextureCache.end())
 	{
 		texture.SetD3D12Resource(iter->second);
+		texture.CreateViews();
+		texture.SetName(filename);
+		return;
+	}
+
+	DirectX::TexMetadata metadata;
+	DirectX::ScratchImage scratchImage;
+
+	if (filepath.extension() == ".dds")
+	{
+		ThrowIfFailed(DirectX::LoadFromDDSFile(filename.c_str(),
+			DirectX::DDS_FLAGS_FORCE_RGB, &metadata, scratchImage));
+	}
+	else if (filepath.extension() == ".hdr")
+	{
+		ThrowIfFailed(DirectX::LoadFromHDRFile(filename.c_str(), &metadata, scratchImage));
+	}
+	else if (filepath.extension() == ".tga")
+	{
+		ThrowIfFailed(DirectX::LoadFromTGAFile(filename.c_str(), &metadata, scratchImage));
 	}
 	else
 	{
-		Microsoft::WRL::ComPtr<ID3D12Resource> textureResource;
-		std::unique_ptr<uint8_t[]> textureData;
-		std::vector<D3D12_SUBRESOURCE_DATA> subresourceData;
-
-		if (filepath.extension() == ".dds")
-		{
-			// Use DDS texture loaded.
-			ThrowIfFailed(DirectX::LoadDDSTextureFromFile(device.Get(),
-				filename.c_str(), &textureResource, textureData, subresourceData));
-		}
-		else
-		{
-			D3D12_SUBRESOURCE_DATA resourceData;
-			// Use WIC texture loader.
-			ThrowIfFailed(DirectX::LoadWICTextureFromFile(device.Get(),
-				filename.c_str(), &textureResource, textureData, resourceData));
-
-			subresourceData.push_back(resourceData);
-		}
-
-		// Update the global state tracker.
-		ResourceStateTracker::AddGlobalResourceState(textureResource.Get(), D3D12_RESOURCE_STATE_COPY_DEST);
-
-		texture.SetD3D12Resource(textureResource);
-		texture.CreateViews();
-
-		CopyTextureSubresource(texture, 0, static_cast<uint32_t>(subresourceData.size()),
-			subresourceData.data());
-
-		// Add the texture resource to the texture cache.
-		std::lock_guard<std::mutex> lock(ms_TextureCacheMutex);
-		ms_TextureCache[filename] = textureResource.Get();
+		ThrowIfFailed(DirectX::LoadFromWICFile(filename.c_str(),
+			DirectX::WIC_FLAGS_FORCE_RGB, &metadata, scratchImage));
 	}
+
+	// Force the texture format to be sRGB to convert to linear when sampling the texture in shader.
+	if (sRGB)
+	{
+		metadata.format = DirectX::MakeSRGB(metadata.format);
+	}
+
+	D3D12_RESOURCE_DESC textureDesc = {};
+	switch (metadata.dimension)
+	{
+	case DirectX::TEX_DIMENSION_TEXTURE1D:
+	{
+		textureDesc = CD3DX12_RESOURCE_DESC::Tex1D(
+			metadata.format,
+			static_cast<UINT64>(metadata.width),
+			static_cast<UINT16>(metadata.arraySize),
+			static_cast<UINT16>(metadata.mipLevels));
+		break;
+	}
+	case DirectX::TEX_DIMENSION_TEXTURE2D:
+	{
+		textureDesc = CD3DX12_RESOURCE_DESC::Tex2D(
+			metadata.format,
+			static_cast<UINT64>(metadata.width),
+			static_cast<UINT>(metadata.height),
+			static_cast<UINT16>(metadata.arraySize),
+			static_cast<UINT16>(metadata.mipLevels));
+		break;
+	}
+	case DirectX::TEX_DIMENSION_TEXTURE3D:
+	{
+		textureDesc = CD3DX12_RESOURCE_DESC::Tex3D(
+			metadata.format,
+			static_cast<UINT64>(metadata.width),
+			static_cast<UINT>(metadata.height),
+			static_cast<UINT16>(metadata.depth),
+			static_cast<UINT16>(metadata.mipLevels));
+		break;
+	}
+	default:
+		throw std::exception("Invalid texture dimension.");
+		break;
+	}
+
+	const Microsoft::WRL::ComPtr<ID3D12Device2>& d3d12Device = Application::GetInstance().GetDevice();
+
+	CD3DX12_HEAP_PROPERTIES heapProp(D3D12_HEAP_TYPE_DEFAULT);
+	Microsoft::WRL::ComPtr<ID3D12Resource> textureResource;
+
+	ThrowIfFailed(d3d12Device->CreateCommittedResource(
+		&heapProp,
+		D3D12_HEAP_FLAG_NONE,
+		&textureDesc,
+		D3D12_RESOURCE_STATE_COMMON,
+		nullptr,
+		IID_PPV_ARGS(&textureResource)));
+
+	texture.SetD3D12Resource(textureResource);
+	texture.SetName(filename);
+	texture.CreateViews();
+
+	// Update the global state tracker.
+	ResourceStateTracker::AddGlobalResourceState(textureResource.Get(), D3D12_RESOURCE_STATE_COPY_DEST);
+	auto x = textureResource->GetDesc().MipLevels;
+	// Upload data
+	const size_t imageCount = scratchImage.GetImageCount();
+	std::vector<D3D12_SUBRESOURCE_DATA> subresources(imageCount);
+	const DirectX::Image* pImages = scratchImage.GetImages();
+
+	if (imageCount == 0 || pImages == nullptr)
+	{
+		throw std::runtime_error("Failed to retrieve image data from scratch image.");
+	}
+
+	for (size_t i = 0; i < imageCount; ++i)
+	{
+		D3D12_SUBRESOURCE_DATA& subresource = subresources[i];
+		subresource.RowPitch				= pImages[i].rowPitch;
+		subresource.SlicePitch				= pImages[i].slicePitch;
+		subresource.pData					= pImages[i].pixels;
+	}
+
+	CopyTextureSubresource(texture, 0, static_cast<uint32_t>(subresources.size()),
+		subresources.data());
+
+	// Add the texture resource to the texture cache.
+	ms_TextureCache[filename] = textureResource.Get();
 }
 
 void CommandList::CopyTextureSubresource(
