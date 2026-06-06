@@ -15,6 +15,8 @@ Window::Window(HWND hWnd, const std::wstring& windowName, int clientWidth, int c
 	, m_ClientHeight(clientHeight)
 	, m_vSync(vSync)
 	, m_Fullscreen(false)
+	, m_RenderClock()
+	, m_UpdateClock()
 	, m_FenceValues{0}
 	, m_FrameValues{0}
 	, m_PreviousMouseX(0)

@@ -71,7 +71,6 @@ bool Demo::LoadContent()
 	// Load texture.
 	const std::wstring path = ASSET_DIR L"/Textures/DirectX12.png";
 	commandList->LoadTextureFromFile(m_DirectXTexture, path);
-	m_DirectXTexture.SetName(L"DirectX12.png");
 
 	// Create a cube mesh.
 	m_CubeMesh = Mesh::CreateCube(*commandList, 2.f);

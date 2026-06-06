@@ -6,7 +6,7 @@
 
 #pragma once
 
-#include <d3d12.h>
+#include <d3dx12.h>
 #include <wrl.h>
 
 #include <map>
@@ -84,7 +84,7 @@ public:
 	/**
 	* Load a texture by a filename.
 	*/
-	void LoadTextureFromFile(Texture& texture, const std::wstring& filename);
+	void LoadTextureFromFile(Texture& texture, const std::wstring& filename, const bool sRGB = false);
 
 	/**
 	* Copy a subresource data to a texture.

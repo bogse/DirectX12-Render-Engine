@@ -23,18 +23,8 @@ set(HEADERS_DIRECTXTEX
     ${DIRECTXTEX_INCLUDE_DIR}/DirectXTex.inl
 )
 
-set(HEADERS_DDS
-    ${CMAKE_CURRENT_SOURCE_DIR}/DDSTextureLoader/DDSTextureLoader12.h
-)
-
-set(HEADERS_WIC
-    ${CMAKE_CURRENT_SOURCE_DIR}/WICTextureLoader/WICTextureLoader12.h
-)
-
 set(DIRECTXTEX_PUBLIC_HEADERS
     ${HEADERS_DIRECTXTEX}
-    ${HEADERS_DDS}
-    ${HEADERS_WIC}
 )
 
 # Implementation-only internal headers (Private API)
@@ -81,18 +71,8 @@ set(SOURCES_DIRECTXTEX
     ${DIRECTXTEX_INCLUDE_DIR}/DirectXTexWIC.cpp
 )
 
-set(SOURCES_DDS
-    ${CMAKE_CURRENT_SOURCE_DIR}/DDSTextureLoader/DDSTextureLoader12.cpp
-)
-
-set(SOURCES_WIC
-    ${CMAKE_CURRENT_SOURCE_DIR}/WICTextureLoader/WICTextureLoader12.cpp
-)
-
 set(DIRECTXTEX_SOURCES
     ${SOURCES_DIRECTXTEX}
-    ${SOURCES_DDS}
-    ${SOURCES_WIC}
 )
 
 # --- EXPLICITLY DISABLE MSBUILD HLSL GENERATOR FOR THESE FILES ---
@@ -119,21 +99,13 @@ add_custom_command(
 
 # Visual Studio Organization.
 source_group("inc\\DirectXTex" FILES ${HEADERS_DIRECTXTEX})
-source_group("inc\\DDS" FILES ${HEADERS_DDS})
-source_group("inc\\WIC" FILES ${HEADERS_WIC})
-
 source_group("src\\DirectXTex" FILES ${SOURCES_DIRECTXTEX} ${DIRECTXTEX_PRIVATE_HEADERS})
-source_group("src\\DDS" FILES ${SOURCES_DDS})
-source_group("src\\WIC" FILES ${SOURCES_WIC})
-
 source_group("src\\DirectXTex\\shaders" FILES ${DIRECTXTEX_SHADERS})
 
 # Expose include path to anything linking this library.
 target_include_directories(DirectXTexDX12
     PUBLIC
         ${DIRECTXTEX_INCLUDE_DIR}
-        ${CMAKE_CURRENT_SOURCE_DIR}/DDSTextureLoader
-        ${CMAKE_CURRENT_SOURCE_DIR}/WICTextureLoader
         ${CMAKE_CURRENT_SOURCE_DIR}/../DirectXHeaders
 	PRIVATE
 	    ${DIRECTXTEX_SHADERS_DIR}/Compiled
@@ -156,9 +128,9 @@ target_link_libraries(DirectXTexDX12
         d3d12
         dxgi
         dxguid
-        windowscodecs
 		DirectX::Headers
     PRIVATE
+	    windowscodecs
         shlwapi
         ole32
 )
