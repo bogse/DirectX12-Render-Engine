@@ -70,7 +70,7 @@ bool Demo::LoadContent()
 
 	// Load texture.
 	const std::wstring path = ASSET_DIR L"/Textures/DirectX12.png";
-	commandList->LoadTextureFromFile(m_DirectXTexture, path);
+	commandList->LoadTextureFromFile(m_DirectXTexture, path, true);
 
 	// Create a cube mesh.
 	m_CubeMesh = Mesh::CreateCube(*commandList, 2.f);
@@ -153,7 +153,13 @@ bool Demo::LoadContent()
 	rootParameters[2].InitAsDescriptorTable(1, &descriptorRange, D3D12_SHADER_VISIBILITY_PIXEL);
 
 	CD3DX12_STATIC_SAMPLER_DESC linearRepeatSampler;
-	linearRepeatSampler.Init(0, D3D12_FILTER_COMPARISON_MIN_MAG_MIP_LINEAR);
+	linearRepeatSampler.Init(
+		0,
+		D3D12_FILTER_COMPARISON_MIN_MAG_MIP_LINEAR,
+		D3D12_TEXTURE_ADDRESS_MODE_CLAMP,
+		D3D12_TEXTURE_ADDRESS_MODE_CLAMP,
+		D3D12_TEXTURE_ADDRESS_MODE_CLAMP);
+	linearRepeatSampler.MipLODBias = 2.f;
 
 	CD3DX12_VERSIONED_ROOT_SIGNATURE_DESC rootSignatureDescription;
 	rootSignatureDescription.Init_1_1(_countof(rootParameters),

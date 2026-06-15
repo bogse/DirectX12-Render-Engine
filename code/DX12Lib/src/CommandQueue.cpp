@@ -75,6 +75,10 @@ uint64_t CommandQueue::ExecuteCommandLists(const std::vector<std::shared_ptr<Com
 	std::vector<std::shared_ptr<CommandList>> toBeQueued;
 	toBeQueued.reserve(commandLists.size() * 2);		// 2x since each command list will have a pending command list.
 
+	// Generate mips command lists.
+	std::vector<std::shared_ptr<CommandList>> generateMipsCommandLists;
+	generateMipsCommandLists.reserve(commandLists.size());
+
 	// Command lists that need to be executed.
 	std::vector<ID3D12CommandList*> d3d12CommandLists;
 	d3d12CommandLists.reserve(commandLists.size() * 2);	// 2x since each command list will have a pending command list.
@@ -96,6 +100,12 @@ uint64_t CommandQueue::ExecuteCommandLists(const std::vector<std::shared_ptr<Com
 
 		toBeQueued.push_back(pendingCommandList);
 		toBeQueued.push_back(commandList);
+
+		std::shared_ptr<CommandList> generateMipsCommandList = commandList->GetComputeCommandList();
+		if (generateMipsCommandList)
+		{
+			generateMipsCommandLists.push_back(generateMipsCommandList);
+		}
 	}
 
 	UINT numCommandLists = static_cast<UINT>(d3d12CommandLists.size());
@@ -108,6 +118,16 @@ uint64_t CommandQueue::ExecuteCommandLists(const std::vector<std::shared_ptr<Com
 	for (std::shared_ptr<CommandList> commandList : toBeQueued)
 	{
 		m_CommandListQueue.emplace(CommandListEntry{ fenceValue, commandList });
+	}
+
+	// If there are any command lists that generate mips then execute those
+	// after the initial resource command lists have finished.
+	if (generateMipsCommandLists.size() > 0)
+	{
+		std::shared_ptr<CommandQueue> computeQueue =
+			Application::GetInstance().GetCommandQueue(D3D12_COMMAND_LIST_TYPE_COMPUTE);
+		computeQueue->Wait(*this);
+		computeQueue->ExecuteCommandLists(generateMipsCommandLists);
 	}
 
 	return fenceValue;
@@ -142,4 +162,9 @@ void CommandQueue::Flush()
 Microsoft::WRL::ComPtr<ID3D12CommandQueue> CommandQueue::GetD3D12CommandQueue() const
 {
 	return m_d3d12CommandQueue;
+}
+
+void CommandQueue::Wait(const CommandQueue& other)
+{
+	m_d3d12CommandQueue->Wait(other.m_d3d12Fence.Get(), other.m_FenceValue);
 }

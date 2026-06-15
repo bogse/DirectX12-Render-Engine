@@ -17,6 +17,8 @@ public:
 		const D3D12_CLEAR_VALUE* clearValue = nullptr,
 		D3D12_RESOURCE_STATES initialState = D3D12_RESOURCE_STATE_COMMON,
 		const std::wstring& name = L"");
+	Resource(Microsoft::WRL::ComPtr<ID3D12Resource> resource,
+		const std::wstring& name = L"");
 
 	/**
 	* Copy not allowed for performance reasons.
@@ -63,12 +65,24 @@ public:
 	*/
 	virtual void Reset();
 
+	/**
+	* Check if the resource format supports a specific feature.
+	*/
+	bool CheckFormatSupport(D3D12_FORMAT_SUPPORT1 formatSupport) const;
+	bool CheckFormatSupport(D3D12_FORMAT_SUPPORT2 formatSupport) const;
+
 	ULONG RefCount() const;
 
 protected:
 	Microsoft::WRL::ComPtr<ID3D12Resource> m_d3d12Resource;
+	D3D12_FEATURE_DATA_FORMAT_SUPPORT m_FormatSupport;
 	std::unique_ptr<D3D12_CLEAR_VALUE> m_d3d12ClearValue;
 
 private:
+	/*
+	* Check the format support and populate the m_FormatSupport structure.
+	*/
+	void CheckFeatureSupport();
+
 	std::wstring m_ResourceName;
 };

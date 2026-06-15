@@ -7,6 +7,7 @@
 
 Resource::Resource(const std::wstring& name)
 	: m_ResourceName(name)
+	, m_FormatSupport({})
 {}
 
 Resource::Resource(
@@ -34,11 +35,24 @@ Resource::Resource(
 
 	ResourceStateTracker::AddGlobalResourceState(m_d3d12Resource.Get(), initialState);
 
+	CheckFeatureSupport();
+	SetName(name);
+}
+
+Resource::Resource(
+	Microsoft::WRL::ComPtr<ID3D12Resource> resource,
+	const std::wstring& name
+)
+	: m_d3d12Resource(resource)
+	, m_FormatSupport({})
+{
+	CheckFeatureSupport();
 	SetName(name);
 }
 
 Resource::Resource(Resource&& move) noexcept
 	: m_d3d12Resource(std::move(move.m_d3d12Resource))
+	, m_FormatSupport({})
 	, m_d3d12ClearValue(std::move(move.m_d3d12ClearValue))
 	, m_ResourceName(std::move(move.m_ResourceName))
 {
@@ -55,6 +69,7 @@ Resource& Resource::operator=(Resource&& other) noexcept
 		}
 
 		m_d3d12Resource	  = std::move(other.m_d3d12Resource);
+		m_FormatSupport	  = std::move(other.m_FormatSupport);
 		m_d3d12ClearValue = std::move(other.m_d3d12ClearValue);
 		m_ResourceName	  = std::move(other.m_ResourceName);
 
@@ -85,6 +100,7 @@ void Resource::SetD3D12Resource(
 	Microsoft::WRL::ComPtr<ID3D12Resource> d3d12Resource)
 {
 	m_d3d12Resource = d3d12Resource;
+	CheckFeatureSupport();
 	SetName(m_ResourceName);
 }
 
@@ -100,8 +116,19 @@ void Resource::SetName(const std::wstring& name)
 void Resource::Reset()
 {
 	m_d3d12Resource.Reset();
+	m_FormatSupport = {};
 	m_d3d12ClearValue.reset();
 	m_ResourceName.clear();
+}
+
+bool Resource::CheckFormatSupport(D3D12_FORMAT_SUPPORT1 formatSupport) const
+{
+	return (m_FormatSupport.Support1 & formatSupport) != 0;
+}
+
+bool Resource::CheckFormatSupport(D3D12_FORMAT_SUPPORT2 formatSupport) const
+{
+	return (m_FormatSupport.Support2 & formatSupport) != 0;
 }
 
 ULONG Resource::RefCount() const
@@ -113,4 +140,23 @@ ULONG Resource::RefCount() const
 	}
 
 	return 0ul;
+}
+
+void Resource::CheckFeatureSupport()
+{
+	if (m_d3d12Resource)
+	{
+		const D3D12_RESOURCE_DESC& desc = m_d3d12Resource->GetDesc();
+		const Microsoft::WRL::ComPtr<ID3D12Device2>& device = Application::GetInstance().GetDevice();
+
+		m_FormatSupport.Format = desc.Format;
+		ThrowIfFailed(device->CheckFeatureSupport(
+			D3D12_FEATURE_FORMAT_SUPPORT,
+			&m_FormatSupport,
+			sizeof(D3D12_FEATURE_DATA_FORMAT_SUPPORT)));
+	}
+	else
+	{
+		m_FormatSupport = {};
+	}
 }

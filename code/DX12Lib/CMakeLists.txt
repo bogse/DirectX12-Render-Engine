@@ -9,12 +9,6 @@ if(NOT WIN32)
     message(FATAL_ERROR "DX12Lib only supports Windows.")
 endif()
 
-# Static Library Target.
-add_library(DX12Lib STATIC)
-
-# C++ Standard.
-target_compile_features(DX12Lib PUBLIC cxx_std_20)
-
 # Explicitly list all source and header files.
 # Headers files.
 set(DX12_HEADERS
@@ -30,6 +24,7 @@ set(DX12_HEADERS
     inc/DescriptorAllocatorPage.h
     inc/DynamicDescriptorHeap.h
     inc/Events.h
+	inc/GenerateMipsPSO.h
     inc/GUISystem.h
     inc/Helpers.h
     inc/HighResolutionClock.h
@@ -61,6 +56,7 @@ set(DX12_SOURCES
     src/DescriptorAllocator.cpp
     src/DescriptorAllocatorPage.cpp
     src/DynamicDescriptorHeap.cpp
+	src/GenerateMipsPSO.cpp
     src/GUISystem.cpp
     src/HighResolutionClock.cpp
     src/IndexBuffer.cpp
@@ -76,10 +72,28 @@ set(DX12_SOURCES
     src/Window.cpp
 )
 
-# Source and header files Visual Studio tracking.
-target_sources(DX12Lib PRIVATE
-	${DX12_HEADERS}
-	${DX12_SOURCES}
+# Define the shader file relative to Dx12Lib's directory
+set(GENERATE_MIPS_CS_SRC "${CMAKE_CURRENT_SOURCE_DIR}/shaders/GenerateMips_CS.hlsl")
+
+# Static Library Target.
+add_library(DX12Lib STATIC
+    ${DX12_HEADERS}
+    ${DX12_SOURCES}
+    ${GENERATE_MIPS_CS_SRC}
+)
+
+# C++ Standard.
+target_compile_features(DX12Lib PUBLIC cxx_std_20)
+
+# Configure MSBuild to build the C++ header file automatically
+set_source_files_properties(${GENERATE_MIPS_CS_SRC} PROPERTIES
+    VS_SHADER_TYPE Compute
+    VS_SHADER_MODEL "5.1"
+    VS_SHADER_OBJECT_FILE_NAME "${CMAKE_CURRENT_BINARY_DIR}/shaders/%(Filename).cso"
+    VS_SHADER_OUTPUT_HEADER_FILE "${CMAKE_CURRENT_BINARY_DIR}/generated/inc/GenerateMips_CS.h"
+    VS_SHADER_VARIABLE_NAME g_GenerateMips_CS
+    VS_SHADER_DISABLE_OPTIMIZATIONS $<$<CONFIG:Debug>:ON>
+    VS_SHADER_ENABLE_DEBUG $<$<OR:$<CONFIG:Debug>,$<CONFIG:RelWithDebInfo>>:ON>
 )
 
 # Include Directories.
@@ -87,6 +101,8 @@ target_include_directories(DX12Lib
     PUBLIC
         ${CMAKE_CURRENT_SOURCE_DIR}/inc
 		${CMAKE_CURRENT_SOURCE_DIR}/../DirectXTex
+	PRIVATE
+		${CMAKE_CURRENT_BINARY_DIR}/generated/inc
 )
 
 # Link Libraries.
@@ -113,3 +129,4 @@ set_source_files_properties(src/DX12LibPCH.cpp PROPERTIES
 # Visual Studio Organization.
 source_group("inc" FILES ${DX12_HEADERS})
 source_group("src" FILES ${DX12_SOURCES})
+source_group("shaders" FILES ${GENERATE_MIPS_CS_SRC})
