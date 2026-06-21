@@ -24,8 +24,7 @@ void RenderTarget::Resize(uint32_t width, uint32_t height)
 {
 	for (const std::shared_ptr<Texture>& texture : m_Textures)
 	{
-		assert(texture != nullptr && 
-			"RenderTarget contains an uninitilized or null texture during resize.");
+		if(texture == nullptr) continue;
 
 		texture->Resize(width, height);
 	}
@@ -65,6 +64,7 @@ DXGI_FORMAT RenderTarget::GetDepthStencilFormat() const
 DXGI_SAMPLE_DESC RenderTarget::GetSampleDesc() const
 {
 	DXGI_SAMPLE_DESC sampleDesc = { 1u, 0u };
+
 	constexpr int minColorSlot = static_cast<int>(AttachmentPoint::MinColorSlot);
 	constexpr int maxColorSlot = static_cast<int>(AttachmentPoint::MaxColorSlot);
 	for (int i = minColorSlot; i <= maxColorSlot; ++i)

@@ -22,14 +22,8 @@ Window::Window(HWND hWnd, const std::wstring& windowName, int clientWidth, int c
 	, m_PreviousMouseX(0)
 	, m_PreviousMouseY(0)
 {
-	Application& app = Application::GetInstance();
-
+	const Application& app = Application::GetInstance();
 	m_IsTearingSupported = app.IsTearingSupported();
-
-	for (int i = 0; i < BufferCount; ++i)
-	{
-		m_BackBufferTextures[i].SetName(L"Backbuffer[" + std::to_wstring(i) + L"]");
-	}
 
 	m_dxgiSwapChain = CreateSwapChain();
 
@@ -338,6 +332,8 @@ void Window::UpdateRenderTargetViews()
 {
 	for (int i = 0; i < BufferCount; ++i)
 	{
+		m_BackBufferTextures[i].SetName(L"Backbuffer[" + std::to_wstring(i) + L"]");
+
 		Microsoft::WRL::ComPtr<ID3D12Resource> backBuffer;
 		ThrowIfFailed(m_dxgiSwapChain->GetBuffer(i, IID_PPV_ARGS(&backBuffer)));
 
