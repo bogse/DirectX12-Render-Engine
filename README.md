@@ -14,6 +14,7 @@ This is a DirectX 12 rendering engine built in C++ for learning and experimentat
 - Multiple Render Target (MRT) and Depth Buffer architecture
 - Mesh class implementation for geometry handling and rendering
 - Texture support via DirectXTex standalone pipeline (DDS, PNG, JPG, BMP, TGA, and HDR formats)
+   - 1D and 2D mipmap generation via custom Compute Shader
 - Input system
 - Dear ImGui integration for real-time debugging and tooling
 
