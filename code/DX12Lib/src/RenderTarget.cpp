@@ -64,7 +64,6 @@ DXGI_FORMAT RenderTarget::GetDepthStencilFormat() const
 DXGI_SAMPLE_DESC RenderTarget::GetSampleDesc() const
 {
 	DXGI_SAMPLE_DESC sampleDesc = { 1u, 0u };
-
 	constexpr int minColorSlot = static_cast<int>(AttachmentPoint::MinColorSlot);
 	constexpr int maxColorSlot = static_cast<int>(AttachmentPoint::MaxColorSlot);
 	for (int i = minColorSlot; i <= maxColorSlot; ++i)
