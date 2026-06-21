@@ -24,7 +24,8 @@ void RenderTarget::Resize(uint32_t width, uint32_t height)
 {
 	for (const std::shared_ptr<Texture>& texture : m_Textures)
 	{
-		if(texture == nullptr) continue;
+		if (!texture)
+			continue;
 
 		texture->Resize(width, height);
 	}
