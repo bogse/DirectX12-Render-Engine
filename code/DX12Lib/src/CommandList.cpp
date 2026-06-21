@@ -84,8 +84,8 @@ void CommandList::CopyResource(const Resource& destinationResource, const Resour
 	m_d3d12CommandList->CopyResource(destinationResource.GetD3D12Resource().Get(),
 		sourceResource.GetD3D12Resource().Get());
 
-	m_TrackedObjects.push_back(destinationResource.GetD3D12Resource());
-	m_TrackedObjects.push_back(sourceResource.GetD3D12Resource());
+	TrackResource(destinationResource);
+	TrackResource(sourceResource);
 }
 
 void CommandList::TrackObject(Microsoft::WRL::ComPtr<ID3D12Object> object)
@@ -340,8 +340,8 @@ void CommandList::CopyTextureSubresource(
 		UpdateSubresources(m_d3d12CommandList.Get(), destinationResource.Get(),
 			intermediateResource.Get(), 0, firstSubresource, numSubresources, subresourceData);
 
-		m_TrackedObjects.push_back(intermediateResource);
-		m_TrackedObjects.push_back(destinationResource);
+		TrackObject(intermediateResource);
+		TrackObject(destinationResource);
 	}
 }
 
