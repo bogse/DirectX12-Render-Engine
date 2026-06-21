@@ -156,7 +156,15 @@ void CommandQueue::WaitForFenceValue(uint64_t fenceValue)
 
 void CommandQueue::Flush()
 {
-	WaitForFenceValue(Signal());
+	while (!m_CommandListQueue.empty())
+	{
+		const CommandListEntry& entry = m_CommandListQueue.front();
+		WaitForFenceValue(entry.fenceValue);
+		entry.commandList->ReleaseTrackedObjects();
+		m_CommandListQueue.pop();
+	}
+
+	WaitForFenceValue(m_FenceValue);
 }
 
 Microsoft::WRL::ComPtr<ID3D12CommandQueue> CommandQueue::GetD3D12CommandQueue() const

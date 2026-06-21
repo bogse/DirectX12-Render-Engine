@@ -24,8 +24,8 @@ void RenderTarget::Resize(uint32_t width, uint32_t height)
 {
 	for (const std::shared_ptr<Texture>& texture : m_Textures)
 	{
-		assert(texture != nullptr && 
-			"RenderTarget contains an uninitilized or null texture during resize.");
+		if (!texture)
+			continue;
 
 		texture->Resize(width, height);
 	}

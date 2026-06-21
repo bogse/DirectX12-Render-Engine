@@ -188,8 +188,8 @@ void Texture::Resize(const uint32_t width, const uint32_t height, const uint32_t
 
 	CD3DX12_RESOURCE_DESC resourceDescription(m_d3d12Resource->GetDesc());
 
-	resourceDescription.Width = width;
-	resourceDescription.Height = height;
+	resourceDescription.Width = std::max(1, static_cast<int>(width));
+	resourceDescription.Height = std::max(1, static_cast<int>(height));
 	resourceDescription.DepthOrArraySize = depthOrArraySize;
 
 	const Microsoft::WRL::ComPtr<ID3D12Device2>& device = Application::GetInstance().GetDevice();
