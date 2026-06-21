@@ -97,8 +97,7 @@ void CameraController::Update(float deltaTime)
 	if (m_MouseWheelDelta != 0.f)
 	{
 		float fov = m_Camera.GetFOV();
-		const float zoomSpeed = 15.f;
-		fov -= m_MouseWheelDelta * zoomSpeed * deltaTime;
+		fov -= m_MouseWheelDelta;
 		fov = std::clamp(fov, 12.f, 90.f);
 		m_Camera.SetFOV(fov);
 
