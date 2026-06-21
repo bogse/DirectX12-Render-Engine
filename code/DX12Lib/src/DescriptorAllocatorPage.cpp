@@ -83,7 +83,7 @@ DescriptorAllocation DescriptorAllocatorPage::Allocate(uint32_t numDescriptors)
 
 	// Compute the new free block that results from splitting this block.
 	OffsetType newOffset = offset + numDescriptors;
-	SizeType newSize = blockSize + numDescriptors;
+	SizeType newSize = blockSize - numDescriptors;
 
 	if (newSize > 0)
 	{
