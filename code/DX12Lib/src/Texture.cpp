@@ -287,6 +287,7 @@ DXGI_FORMAT Texture::GetUAVCompatibleFormat(DXGI_FORMAT format)
 	case DXGI_FORMAT_R8G8B8A8_TYPELESS:
 	case DXGI_FORMAT_R8G8B8A8_UNORM_SRGB:
 		uavFormat = DXGI_FORMAT_R8G8B8A8_UNORM;
+		break;
 	case DXGI_FORMAT_B8G8R8A8_UNORM:
 	case DXGI_FORMAT_B8G8R8X8_UNORM:
 	case DXGI_FORMAT_B8G8R8A8_TYPELESS:
@@ -303,32 +304,3 @@ DXGI_FORMAT Texture::GetUAVCompatibleFormat(DXGI_FORMAT format)
 
 	return uavFormat;
 }
-
-//void Texture::CheckFeatureSupport()
-//{
-//	if (m_d3d12Resource)
-//	{
-//		const D3D12_RESOURCE_DESC& desc = m_d3d12Resource->GetDesc();
-//		const Microsoft::WRL::ComPtr<ID3D12Device2>& device = Application::GetInstance().GetDevice();
-//
-//		m_FormatSupport.Format = desc.Format;
-//		ThrowIfFailed(device->CheckFeatureSupport(
-//			D3D12_FEATURE_FORMAT_SUPPORT,
-//			&m_FormatSupport,
-//			sizeof(D3D12_FEATURE_DATA_FORMAT_SUPPORT)));
-//	}
-//	else
-//	{
-//		m_FormatSupport = {};
-//	}
-//}
-//
-//bool Texture::CheckFormatSupport(D3D12_FORMAT_SUPPORT1 formatSupport) const
-//{
-//	return (m_FormatSupport.Support1 & formatSupport) != 0;
-//}
-//
-//bool Texture::CheckFormatSupport(D3D12_FORMAT_SUPPORT2 formatSupport) const
-//{
-//	return (m_FormatSupport.Support2 & formatSupport) != 0;
-//}

@@ -70,7 +70,6 @@ public:
 			CheckFormatSupport(D3D12_FORMAT_SUPPORT2_UAV_TYPED_LOAD) &&
 			CheckFormatSupport(D3D12_FORMAT_SUPPORT2_UAV_TYPED_STORE);
 	}
-	// TODO_BOG add all other support check?
 
 	static bool IsSRGBFormat(DXGI_FORMAT format);
 

@@ -520,7 +520,7 @@ void CommandList::GenerateMips(const Texture& texture)
 
 		ResourceStateTracker::AddGlobalResourceState(aliasResource.Get(), D3D12_RESOURCE_STATE_COMMON);
 		//Ensure the scope of the alias resource.
-		TrackObject(aliasResource); // TODO_BOG all of those were TrackResource
+		TrackObject(aliasResource);
 
 		// Create a UAV compatible resource in the same heap as the alias resource.
 		ThrowIfFailed(device->CreatePlacedResource(
@@ -574,13 +574,6 @@ void CommandList::GenerateMipsUAV(const Texture& texture, bool isSRGB)
 	const Microsoft::WRL::ComPtr<ID3D12Resource>& resource = texture.GetD3D12Resource();
 	D3D12_RESOURCE_DESC resourceDesc = resource->GetDesc();
 
-	//// Create an SRV that uses the format of the original texture.
-	//D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
-	//srvDesc.Format = isSRGB ? Texture::GetSRGBFormat(resourceDesc.Format) : resourceDesc.Format;
-	//srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
-	//srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D; // Only 2D textures are supported (this was checked in the calling function).
-	//srvDesc.Texture2D.MipLevels = resourceDesc.MipLevels;
-
 	for (uint32_t srcMip = 0; srcMip < resourceDesc.MipLevels - 1u; )
 	{
 		uint64_t srcWidth = resourceDesc.Width >> srcMip;
@@ -629,10 +622,6 @@ void CommandList::GenerateMipsUAV(const Texture& texture, bool isSRGB)
 
 		for (uint32_t mip = 0; mip < mipCount; ++mip)
 		{
-			//D3D12_UNORDERED_ACCESS_VIEW_DESC uavDesc = {};
-			//uavDesc.Format = resourceDesc.Format;
-			//uavDesc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE2D;
-			//uavDesc.Texture2D.MipSlice = srcMip + mip + 1;
 			uint32_t targetMip = srcMip + mip + 1;
 
 			SetUnorderedAccessView(GenerateMips::OutMip, mip, texture,
@@ -864,7 +853,6 @@ void CommandList::SetUnorderedAccessView(
 		TransitionBarrier(texture, stateAfter);
 	}
 
-	// TODO_BOG check if we need to hardcode 1 instead of numSubresources down here.
 	m_DynamicDescriptorHeap[D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV]->StageDescriptors(
 		rootParameterIndex, descriptorOffset, numSubresources, texture.GetUnorderedAccessView(firstSubresource));
 
