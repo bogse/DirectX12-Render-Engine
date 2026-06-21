@@ -17,6 +17,7 @@
 class Buffer;
 class ConstantBuffer;
 class DynamicDescriptorHeap;
+class GenerateMipsPSO;
 class IndexBuffer;
 class RenderTarget;
 class Resource;
@@ -45,8 +46,45 @@ public:
 	* flushed before a command (draw, dispatch, or copy) that expects the resource
 	* to be in a particular state to run.
 	*/
-	void TransitionBarrier(const Resource& resource, D3D12_RESOURCE_STATES stateAfter, 
-		UINT subResource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES, bool flushBarriers = false);
+	void TransitionBarrier(
+		const Resource& resource,
+		D3D12_RESOURCE_STATES stateAfter,
+		UINT subResource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES,
+		bool flushBarriers = false);
+	
+	void TransitionBarrier(
+		Microsoft::WRL::ComPtr<ID3D12Resource> resource,
+		D3D12_RESOURCE_STATES stateAfter,
+		UINT subResource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES,
+		bool flushBarriers = false);
+
+	/**
+	* Add a UAV barrier tro ensure that any writes to a resource have completed
+	* before reading from the resource.
+	* 
+	* @param resource The resource to add a UAV barrier for.
+	* @param flushBarriers Force flush any barriers. Resource barriers need to be
+	* flushed before a command (draw, dispatch, or copy) that expects the resource
+	* to be in a particular state can run.
+	*/
+	void UAVBarrier(const Resource& resource, bool flushBarriers = false);
+
+	/**
+	* Add an aliasing barrier to indicate a transition between usages of two
+	* different resources that occupy the same space in a heap.
+	* 
+	* @param beforeResource The resource that currently occupies the heap.
+	* @param afterResource The resource that will occupy the space in the heap.
+	*/
+	void AliasingBarrier(
+		const Resource& beforeResource,
+		const Resource& afterResource,
+		bool flushBarriers = false);
+
+	void AliasingBarrier(
+		Microsoft::WRL::ComPtr<ID3D12Resource> beforeResource,
+		Microsoft::WRL::ComPtr<ID3D12Resource> afterResource,
+		bool flushBarriers = false);
 
 	/**
 	* Flush any barriers that have been pushed to the command list.
@@ -57,6 +95,9 @@ public:
 	* Copy resources.
 	*/
 	void CopyResource(const Resource& destinationResource, const Resource& sourceResource);
+	void CopyResource(
+		Microsoft::WRL::ComPtr<ID3D12Resource> destinationResource,
+		Microsoft::WRL::ComPtr<ID3D12Resource> sourceResource);
 
 	/**
 	* Copy the contents of a vertex buffer.
@@ -93,6 +134,18 @@ public:
 		uint32_t numSubresources, D3D12_SUBRESOURCE_DATA* subresourceData);
 
 	/**
+	* Generate mips for the texture.
+	* The first subresource is used to generate the mip chain.
+	* Mips are automatically generated for textures loaded from files.
+	*/
+	void GenerateMips(const Texture& texture);
+
+	/**
+	* Generate mips for UAV compatible textures.
+	*/
+	void GenerateMipsUAV(const Texture& texture, bool isSRGB);
+
+	/**
 	* Set a dynamic constant buffer data to an inline descriptor in the root signature.
 	*/
 	void SetGraphicsDynamicConstantBuffer(uint32_t rootParameterIndex, size_t sizeInBytes, const void* bufferData);
@@ -100,6 +153,17 @@ public:
 	void SetGraphicsDynamicConstantBuffer(uint32_t rootParameterIndex, const T& data)
 	{
 		SetGraphicsDynamicConstantBuffer(rootParameterIndex, sizeof(T), &data);
+	}
+
+	/**
+	* Set a set of 32-bit constants on the compute pipeline.
+	*/
+	void SetCompute32BitConstants(uint32_t rootParameterIndex, uint32_t numConstants, const void* constants);
+	template<typename T>
+	void SetCompute32BitConstants(uint32_t rootParameterIndex, const T& constants)
+	{
+		static_assert(sizeof(T) % sizeof(uint32_t) == 0, "Size of type must be a multiple of 4 bytes");
+		SetCompute32BitConstants(rootParameterIndex, sizeof(T) / sizeof(uint32_t), &constants);
 	}
 
 	/**
@@ -172,13 +236,30 @@ public:
 	* Set the current root signature on the command list.
 	*/
 	void SetGraphicsRootSignature(const RootSignature& rootSignature);
+	void SetComputeRootSignature(const RootSignature& rootSignature);
 
 	/**
 	* Set the SRV on the graphics pipeline.
 	*/
-	void SetShaderResourceView(uint32_t rootParameterIndex, uint32_t descriptorOffset,
-		const Resource& resource, D3D12_RESOURCE_STATES stateAfter =
-		D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
+	void SetShaderResourceView(
+		uint32_t rootParameterIndex,
+		uint32_t descriptorOffset,
+		const Texture& texture,
+		D3D12_RESOURCE_STATES stateAfter = D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE |
+										   D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE,
+		uint32_t firstSubresource		 = 0,
+		uint32_t numSubresources		 = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES);
+
+	/**
+	* Set the UAV on the graphics pipeline.
+	*/
+	void SetUnorderedAccessView(
+		uint32_t rootParameterIndex,
+		uint32_t descriptorOffset,
+		const Texture& texture,
+		D3D12_RESOURCE_STATES stateAfter = D3D12_RESOURCE_STATE_UNORDERED_ACCESS,
+		uint32_t firstSubresource		 = 0,
+		uint32_t numSubresources		 = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES);
 
 	/**
 	* Bind the Render Target for the graphics rendering pipeline.
@@ -219,6 +300,16 @@ public:
 	*/
 	void SetDescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE heapType, ID3D12DescriptorHeap* heap);
 
+	std::shared_ptr<CommandList> GetComputeCommandList() const
+	{
+		return m_ComputeCommandList;
+	}
+
+	/**
+	* Dispatch a compute shader.
+	*/
+	void Dispatch(uint32_t numGroupsX, uint32_t numGroupsY = 1, uint32_t numGroupsZ = 1);
+
 private:
 	void TrackObject(Microsoft::WRL::ComPtr<ID3D12Object> object);
 	void TrackResource(const Resource& resource);
@@ -239,6 +330,13 @@ private:
 	D3D12_COMMAND_LIST_TYPE m_d3d12CommandListType;
 	Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList2> m_d3d12CommandList;
 	Microsoft::WRL::ComPtr<ID3D12CommandAllocator> m_d3d12CommandAllocator;
+
+	/**
+	* Mips can't be generated of copy queues but must be generated on compute or direct queues.
+	* In this case, a Compute command list is generated and executed after the copy queue
+	* is finished uploading the first sub resource.
+	*/
+	std::shared_ptr<CommandList> m_ComputeCommandList;
 
 	/**
 	* Keep track of the currently bound root signatures to minimize root signature changes.
@@ -270,6 +368,11 @@ private:
 	* heaps if they are different than the currently bound descriptor heaps.
 	*/
 	ID3D12DescriptorHeap* m_DescriptorHeaps[D3D12_DESCRIPTOR_HEAP_TYPE_NUM_TYPES];
+
+	/**
+	* Pipeline state object for Mip map generation.
+	*/
+	std::unique_ptr<GenerateMipsPSO> m_GenerateMipsPSO;
 
 	/**
 	* Objects that are being referenced by a command list that is "in-flight" on

@@ -33,6 +33,11 @@ public:
 
 	Microsoft::WRL::ComPtr<ID3D12CommandQueue> GetD3D12CommandQueue() const;
 
+	/**
+	* Wait for another command queue to finish.
+	*/
+	void Wait(const CommandQueue& other);
+
 private:
 	/**
 	* Keep track of the command allocators that are "in-flight"

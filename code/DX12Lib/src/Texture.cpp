@@ -5,6 +5,67 @@
 #include "Application.h"
 #include "ResourceStateTracker.h"
 
+namespace Texture_Private
+{
+	D3D12_UNORDERED_ACCESS_VIEW_DESC GetUAVDesc(
+		const D3D12_RESOURCE_DESC& resDesc,
+		UINT mipSlice,
+		UINT arraySlice = 0,
+		UINT planeSlice = 0)
+	{
+		D3D12_UNORDERED_ACCESS_VIEW_DESC uavDesc = {};
+		uavDesc.Format = resDesc.Format;
+
+		switch (resDesc.Dimension)
+		{
+		case D3D12_RESOURCE_DIMENSION_TEXTURE1D:
+		{
+			if (resDesc.DepthOrArraySize > 1)
+			{
+				uavDesc.ViewDimension					= D3D12_UAV_DIMENSION_TEXTURE1DARRAY;
+				uavDesc.Texture1DArray.ArraySize		= resDesc.DepthOrArraySize - arraySlice;
+				uavDesc.Texture1DArray.FirstArraySlice	= arraySlice;
+				uavDesc.Texture1DArray.MipSlice			= mipSlice;
+			}
+			else
+			{
+				uavDesc.ViewDimension		= D3D12_UAV_DIMENSION_TEXTURE1D;
+				uavDesc.Texture1D.MipSlice	= mipSlice;
+			}
+			break;
+		}
+		case D3D12_RESOURCE_DIMENSION_TEXTURE2D:
+			if (resDesc.DepthOrArraySize > 1)
+			{
+				uavDesc.ViewDimension					= D3D12_UAV_DIMENSION_TEXTURE2DARRAY;
+				uavDesc.Texture2DArray.ArraySize		= resDesc.DepthOrArraySize - arraySlice;
+				uavDesc.Texture2DArray.FirstArraySlice	= arraySlice;
+				uavDesc.Texture2DArray.PlaneSlice		= planeSlice;
+				uavDesc.Texture2DArray.MipSlice			= mipSlice;
+			}
+			else
+			{
+				uavDesc.ViewDimension		 = D3D12_UAV_DIMENSION_TEXTURE2D;
+				uavDesc.Texture2D.PlaneSlice = planeSlice;
+				uavDesc.Texture2D.MipSlice   = mipSlice;
+			}
+			break;
+		case D3D12_RESOURCE_DIMENSION_TEXTURE3D:
+		{
+			uavDesc.ViewDimension			= D3D12_UAV_DIMENSION_TEXTURE3D;
+			uavDesc.Texture3D.WSize			= resDesc.DepthOrArraySize - arraySlice;
+			uavDesc.Texture3D.FirstWSlice	= arraySlice;
+			uavDesc.Texture3D.MipSlice		= mipSlice;
+			break;
+		}
+		default:
+			throw std::exception("Invalid resource dimension.");
+		}
+
+		return uavDesc;
+	}
+}
+
 Texture::Texture(const std::wstring& name)
 	: Resource(name)
 {
@@ -21,9 +82,16 @@ Texture::Texture(
 	CreateViews();
 }
 
+Texture::Texture(Microsoft::WRL::ComPtr<ID3D12Resource> resource, const std::wstring& name)
+	: Resource(resource, name)
+{
+	CreateViews();
+}
+
 Texture::Texture(Texture&& move) noexcept
 	: Resource(std::move(move))
 	, m_ShaderResourceView(std::move(move.m_ShaderResourceView))
+	, m_UnorderedAccessView(std::move(move.m_UnorderedAccessView))
 	, m_DepthStencilView(std::move(move.m_DepthStencilView))
 	, m_RenderTargetView(std::move(move.m_RenderTargetView))
 {
@@ -36,6 +104,7 @@ Texture& Texture::operator=(Texture&& other) noexcept
 		Resource::operator=(std::move(other));
 
 		m_ShaderResourceView = std::move(other.m_ShaderResourceView);
+		m_UnorderedAccessView = std::move(other.m_UnorderedAccessView);
 		m_DepthStencilView   = std::move(other.m_DepthStencilView);
 		m_RenderTargetView	 = std::move(other.m_RenderTargetView);
 	}
@@ -66,6 +135,21 @@ void Texture::CreateViews()
 		}
 
 		device->CreateShaderResourceView(m_d3d12Resource.Get(), nullptr, m_ShaderResourceView.GetDescriptorHandle());
+	}
+
+	// Create UAV for each mip (only supported for 1D and 2D textures).
+	if ((desc.Flags & D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS) != 0 &&
+		desc.DepthOrArraySize == 1)
+	{
+		m_UnorderedAccessView = Application::GetInstance().AllocateDescriptors(
+			D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, desc.MipLevels);
+
+		for (int i = 0; i < desc.MipLevels; ++i)
+		{
+			const D3D12_UNORDERED_ACCESS_VIEW_DESC& uavDesc = Texture_Private::GetUAVDesc(desc, i);
+			device->CreateUnorderedAccessView(
+				m_d3d12Resource.Get(), nullptr, &uavDesc, m_UnorderedAccessView.GetDescriptorHandle(i));
+		}
 	}
 
 	// Create DSV.
@@ -131,6 +215,11 @@ D3D12_CPU_DESCRIPTOR_HANDLE Texture::GetShaderResourceView() const
 	return m_ShaderResourceView.GetDescriptorHandle();
 }
 
+D3D12_CPU_DESCRIPTOR_HANDLE Texture::GetUnorderedAccessView(uint32_t mip) const
+{
+	return m_UnorderedAccessView.GetDescriptorHandle(mip);
+}
+
 D3D12_CPU_DESCRIPTOR_HANDLE Texture::GetDepthStencilView() const
 {
 	return m_DepthStencilView.GetDescriptorHandle();
@@ -139,4 +228,79 @@ D3D12_CPU_DESCRIPTOR_HANDLE Texture::GetDepthStencilView() const
 D3D12_CPU_DESCRIPTOR_HANDLE Texture::GetRenderTargetView() const
 {
 	return m_RenderTargetView.GetDescriptorHandle();
+}
+
+bool Texture::IsSRGBFormat(DXGI_FORMAT format)
+{
+	switch (format)
+	{
+	case DXGI_FORMAT_R8G8B8A8_UNORM_SRGB:
+	case DXGI_FORMAT_BC1_UNORM_SRGB:
+	case DXGI_FORMAT_BC2_UNORM_SRGB:
+	case DXGI_FORMAT_BC3_UNORM_SRGB:
+	case DXGI_FORMAT_B8G8R8A8_UNORM_SRGB:
+	case DXGI_FORMAT_B8G8R8X8_UNORM_SRGB:
+	case DXGI_FORMAT_BC7_UNORM_SRGB:
+		return true;
+	default:
+		return false;
+	}
+}
+
+DXGI_FORMAT Texture::GetSRGBFormat(DXGI_FORMAT format)
+{
+	DXGI_FORMAT srgbFormat = format;
+	switch (format)
+	{
+	case DXGI_FORMAT_R8G8B8A8_UNORM:
+		srgbFormat = DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
+		break;
+	case DXGI_FORMAT_BC1_UNORM:
+		srgbFormat = DXGI_FORMAT_BC1_UNORM_SRGB;
+		break;
+	case DXGI_FORMAT_BC2_UNORM:
+		srgbFormat = DXGI_FORMAT_BC2_UNORM_SRGB;
+		break;
+	case DXGI_FORMAT_BC3_UNORM:
+		srgbFormat = DXGI_FORMAT_BC3_UNORM_SRGB;
+		break;
+	case DXGI_FORMAT_B8G8R8A8_UNORM:
+		srgbFormat = DXGI_FORMAT_B8G8R8A8_UNORM_SRGB;
+		break;
+	case DXGI_FORMAT_B8G8R8X8_UNORM:
+		srgbFormat = DXGI_FORMAT_B8G8R8X8_UNORM_SRGB;
+		break;
+	case DXGI_FORMAT_BC7_UNORM:
+		srgbFormat = DXGI_FORMAT_BC7_UNORM_SRGB;
+		break;
+	}
+
+	return srgbFormat;
+}
+
+DXGI_FORMAT Texture::GetUAVCompatibleFormat(DXGI_FORMAT format)
+{
+	DXGI_FORMAT uavFormat = format;
+
+	switch (format)
+	{
+	case DXGI_FORMAT_R8G8B8A8_TYPELESS:
+	case DXGI_FORMAT_R8G8B8A8_UNORM_SRGB:
+		uavFormat = DXGI_FORMAT_R8G8B8A8_UNORM;
+		break;
+	case DXGI_FORMAT_B8G8R8A8_UNORM:
+	case DXGI_FORMAT_B8G8R8X8_UNORM:
+	case DXGI_FORMAT_B8G8R8A8_TYPELESS:
+	case DXGI_FORMAT_B8G8R8A8_UNORM_SRGB:
+	case DXGI_FORMAT_B8G8R8X8_TYPELESS:
+	case DXGI_FORMAT_B8G8R8X8_UNORM_SRGB:
+		uavFormat = DXGI_FORMAT_R8G8B8A8_UNORM;
+		break;
+	case DXGI_FORMAT_R32_TYPELESS:
+	case DXGI_FORMAT_D32_FLOAT:
+		uavFormat = DXGI_FORMAT_R32_FLOAT;
+		break;
+	}
+
+	return uavFormat;
 }

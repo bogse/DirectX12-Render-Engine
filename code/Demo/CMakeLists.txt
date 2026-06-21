@@ -57,7 +57,6 @@ set_source_files_properties(${SHADER_SOURCES} PROPERTIES
 set_source_files_properties(${VERTEX_SHADER_SRC} PROPERTIES VS_SHADER_TYPE Vertex)
 set_source_files_properties(${PIXEL_SHADER_SRC} PROPERTIES VS_SHADER_TYPE Pixel)
 
-
 # Visual Studio Solution Explorer Layout Matching.
 source_group("inc" FILES inc/Demo.h)
 source_group("src" FILES src/main.cpp src/Demo.cpp)
