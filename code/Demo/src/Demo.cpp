@@ -42,7 +42,7 @@ static DirectX::XMFLOAT4 imGuiColors[imGuiVertexCount] = {
 
 Demo::Demo(const std::wstring& name, int width, int height, bool vSync)
 	: Super(name, width, height, vSync)
-	, m_PipelineOptions{true}
+	, m_PipelineOptions{true, true}
 	, m_ScissorRect(CD3DX12_RECT(0, 0, LONG_MAX, LONG_MAX))
 	, m_Viewport(CD3DX12_VIEWPORT(0.0f, 0.0f, static_cast<float>(width), static_cast<float>(height)))
 	, m_ModelMatrix(DirectX::XMMatrixIdentity())
@@ -58,6 +58,7 @@ Demo::Demo(const std::wstring& name, int width, int height, bool vSync)
 	}
 	, m_RenderWireframe(false)
 	, m_EnableTextures(true)
+	, m_EnableMips(true)
 {
 	DirectX::XMVECTOR cameraPos = DirectX::XMVectorSet(0.f, 0.f, -10.f, 1.f);
 	m_Camera.SetPosition(cameraPos);
@@ -159,7 +160,7 @@ bool Demo::LoadContent()
 		D3D12_TEXTURE_ADDRESS_MODE_CLAMP,
 		D3D12_TEXTURE_ADDRESS_MODE_CLAMP,
 		D3D12_TEXTURE_ADDRESS_MODE_CLAMP);
-	linearRepeatSampler.MipLODBias = 2.f;
+	linearRepeatSampler.MipLODBias = 1.f;
 
 	CD3DX12_VERSIONED_ROOT_SIGNATURE_DESC rootSignatureDescription;
 	rootSignatureDescription.Init_1_1(_countof(rootParameters),
@@ -358,14 +359,8 @@ void Demo::RenderScenePass(CommandList* commandList)
 
 	commandList->SetGraphicsDynamicConstantBuffer(0, mvpMatrix);
 
-	if (m_EnableTextures)
-	{
-		m_PipelineOptions.EnableTextures = 1;
-	}
-	else
-	{
-		m_PipelineOptions.EnableTextures = 0;
-	}
+	m_PipelineOptions.EnableTextures = m_EnableTextures ? 1 : 0;
+	m_PipelineOptions.EnableMips = m_EnableMips ? 1 : 0;
 
 	commandList->SetGraphicsDynamicConstantBuffer(1, m_PipelineOptions);
 
@@ -427,6 +422,7 @@ void Demo::RenderUIPass(CommandList* commandList)
 	ImGui::Checkbox("Render wireframe", &m_RenderWireframe);
 
 	ImGui::Checkbox("Enable textures", &m_EnableTextures);
+	ImGui::Checkbox("Enable mips", &m_EnableMips);
 
 	static ImTextureID textureID = ImTextureID_Invalid;
 	const Application& app = Application::GetInstance();

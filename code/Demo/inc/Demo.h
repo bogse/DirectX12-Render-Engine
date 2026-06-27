@@ -56,6 +56,7 @@ private:
 	struct PipelineOptionsCB
 	{
 		int EnableTextures;
+		int EnableMips;
 	};
 
 	PipelineOptionsCB m_PipelineOptions;
@@ -84,4 +85,5 @@ private:
 
 	bool m_RenderWireframe;
 	bool m_EnableTextures;
+	bool m_EnableMips;
 };
