@@ -31,6 +31,7 @@ set(DX12_HEADERS
     inc/IndexBuffer.h
 	inc/Input.h
     inc/KeyCodes.h
+	inc/Material.h
     inc/Mesh.h
     inc/RenderApp.h
 	inc/RenderTarget.h
@@ -60,6 +61,7 @@ set(DX12_SOURCES
     src/GUISystem.cpp
     src/HighResolutionClock.cpp
     src/IndexBuffer.cpp
+	src/Material.cpp
     src/Mesh.cpp
     src/RenderApp.cpp
 	src/RenderTarget.cpp

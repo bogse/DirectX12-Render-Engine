@@ -6,6 +6,7 @@
 #include "DescriptorAllocation.h"
 #include "GUISystem.h"
 #include "Helpers.h"
+#include "Material.h"
 #include "Mesh.h"
 #include "RootSignature.h"
 #include "Window.h"
@@ -143,15 +144,18 @@ bool Demo::LoadContent()
 
 	// Root parameters:
 	// 0 - Vertex shader constant buffer (b0)
-	// 1 - Pixel shader constant buffer (b1)
-	// 2 - Shader resource view descriptor table (t0)
-	CD3DX12_ROOT_PARAMETER1 rootParameters[3];
+	// 1 - Material constant buffer (b0, space1)
+	// 2 - Texture shader resource view descriptor table (t0)
+	// 3 - Pipeline Options constant buffer (b1)
+	CD3DX12_ROOT_PARAMETER1 rootParameters[4];
 	rootParameters[0].InitAsConstantBufferView(0, 0, D3D12_ROOT_DESCRIPTOR_FLAG_NONE, D3D12_SHADER_VISIBILITY_VERTEX);
-	rootParameters[1].InitAsConstantBufferView(1, 0, D3D12_ROOT_DESCRIPTOR_FLAG_NONE, D3D12_SHADER_VISIBILITY_PIXEL);
+	rootParameters[1].InitAsConstantBufferView(0, 1, D3D12_ROOT_DESCRIPTOR_FLAG_NONE, D3D12_SHADER_VISIBILITY_PIXEL);
 
 	CD3DX12_DESCRIPTOR_RANGE1 descriptorRange;
 	descriptorRange.Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 0);
 	rootParameters[2].InitAsDescriptorTable(1, &descriptorRange, D3D12_SHADER_VISIBILITY_PIXEL);
+
+	rootParameters[3].InitAsConstantBufferView(1, 0, D3D12_ROOT_DESCRIPTOR_FLAG_NONE, D3D12_SHADER_VISIBILITY_PIXEL);
 
 	CD3DX12_STATIC_SAMPLER_DESC linearRepeatSampler;
 	linearRepeatSampler.Init(
@@ -327,7 +331,7 @@ void Demo::RenderScenePass(CommandList* commandList)
 			*m_RenderTarget.GetTexture(AttachmentPoint::DepthStencil), D3D12_CLEAR_FLAG_DEPTH);
 	}
 
-	// Set pipeline state and root signature.
+	// Set pipeline state
 	if (m_RenderWireframe)
 	{
 		commandList->SetPipelineState(m_WireframePipelineState.Get());
@@ -345,24 +349,36 @@ void Demo::RenderScenePass(CommandList* commandList)
 	// Bind the Render Targets to the Output Merger stage.
 	commandList->SetRenderTarget(m_RenderTarget);
 
-	// Bind the texture SRV to root parameter 2 (t0 in the pixel shader)
+	// Set the root signature slots.
+	const XMMATRIX viewMatrix = m_Camera.GetViewMatrix();
+	const XMMATRIX projectionMatrix = m_Camera.GetProjectionMatrix();
+
+	struct TransformMatrices
+	{
+		XMMATRIX ModelView;
+		XMMATRIX ModelViewProjection;
+	} transformMatrices;
+
+	transformMatrices.ModelView = m_ModelMatrix * viewMatrix;
+	transformMatrices.ModelViewProjection = transformMatrices.ModelView * projectionMatrix;
+
+	commandList->SetGraphicsDynamicConstantBuffer(0, transformMatrices);
+
+	Material material;
+	material = MaterialPresets::CreateSatinWood();
+
+	commandList->SetGraphicsDynamicConstantBuffer(1, material);
+
 	if (m_EnableTextures)
 	{
 		commandList->SetShaderResourceView(2, 0, m_DirectXTexture,
 			D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
 	}
 
-	// Update the MVP matrix.
-	const XMMATRIX viewMatrix = m_Camera.GetViewMatrix();
-	const XMMATRIX projectionMatrix = m_Camera.GetProjectionMatrix();
-	const XMMATRIX mvpMatrix = m_ModelMatrix * viewMatrix * projectionMatrix;
-
-	commandList->SetGraphicsDynamicConstantBuffer(0, mvpMatrix);
-
 	m_PipelineOptions.EnableTextures = m_EnableTextures ? 1 : 0;
 	m_PipelineOptions.EnableMips = m_EnableMips ? 1 : 0;
 
-	commandList->SetGraphicsDynamicConstantBuffer(1, m_PipelineOptions);
+	commandList->SetGraphicsDynamicConstantBuffer(3, m_PipelineOptions);
 
 	// Draw.
 	m_CubeMesh->Draw(*commandList);
