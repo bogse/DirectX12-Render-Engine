@@ -17,16 +17,16 @@ struct Material
     float3 Padding;
 };
 
-ConstantBuffer<Material> MaterialCB : register(b0, space1);
-
-cbuffer PipelineOptionsCB : register(b1)
+struct PipelineOptions
 {
     int EnableTexture;
     int EnableMips;
-}
+};
 
+ConstantBuffer<Material> MaterialCB : register(b0, space1);
 Texture2D DiffuseTexture : register(t0);
 SamplerState LinearRepeatSampler : register(s0);
+ConstantBuffer<PipelineOptions> PipelineOptionsCB : register(b1);
 
 static const float3 LightDirVS = normalize(float3(0.5f, -0.5f, 0.7f));
 
@@ -34,9 +34,9 @@ float4 main(PixelShaderInput IN) : SV_Target
 {
     float4 baseColor = IN.Color;
     
-    if (EnableTexture)
+    if (PipelineOptionsCB.EnableTexture)
     {
-        float lod = EnableMips ? DiffuseTexture.CalculateLevelOfDetail(LinearRepeatSampler, IN.TexCoord) : 0.f;
+        float lod = PipelineOptionsCB.EnableMips ? DiffuseTexture.CalculateLevelOfDetail(LinearRepeatSampler, IN.TexCoord) : 0.f;
         baseColor = DiffuseTexture.SampleLevel(LinearRepeatSampler, IN.TexCoord, lod);
     }
 
