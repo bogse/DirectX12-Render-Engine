@@ -6,9 +6,6 @@
 #include "DescriptorAllocation.h"
 #include "GUISystem.h"
 #include "Helpers.h"
-#include "Material.h"
-#include "Mesh.h"
-#include "RootSignature.h"
 #include "Window.h"
 
 #include <wrl.h>
@@ -223,6 +220,8 @@ bool Demo::LoadContent()
 	uint64_t fenceValue = commandQueue->ExecuteCommandList(commandList);
 	commandQueue->WaitForFenceValue(fenceValue);
 
+	m_ActiveMaterial = MaterialPresets::CreateSatinWood();
+
 	return true;
 }
 
@@ -364,10 +363,7 @@ void Demo::RenderScenePass(CommandList* commandList)
 
 	commandList->SetGraphicsDynamicConstantBuffer(0, transformMatrices);
 
-	Material material;
-	material = MaterialPresets::CreateSatinWood();
-
-	commandList->SetGraphicsDynamicConstantBuffer(1, material);
+	commandList->SetGraphicsDynamicConstantBuffer(1, m_ActiveMaterial);
 
 	if (m_EnableTextures)
 	{
@@ -460,6 +456,34 @@ void Demo::RenderUIPass(CommandList* commandList)
 	{
 		guiSystem->UnregisterTexture(device);
 		textureID = ImTextureID_Invalid;
+	}
+
+	if (ImGui::CollapsingHeader("Material Properties"))
+	{
+		ImGui::ColorEdit3("Ambient Tint", &m_ActiveMaterial.Ambient.x);
+		ImGui::ColorEdit3("Diffuse Tint", &m_ActiveMaterial.Diffuse.x);
+		ImGui::ColorEdit3("Specular Tint", &m_ActiveMaterial.Specular.x);
+		ImGui::ColorEdit3("Emissive Tint", &m_ActiveMaterial.Emissive.x);
+
+		ImGui::Separator();
+
+		ImGui::SliderFloat("Specular Power", &m_ActiveMaterial.SpecularPower, 1.f, 256.f);
+
+		ImGui::Separator();
+
+		ImGui::Text("Presets:");
+
+		if (ImGui::Button("Default Matte"))
+		{
+			m_ActiveMaterial = Material();
+		}
+
+		ImGui::SameLine();
+
+		if (ImGui::Button("Satin Wood"))
+		{
+			m_ActiveMaterial = MaterialPresets::CreateSatinWood();
+		}
 	}
 
 	if (ImGui::CollapsingHeader("Transform"))

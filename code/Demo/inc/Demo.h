@@ -2,6 +2,7 @@
 
 #include <Camera.h>
 #include <CameraController.h>
+#include <Material.h>
 #include <Mesh.h>
 #include <RenderApp.h>
 #include <RenderTarget.h>
@@ -62,6 +63,7 @@ private:
 	PipelineOptionsCB m_PipelineOptions;
 
 	Texture m_DirectXTexture;
+	Material m_ActiveMaterial;
 
 	RenderTarget m_RenderTarget;
 
