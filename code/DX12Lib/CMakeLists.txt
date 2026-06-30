@@ -31,6 +31,7 @@ set(DX12_HEADERS
     inc/IndexBuffer.h
 	inc/Input.h
     inc/KeyCodes.h
+	inc/Light.h
 	inc/Material.h
     inc/Mesh.h
     inc/RenderApp.h

@@ -2,6 +2,7 @@
 
 #include <Camera.h>
 #include <CameraController.h>
+#include <Light.h>
 #include <Material.h>
 #include <Mesh.h>
 #include <RenderApp.h>
@@ -37,6 +38,7 @@ private:
 	void RenderUIPass(CommandList* commandList);
 
 	void UpdateAnimation(float deltaTime);
+	void UpdateLights();
 	void UpdateModelMatrix();
 
 private:
@@ -84,6 +86,8 @@ private:
 
 	CubeAnimation m_CubeAnimation;
 	Transform m_CubeTransform;
+
+	std::vector<DirectionalLight> m_DirectionalLights;
 
 	bool m_RenderWireframe;
 	bool m_EnableTextures;
