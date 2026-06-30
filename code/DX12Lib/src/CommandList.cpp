@@ -654,6 +654,25 @@ void CommandList::SetGraphicsDynamicConstantBuffer(uint32_t rootParameterIndex, 
 	m_d3d12CommandList->SetGraphicsRootConstantBufferView(rootParameterIndex, heapAllocation.GPU);
 }
 
+void CommandList::SetGraphicsDynamicStructuredBuffer(
+	uint32_t rootParameterIndex,
+	size_t numElements,
+	size_t elementSize,
+	const void* bufferData)
+{
+	size_t bufferSize = numElements * elementSize;
+
+	UploadBuffer::Allocation heapAllocation = m_UploadBuffer->Allocate(bufferSize, elementSize);
+	memcpy(heapAllocation.CPU, bufferData, bufferSize);
+
+	m_d3d12CommandList->SetGraphicsRootShaderResourceView(rootParameterIndex, heapAllocation.GPU);
+}
+
+void CommandList::SetGraphics32BitConstants(uint32_t rootParameterIndex, uint32_t numConstants, const void* constants)
+{
+	m_d3d12CommandList->SetGraphicsRoot32BitConstants(rootParameterIndex, numConstants, constants, 0);
+}
+
 void CommandList::SetCompute32BitConstants(uint32_t rootParameterIndex, uint32_t numConstants, const void* constants)
 {
 	m_d3d12CommandList->SetComputeRoot32BitConstants(rootParameterIndex, numConstants, constants, 0);

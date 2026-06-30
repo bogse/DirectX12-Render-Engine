@@ -139,20 +139,28 @@ bool Demo::LoadContent()
 		D3D12_ROOT_SIGNATURE_FLAG_DENY_DOMAIN_SHADER_ROOT_ACCESS |
 		D3D12_ROOT_SIGNATURE_FLAG_DENY_GEOMETRY_SHADER_ROOT_ACCESS;
 
-	// Root parameters:
-	// 0 - Vertex shader constant buffer (b0)
-	// 1 - Material constant buffer (b0, space1)
-	// 2 - Texture shader resource view descriptor table (t0)
-	// 3 - Pipeline Options constant buffer (b1)
-	CD3DX12_ROOT_PARAMETER1 rootParameters[4];
+	// Root parameters.
+	CD3DX12_ROOT_PARAMETER1 rootParameters[6];
+
+	// MaterialCB for VertexShader (b0)
 	rootParameters[0].InitAsConstantBufferView(0, 0, D3D12_ROOT_DESCRIPTOR_FLAG_NONE, D3D12_SHADER_VISIBILITY_VERTEX);
+
+	// MaterialCB for PixelShader (b0, space1)
 	rootParameters[1].InitAsConstantBufferView(0, 1, D3D12_ROOT_DESCRIPTOR_FLAG_NONE, D3D12_SHADER_VISIBILITY_PIXEL);
 
+	// Texture shader resource view descriptor table (t1)
 	CD3DX12_DESCRIPTOR_RANGE1 descriptorRange;
-	descriptorRange.Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 0);
+	descriptorRange.Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 1);
 	rootParameters[2].InitAsDescriptorTable(1, &descriptorRange, D3D12_SHADER_VISIBILITY_PIXEL);
 
-	rootParameters[3].InitAsConstantBufferView(1, 0, D3D12_ROOT_DESCRIPTOR_FLAG_NONE, D3D12_SHADER_VISIBILITY_PIXEL);
+	// LightPropertiesCB (b1)
+	rootParameters[3].InitAsConstants(1, 1, 0, D3D12_SHADER_VISIBILITY_PIXEL);
+
+	// DirectionalLights Structured Buffer SRV (t0)
+	rootParameters[4].InitAsShaderResourceView(0, 0, D3D12_ROOT_DESCRIPTOR_FLAG_NONE, D3D12_SHADER_VISIBILITY_PIXEL);
+
+	// PipelineOptionsCB (b0, space9)
+	rootParameters[5].InitAsConstantBufferView(0, 9, D3D12_ROOT_DESCRIPTOR_FLAG_NONE, D3D12_SHADER_VISIBILITY_PIXEL);
 
 	CD3DX12_STATIC_SAMPLER_DESC linearRepeatSampler;
 	linearRepeatSampler.Init(
@@ -222,6 +230,12 @@ bool Demo::LoadContent()
 
 	m_ActiveMaterial = MaterialPresets::CreateSatinWood();
 
+	DirectionalLight sun;
+	sun.DirectionWS = DirectX::XMFLOAT4(0.5f, -0.5f, 0.7f, 0.f);
+	sun.Color		= DirectX::XMFLOAT4(1.f, 1.f, 1.f, 1.f);
+
+	m_DirectionalLights.push_back(sun);
+
 	return true;
 }
 
@@ -239,6 +253,7 @@ void Demo::OnUpdate(UpdateEventArgs& eventArgs)
 	m_Camera.Update();
 	UpdateAnimation(deltaTime);
 	UpdateModelMatrix();
+	UpdateLights();
 }
 
 void Demo::OnRender(RenderEventArgs& eventArgs)
@@ -371,10 +386,16 @@ void Demo::RenderScenePass(CommandList* commandList)
 			D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
 	}
 
+	LightProperties lightProperties;
+	lightProperties.NumDirectionalLights = static_cast<uint32_t>(m_DirectionalLights.size());
+
+	commandList->SetGraphics32BitConstants(3, lightProperties);
+	commandList->SetGraphicsDynamicStructuredBuffer(4, m_DirectionalLights);
+
 	m_PipelineOptions.EnableTextures = m_EnableTextures ? 1 : 0;
 	m_PipelineOptions.EnableMips = m_EnableMips ? 1 : 0;
 
-	commandList->SetGraphicsDynamicConstantBuffer(3, m_PipelineOptions);
+	commandList->SetGraphicsDynamicConstantBuffer(5, m_PipelineOptions);
 
 	// Draw.
 	m_CubeMesh->Draw(*commandList);
@@ -584,6 +605,20 @@ void Demo::UpdateAnimation(float deltaTime)
 			m_CubeAnimation.m_RotationSpeedDegPerSec * deltaTime;
 
 		m_CubeAnimation.m_RotationAngleDeg = fmod(m_CubeAnimation.m_RotationAngleDeg, 360.f);
+	}
+}
+
+void Demo::UpdateLights()
+{
+	DirectX::XMMATRIX viewMatrix = m_Camera.GetViewMatrix();
+
+	for (DirectionalLight& directionalLight : m_DirectionalLights)
+	{
+		DirectX::XMVECTOR directionWS = DirectX::XMLoadFloat4(&directionalLight.DirectionWS);
+
+		DirectX::XMVECTOR directionVS = DirectX::XMVector3TransformNormal(directionWS, viewMatrix);
+
+		DirectX::XMStoreFloat4(&directionalLight.DirectionVS, DirectX::XMVector3Normalize(directionVS));
 	}
 }
 

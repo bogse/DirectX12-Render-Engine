@@ -156,6 +156,27 @@ public:
 	}
 
 	/**
+	* Set dynamic structured buffer data to the rendering pipeline.
+	*/
+	void SetGraphicsDynamicStructuredBuffer(uint32_t rootParameterIndex, size_t numElements, size_t elementSize, const void* bufferData);
+	template<typename T>
+	void SetGraphicsDynamicStructuredBuffer(uint32_t rootParameterIndex, const std::vector<T>& bufferData)
+	{
+		SetGraphicsDynamicStructuredBuffer(rootParameterIndex, bufferData.size(), sizeof(T), bufferData.data());
+	}
+
+	/**
+	* Set a set of 32-bit constants on the graphics pipeline.
+	*/
+	void SetGraphics32BitConstants(uint32_t rootParameterIndex, uint32_t numConstants, const void* constants);
+	template<typename T>
+	void SetGraphics32BitConstants(uint32_t rootParameterIndex, const T& constants)
+	{
+		static_assert(sizeof(T) % sizeof(uint32_t) == 0, "Size of type numst be a multiple of 4 bytes.");
+		SetGraphics32BitConstants(rootParameterIndex, sizeof(T) / sizeof(uint32_t), &constants);
+	}
+
+	/**
 	* Set a set of 32-bit constants on the compute pipeline.
 	*/
 	void SetCompute32BitConstants(uint32_t rootParameterIndex, uint32_t numConstants, const void* constants);
