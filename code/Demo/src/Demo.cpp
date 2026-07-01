@@ -449,7 +449,7 @@ void Demo::RenderUIPass(CommandList* commandList)
 
 	if (bufferDirty)
 	{
-		m_CubeMesh->UpdateColors(*commandList, imGuiColors);
+		m_CubeMesh->UpdateCubeColors(*commandList, imGuiColors);
 	}
 
 	ImGui::Checkbox("Render wireframe", &m_RenderWireframe);

@@ -71,12 +71,25 @@ class Mesh
 public:
 	void Draw(CommandList& commandList);
 
-	void UpdateColors(CommandList& commandList, const DirectX::XMFLOAT4 (&colors)[8]);
+	void UpdateCubeColors(CommandList& commandList, const DirectX::XMFLOAT4 (&colors)[8]);
 
 	static std::unique_ptr<Mesh> CreateCube(
 		CommandList& commandList,
 		const float size = 1,
 		const bool useLHCoordinateSystem = true);
+
+	static std::unique_ptr<Mesh> CreateSphere(
+		CommandList& commandList,
+		const float diameter = 1.f,
+		const size_t tessellation = 16,
+		const bool useLHCoordonateSystem = true);
+
+	static std::unique_ptr<Mesh> CreateCone(
+		CommandList& commandList,
+		const float diameter = 1.f,
+		const float height = 1.f,
+		const size_t tessellation = 32,
+		const bool useLHCoordonateSystem = true);
 
 private:
 	friend struct std::default_delete<Mesh>;
