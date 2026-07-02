@@ -143,7 +143,7 @@ LightResult ComputeTotalLighting(float3 P, float3 N)
         totalResult.Specular += result.Specular;
     }
 
-        return totalResult;
+    return totalResult;
 }
 
 float4 main(PixelShaderInput IN) : SV_Target

@@ -245,7 +245,7 @@ bool Demo::LoadContent()
 
 	PointLight pointLight;
 	pointLight.PositionWS = DirectX::XMFLOAT4(0.f, -3.f, 0.f, 1.f);
-	pointLight.Color = DirectX::XMFLOAT4(5.f, 0.f, 0.f, 1.f);
+	pointLight.Color = DirectX::XMFLOAT4(1.f, 0.f, 0.f, 1.f);
 	pointLight.ConstantAttenuation = 1.f;
 	pointLight.LinearAttenuation = 0.1f;
 	pointLight.QuadraticAttenuation = 0.02;
