@@ -47,6 +47,7 @@ Demo::Demo(const std::wstring& name, int width, int height, bool vSync)
 	, m_Camera(Camera())
 	, m_CameraController(m_Camera)
 	, m_CubeMesh(nullptr)
+	, m_SphereMesh(nullptr)
 	, m_CubeAnimation{ 90.f, 0.f, true }
 	, m_CubeTransform
 	{
@@ -54,6 +55,8 @@ Demo::Demo(const std::wstring& name, int width, int height, bool vSync)
 		{ 0.f, 0.f, 0.f },
 		{ 1.f, 1.f, 1.f }
 	}
+	, m_DirectionalLights()
+	, m_PointLights()
 	, m_RenderWireframe(false)
 	, m_EnableTextures(true)
 	, m_EnableMips(true)
@@ -71,8 +74,9 @@ bool Demo::LoadContent()
 	const std::wstring path = ASSET_DIR L"/Textures/DirectX12.png";
 	commandList->LoadTextureFromFile(m_DirectXTexture, path, true);
 
-	// Create a cube mesh.
+	// Create meshes.
 	m_CubeMesh = Mesh::CreateCube(*commandList, 2.f);
+	m_SphereMesh = Mesh::CreateSphere(*commandList, 0.25f);
 
 	// Create an off-screen render target with a single color buffer and a depth buffer.
 	const DXGI_SAMPLE_DESC& sampleDesc = m_RenderTarget.GetSampleDesc();
@@ -140,7 +144,7 @@ bool Demo::LoadContent()
 		D3D12_ROOT_SIGNATURE_FLAG_DENY_GEOMETRY_SHADER_ROOT_ACCESS;
 
 	// Root parameters.
-	CD3DX12_ROOT_PARAMETER1 rootParameters[6];
+	CD3DX12_ROOT_PARAMETER1 rootParameters[7];
 
 	// MaterialCB for VertexShader (b0)
 	rootParameters[0].InitAsConstantBufferView(0, 0, D3D12_ROOT_DESCRIPTOR_FLAG_NONE, D3D12_SHADER_VISIBILITY_VERTEX);
@@ -148,19 +152,22 @@ bool Demo::LoadContent()
 	// MaterialCB for PixelShader (b0, space1)
 	rootParameters[1].InitAsConstantBufferView(0, 1, D3D12_ROOT_DESCRIPTOR_FLAG_NONE, D3D12_SHADER_VISIBILITY_PIXEL);
 
-	// Texture shader resource view descriptor table (t1)
+	// Texture shader resource view descriptor table (t2)
 	CD3DX12_DESCRIPTOR_RANGE1 descriptorRange;
-	descriptorRange.Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 1);
+	descriptorRange.Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 2);
 	rootParameters[2].InitAsDescriptorTable(1, &descriptorRange, D3D12_SHADER_VISIBILITY_PIXEL);
 
 	// LightPropertiesCB (b1)
-	rootParameters[3].InitAsConstants(1, 1, 0, D3D12_SHADER_VISIBILITY_PIXEL);
+	rootParameters[3].InitAsConstants(2, 1, 0, D3D12_SHADER_VISIBILITY_PIXEL);
 
 	// DirectionalLights Structured Buffer SRV (t0)
 	rootParameters[4].InitAsShaderResourceView(0, 0, D3D12_ROOT_DESCRIPTOR_FLAG_NONE, D3D12_SHADER_VISIBILITY_PIXEL);
 
+	// PointLights Structured Buffer SRV (t1)
+	rootParameters[5].InitAsShaderResourceView(1, 0, D3D12_ROOT_DESCRIPTOR_FLAG_NONE, D3D12_SHADER_VISIBILITY_PIXEL);
+
 	// PipelineOptionsCB (b0, space9)
-	rootParameters[5].InitAsConstantBufferView(0, 9, D3D12_ROOT_DESCRIPTOR_FLAG_NONE, D3D12_SHADER_VISIBILITY_PIXEL);
+	rootParameters[6].InitAsConstantBufferView(0, 9, D3D12_ROOT_DESCRIPTOR_FLAG_NONE, D3D12_SHADER_VISIBILITY_PIXEL);
 
 	CD3DX12_STATIC_SAMPLER_DESC linearRepeatSampler;
 	linearRepeatSampler.Init(
@@ -235,6 +242,15 @@ bool Demo::LoadContent()
 	sun.Color		= DirectX::XMFLOAT4(1.f, 1.f, 1.f, 1.f);
 
 	m_DirectionalLights.push_back(sun);
+
+	PointLight pointLight;
+	pointLight.PositionWS = DirectX::XMFLOAT4(0.f, -3.f, 0.f, 1.f);
+	pointLight.Color = DirectX::XMFLOAT4(5.f, 0.f, 0.f, 1.f);
+	pointLight.ConstantAttenuation = 1.f;
+	pointLight.LinearAttenuation = 0.1f;
+	pointLight.QuadraticAttenuation = 0.02;
+
+	m_PointLights.push_back(pointLight);
 
 	return true;
 }
@@ -388,17 +404,42 @@ void Demo::RenderScenePass(CommandList* commandList)
 
 	LightProperties lightProperties;
 	lightProperties.NumDirectionalLights = static_cast<uint32_t>(m_DirectionalLights.size());
+	lightProperties.NumPointLights		 = static_cast<uint32_t>(m_PointLights.size());
 
 	commandList->SetGraphics32BitConstants(3, lightProperties);
 	commandList->SetGraphicsDynamicStructuredBuffer(4, m_DirectionalLights);
+	commandList->SetGraphicsDynamicStructuredBuffer(5, m_PointLights);
 
 	m_PipelineOptions.EnableTextures = m_EnableTextures ? 1 : 0;
 	m_PipelineOptions.EnableMips = m_EnableMips ? 1 : 0;
 
-	commandList->SetGraphicsDynamicConstantBuffer(5, m_PipelineOptions);
+	commandList->SetGraphicsDynamicConstantBuffer(6, m_PipelineOptions);
 
 	// Draw.
 	m_CubeMesh->Draw(*commandList);
+
+	Material lightMaterial;
+	lightMaterial.Ambient  = { 0.f, 0.f, 0.f, 1.f };
+	lightMaterial.Diffuse  = { 0.f, 0.f, 0.f, 1.f };
+	lightMaterial.Specular = { 0.f, 0.f, 0.f, 1.f };
+
+	for (const PointLight& pointLight : m_PointLights)
+	{
+		lightMaterial.Emissive = pointLight.Color;
+
+		DirectX::XMVECTOR lightPosition = DirectX::XMLoadFloat4(&pointLight.PositionWS);
+
+		DirectX::XMMATRIX lightModelMatrix = DirectX::XMMatrixTranslationFromVector(lightPosition);
+
+		TransformMatrices lightTransforms;
+		lightTransforms.ModelView = lightModelMatrix * viewMatrix;
+		lightTransforms.ModelViewProjection = lightTransforms.ModelView * projectionMatrix;
+
+		commandList->SetGraphicsDynamicConstantBuffer(0, lightTransforms);
+		commandList->SetGraphicsDynamicConstantBuffer(1, lightMaterial);
+
+		m_SphereMesh->Draw(*commandList);
+	}
 }
 
 void Demo::RenderUIPass(CommandList* commandList)
@@ -619,6 +660,15 @@ void Demo::UpdateLights()
 		DirectX::XMVECTOR directionVS = DirectX::XMVector3TransformNormal(directionWS, viewMatrix);
 
 		DirectX::XMStoreFloat4(&directionalLight.DirectionVS, DirectX::XMVector3Normalize(directionVS));
+	}
+
+	for (PointLight& pointLight : m_PointLights)
+	{
+		DirectX::XMVECTOR positionWS = DirectX::XMLoadFloat4(&pointLight.PositionWS);
+
+		DirectX::XMVECTOR positionVS = DirectX::XMVector3TransformNormal(positionWS, viewMatrix);
+
+		DirectX::XMStoreFloat4(&pointLight.PositionVS, positionVS);
 	}
 }
 
