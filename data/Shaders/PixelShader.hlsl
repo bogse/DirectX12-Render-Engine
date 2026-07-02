@@ -24,9 +24,21 @@ struct DirectionalLight
     float4 Color;
 };
 
+struct PointLight
+{
+    float4 PositionWS;
+    float4 PositionVS;
+    float4 Color;
+    float  ConstantAttenuation;
+    float  LinearAttenuation;
+    float  QuadraticAttenuation;
+    float  Padding;
+};
+
 struct LightProperties
 {
     uint NumDirectionalLights;
+    uint NumPointLights;
 };
 
 struct LightResult
@@ -45,8 +57,9 @@ ConstantBuffer<Material> MaterialCB : register(b0, space1);
 ConstantBuffer<LightProperties> LightPropertiesCB : register(b1);
 
 StructuredBuffer<DirectionalLight> DirectionalLights : register(t0);
+StructuredBuffer<PointLight> PointLights : register(t1);
 
-Texture2D DiffuseTexture : register(t1);
+Texture2D DiffuseTexture : register(t2);
 SamplerState LinearRepeatSampler : register(s0);
 
 ConstantBuffer<PipelineOptions> PipelineOptionsCB : register(b0, space9);
@@ -64,6 +77,11 @@ float ComputeSpecularFactor(float3 V, float3 N, float3 L)
     return pow(NdotH, max(1.f, MaterialCB.SpecularPower));
 }
 
+float ComputeAttenuation(float c, float l, float q, float d)
+{
+    return 1.f / (c + l * d + q * d * d);
+}
+
 LightResult EvaluateDirectionalLight(DirectionalLight light, float3 V, float3 N)
 {
     LightResult result = (LightResult)0;
@@ -78,7 +96,29 @@ LightResult EvaluateDirectionalLight(DirectionalLight light, float3 V, float3 N)
     return result;
 }
 
-LightResult CalculateTotalLighting(float3 P, float3 N)
+LightResult EvaluatePointLight(PointLight light, float3 V, float3 P, float3 N)
+{
+    LightResult result = (LightResult)0;
+    float3 lightVector = light.PositionVS.xyz - P;
+    float d = length(lightVector);
+    
+    if (d > 0.f)
+    {
+        float3 L = lightVector / d;
+        float attenuation = ComputeAttenuation(
+            light.ConstantAttenuation,
+            light.LinearAttenuation,
+            light.QuadraticAttenuation,
+            d);
+        
+        result.Diffuse = light.Color * ComputeDiffuseFactor(N, L) * attenuation;
+        result.Specular = light.Color * ComputeSpecularFactor(V, N, L) * attenuation;
+    }
+    
+    return result;
+}
+
+LightResult ComputeTotalLighting(float3 P, float3 N)
 {
     // Lighting calculations are performed in View Space.
     // P is the position of the pixel, so normalize(-P) gives us
@@ -90,6 +130,14 @@ LightResult CalculateTotalLighting(float3 P, float3 N)
     for (uint i = 0; i < LightPropertiesCB.NumDirectionalLights; ++i)
     {
         LightResult result = EvaluateDirectionalLight(DirectionalLights[i], V, N);
+        
+        totalResult.Diffuse  += result.Diffuse;
+        totalResult.Specular += result.Specular;
+    }
+    
+    for (uint i = 0; i < LightPropertiesCB.NumPointLights; ++i)
+    {
+        LightResult result = EvaluatePointLight(PointLights[i], V, P, N);
         
         totalResult.Diffuse  += result.Diffuse;
         totalResult.Specular += result.Specular;
@@ -111,7 +159,7 @@ float4 main(PixelShaderInput IN) : SV_Target
     float3 N = normalize(IN.Normal);
     float3 P = IN.PositionVS.xyz;
     
-    LightResult lighting = CalculateTotalLighting(P, N);
+    LightResult lighting = ComputeTotalLighting(P, N);
     
     float4 emissive = MaterialCB.Emissive;
     float4 ambient = MaterialCB.Ambient;

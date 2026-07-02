@@ -83,11 +83,13 @@ private:
 	CameraController m_CameraController;
 
 	std::unique_ptr<Mesh> m_CubeMesh;
+	std::unique_ptr<Mesh> m_SphereMesh;
 
 	CubeAnimation m_CubeAnimation;
 	Transform m_CubeTransform;
 
 	std::vector<DirectionalLight> m_DirectionalLights;
+	std::vector<PointLight> m_PointLights;
 
 	bool m_RenderWireframe;
 	bool m_EnableTextures;
