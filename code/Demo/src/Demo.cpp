@@ -38,6 +38,27 @@ static DirectX::XMFLOAT4 imGuiColors[imGuiVertexCount] = {
 	{ 1.0f, 1.0f, 1.0f, 1.0f }  // Corner 7 : White
 };
 
+namespace
+{
+	// Build a look-at (world) matrix from a point, up and direction vectors.
+	XMMATRIX XM_CALLCONV LookAtMatrix(FXMVECTOR position, FXMVECTOR direction, FXMVECTOR up)
+	{
+		assert(!XMVector3Equal(direction, XMVectorZero()));
+		assert(!XMVector3Equal(up, XMVectorZero()));
+
+		// Generate an LH View orientation matrix looking from origin(0, 0, 0).
+		XMMATRIX viewMatrix = XMMatrixLookToLH(XMVectorZero(), direction, up);
+
+		// Transpose the 3x3 orientation to invert it back into a World Matrix
+		// and append the translation position direclty into the 4th row (r[3]).
+		XMMATRIX worldMatrix = XMMatrixTranspose(viewMatrix);
+		worldMatrix.r[3] = XMVectorSetW(position, 1.f);
+
+		return worldMatrix;
+	}
+
+}
+
 Demo::Demo(const std::wstring& name, int width, int height, bool vSync)
 	: Super(name, width, height, vSync)
 	, m_PipelineOptions{true, true}
@@ -48,6 +69,7 @@ Demo::Demo(const std::wstring& name, int width, int height, bool vSync)
 	, m_CameraController(m_Camera)
 	, m_CubeMesh(nullptr)
 	, m_SphereMesh(nullptr)
+	, m_ConeMesh(nullptr)
 	, m_CubeAnimation{ 90.f, 0.f, true }
 	, m_CubeTransform
 	{
@@ -57,6 +79,7 @@ Demo::Demo(const std::wstring& name, int width, int height, bool vSync)
 	}
 	, m_DirectionalLights()
 	, m_PointLights()
+	, m_SpotLights()
 	, m_RenderWireframe(false)
 	, m_EnableTextures(true)
 	, m_EnableMips(true)
@@ -77,6 +100,7 @@ bool Demo::LoadContent()
 	// Create meshes.
 	m_CubeMesh = Mesh::CreateCube(*commandList, 2.f);
 	m_SphereMesh = Mesh::CreateSphere(*commandList, 0.25f);
+	m_ConeMesh = Mesh::CreateCone(*commandList, 0.25f, 0.25f);
 
 	// Create an off-screen render target with a single color buffer and a depth buffer.
 	const DXGI_SAMPLE_DESC& sampleDesc = m_RenderTarget.GetSampleDesc();
@@ -144,7 +168,7 @@ bool Demo::LoadContent()
 		D3D12_ROOT_SIGNATURE_FLAG_DENY_GEOMETRY_SHADER_ROOT_ACCESS;
 
 	// Root parameters.
-	CD3DX12_ROOT_PARAMETER1 rootParameters[7];
+	CD3DX12_ROOT_PARAMETER1 rootParameters[8];
 
 	// MaterialCB for VertexShader (b0)
 	rootParameters[0].InitAsConstantBufferView(0, 0, D3D12_ROOT_DESCRIPTOR_FLAG_NONE, D3D12_SHADER_VISIBILITY_VERTEX);
@@ -152,13 +176,13 @@ bool Demo::LoadContent()
 	// MaterialCB for PixelShader (b0, space1)
 	rootParameters[1].InitAsConstantBufferView(0, 1, D3D12_ROOT_DESCRIPTOR_FLAG_NONE, D3D12_SHADER_VISIBILITY_PIXEL);
 
-	// Texture shader resource view descriptor table (t2)
+	// Texture shader resource view descriptor table (t3)
 	CD3DX12_DESCRIPTOR_RANGE1 descriptorRange;
-	descriptorRange.Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 2);
+	descriptorRange.Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 3);
 	rootParameters[2].InitAsDescriptorTable(1, &descriptorRange, D3D12_SHADER_VISIBILITY_PIXEL);
 
 	// LightPropertiesCB (b1)
-	rootParameters[3].InitAsConstants(2, 1, 0, D3D12_SHADER_VISIBILITY_PIXEL);
+	rootParameters[3].InitAsConstants(3, 1, 0, D3D12_SHADER_VISIBILITY_PIXEL);
 
 	// DirectionalLights Structured Buffer SRV (t0)
 	rootParameters[4].InitAsShaderResourceView(0, 0, D3D12_ROOT_DESCRIPTOR_FLAG_NONE, D3D12_SHADER_VISIBILITY_PIXEL);
@@ -166,8 +190,11 @@ bool Demo::LoadContent()
 	// PointLights Structured Buffer SRV (t1)
 	rootParameters[5].InitAsShaderResourceView(1, 0, D3D12_ROOT_DESCRIPTOR_FLAG_NONE, D3D12_SHADER_VISIBILITY_PIXEL);
 
+	// SpotLights Structured Buffer SRV (t2)
+	rootParameters[6].InitAsShaderResourceView(2, 0, D3D12_ROOT_DESCRIPTOR_FLAG_NONE, D3D12_SHADER_VISIBILITY_PIXEL);
+
 	// PipelineOptionsCB (b0, space9)
-	rootParameters[6].InitAsConstantBufferView(0, 9, D3D12_ROOT_DESCRIPTOR_FLAG_NONE, D3D12_SHADER_VISIBILITY_PIXEL);
+	rootParameters[7].InitAsConstantBufferView(0, 9, D3D12_ROOT_DESCRIPTOR_FLAG_NONE, D3D12_SHADER_VISIBILITY_PIXEL);
 
 	CD3DX12_STATIC_SAMPLER_DESC linearRepeatSampler;
 	linearRepeatSampler.Init(
@@ -244,13 +271,26 @@ bool Demo::LoadContent()
 	m_DirectionalLights.push_back(sun);
 
 	PointLight pointLight;
-	pointLight.PositionWS = DirectX::XMFLOAT4(0.f, -3.f, 0.f, 1.f);
-	pointLight.Color = DirectX::XMFLOAT4(1.f, 0.f, 0.f, 1.f);
-	pointLight.ConstantAttenuation = 1.f;
-	pointLight.LinearAttenuation = 0.1f;
-	pointLight.QuadraticAttenuation = 0.02;
+	pointLight.PositionWS			= DirectX::XMFLOAT4(0.f, -3.f, 0.f, 1.f);
+	pointLight.Color				= DirectX::XMFLOAT4(1.f, 0.f, 0.f, 1.f);
+	pointLight.ConstantAttenuation  = 1.f;
+	pointLight.LinearAttenuation	= 0.1f;
+	pointLight.QuadraticAttenuation = 0.02f;
 
 	m_PointLights.push_back(pointLight);
+
+	float outerAngleDegrees = 35.f;
+
+	SpotLight spotLight;
+	spotLight.PositionWS			= DirectX::XMFLOAT4(-2.f, 2.f, -2.f, 1.f);
+	spotLight.DirectionWS			= DirectX::XMFLOAT4(0.6f, -0.6f, 0.6f, 0.f);
+	spotLight.Color					= DirectX::XMFLOAT4(0.f, 0.f, 2.f, 1.f);
+	spotLight.SpotAngle				= cosf(DirectX::XMConvertToRadians(outerAngleDegrees));
+	spotLight.ConstantAttenuation	= 1.f;
+	spotLight.LinearAttenuation		= 0.05f;
+	spotLight.QuadraticAttenuation	= 0.01f;
+
+	m_SpotLights.push_back(spotLight);
 
 	return true;
 }
@@ -405,15 +445,17 @@ void Demo::RenderScenePass(CommandList* commandList)
 	LightProperties lightProperties;
 	lightProperties.NumDirectionalLights = static_cast<uint32_t>(m_DirectionalLights.size());
 	lightProperties.NumPointLights		 = static_cast<uint32_t>(m_PointLights.size());
+	lightProperties.NumSpotLights		 = static_cast<uint32_t>(m_SpotLights.size());
 
 	commandList->SetGraphics32BitConstants(3, lightProperties);
 	commandList->SetGraphicsDynamicStructuredBuffer(4, m_DirectionalLights);
 	commandList->SetGraphicsDynamicStructuredBuffer(5, m_PointLights);
+	commandList->SetGraphicsDynamicStructuredBuffer(6, m_SpotLights);
 
 	m_PipelineOptions.EnableTextures = m_EnableTextures ? 1 : 0;
 	m_PipelineOptions.EnableMips = m_EnableMips ? 1 : 0;
 
-	commandList->SetGraphicsDynamicConstantBuffer(6, m_PipelineOptions);
+	commandList->SetGraphicsDynamicConstantBuffer(7, m_PipelineOptions);
 
 	// Draw.
 	m_CubeMesh->Draw(*commandList);
@@ -439,6 +481,37 @@ void Demo::RenderScenePass(CommandList* commandList)
 		commandList->SetGraphicsDynamicConstantBuffer(1, lightMaterial);
 
 		m_SphereMesh->Draw(*commandList);
+	}
+
+	for (const SpotLight& spotLight : m_SpotLights)
+	{
+		lightMaterial.Emissive = spotLight.Color;
+
+		DirectX::XMVECTOR lightPosition = DirectX::XMLoadFloat4(&spotLight.PositionWS);
+		DirectX::XMVECTOR lightDirection = DirectX::XMLoadFloat4(&spotLight.DirectionWS);
+		DirectX::XMVECTOR normDirection = DirectX::XMVector3Normalize(lightDirection);
+
+		DirectX::XMVECTOR defaultUp = DirectX::XMVectorSet(0.f, 1.f, 0.f, 0.f);
+		DirectX::XMVECTOR fallbackUp = DirectX::XMVectorSet(0.f, 0.f, 1.f, 0.f);
+
+		// Prevent LookAt singularity when light direction aligns with the default up vector.
+		DirectX::XMVECTOR dotValue = DirectX::XMVectorAbs(DirectX::XMVector3Dot(normDirection, defaultUp));
+		DirectX::XMVECTOR controlMask = DirectX::XMVectorGreaterOrEqual(dotValue, DirectX::XMVectorReplicate(0.999f));
+
+		// Branchless fallback choice: Select fallbackUp if parallel, otherwise keep defaultUp.
+		DirectX::XMVECTOR up = DirectX::XMVectorSelect(defaultUp, fallbackUp, controlMask);
+
+		DirectX::XMMATRIX rotationMatrix = DirectX::XMMatrixRotationX(DirectX::XMConvertToRadians(-90.f));
+		DirectX::XMMATRIX worldMatrix = rotationMatrix * LookAtMatrix(lightPosition, lightDirection, up);
+
+		TransformMatrices lightTransforms;
+		lightTransforms.ModelView = worldMatrix * viewMatrix;
+		lightTransforms.ModelViewProjection = lightTransforms.ModelView * projectionMatrix;
+
+		commandList->SetGraphicsDynamicConstantBuffer(0, lightTransforms);
+		commandList->SetGraphicsDynamicConstantBuffer(1, lightMaterial);
+
+		m_ConeMesh->Draw(*commandList);
 	}
 }
 
@@ -656,19 +729,26 @@ void Demo::UpdateLights()
 	for (DirectionalLight& directionalLight : m_DirectionalLights)
 	{
 		DirectX::XMVECTOR directionWS = DirectX::XMLoadFloat4(&directionalLight.DirectionWS);
-
 		DirectX::XMVECTOR directionVS = DirectX::XMVector3TransformNormal(directionWS, viewMatrix);
-
 		DirectX::XMStoreFloat4(&directionalLight.DirectionVS, DirectX::XMVector3Normalize(directionVS));
 	}
 
 	for (PointLight& pointLight : m_PointLights)
 	{
 		DirectX::XMVECTOR positionWS = DirectX::XMLoadFloat4(&pointLight.PositionWS);
-
 		DirectX::XMVECTOR positionVS = DirectX::XMVector3TransformNormal(positionWS, viewMatrix);
-
 		DirectX::XMStoreFloat4(&pointLight.PositionVS, positionVS);
+	}
+
+	for (SpotLight& spotLight : m_SpotLights)
+	{
+		DirectX::XMVECTOR positionWS = DirectX::XMLoadFloat4(&spotLight.PositionWS);
+		DirectX::XMVECTOR positionVS = DirectX::XMVector3Transform(positionWS, viewMatrix);
+		DirectX::XMStoreFloat4(&spotLight.PositionVS, positionVS);
+
+		DirectX::XMVECTOR directionWS = DirectX::XMLoadFloat4(&spotLight.DirectionWS);
+		DirectX::XMVECTOR directionVS = DirectX::XMVector3TransformNormal(directionWS, viewMatrix);
+		DirectX::XMStoreFloat4(&spotLight.DirectionVS, directionVS);
 	}
 }
 
