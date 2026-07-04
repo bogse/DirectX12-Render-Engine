@@ -35,10 +35,24 @@ struct PointLight
     float  Padding;
 };
 
+struct SpotLight
+{
+    float4 PositionWS;
+    float4 PositionVS;
+    float4 DirectionWS;
+    float4 DirectionVS;
+    float4 Color;
+    float  SpotAngle;
+    float  ConstantAttenuation;
+    float  LinearAttenuation;
+    float  QuadraticAttenuation;
+};
+
 struct LightProperties
 {
     uint NumDirectionalLights;
     uint NumPointLights;
+    uint NumSpotLights;
 };
 
 struct LightResult
@@ -58,8 +72,9 @@ ConstantBuffer<LightProperties> LightPropertiesCB : register(b1);
 
 StructuredBuffer<DirectionalLight> DirectionalLights : register(t0);
 StructuredBuffer<PointLight> PointLights : register(t1);
+StructuredBuffer<SpotLight> SpotLights : register(t2);
 
-Texture2D DiffuseTexture : register(t2);
+Texture2D DiffuseTexture : register(t3);
 SamplerState LinearRepeatSampler : register(s0);
 
 ConstantBuffer<PipelineOptions> PipelineOptionsCB : register(b0, space9);
@@ -80,6 +95,14 @@ float ComputeSpecularFactor(float3 V, float3 N, float3 L)
 float ComputeAttenuation(float c, float l, float q, float d)
 {
     return 1.f / (c + l * d + q * d * d);
+}
+
+float ComputeSpotCone(float3 spotDirection, float3 L, float spotAngle)
+{
+    float minCos = cos(spotAngle);
+    float maxCos = (minCos + 1.f) / 2.f;
+    float cosAngle = dot(normalize(spotDirection), -L);
+    return smoothstep(minCos, maxCos, cosAngle);
 }
 
 LightResult EvaluateDirectionalLight(DirectionalLight light, float3 V, float3 N)
@@ -118,6 +141,32 @@ LightResult EvaluatePointLight(PointLight light, float3 V, float3 P, float3 N)
     return result;
 }
 
+LightResult EvaluateSpotLight(SpotLight light, float3 V, float3 P, float3 N)
+{
+    LightResult result = (LightResult)0;
+    float3 lightVector = light.PositionVS.xyz - P;
+    float d = length(lightVector);
+    
+    if (d > 0.f)
+    {
+        float3 L = lightVector / d;
+        float attenuation = ComputeAttenuation(
+            light.ConstantAttenuation,
+            light.LinearAttenuation,
+            light.QuadraticAttenuation,
+            d);
+        
+        float spotIntensity = ComputeSpotCone(light.DirectionVS.xyz, L, light.SpotAngle);
+        
+        float totalFalloff = attenuation * spotIntensity;
+        
+        result.Diffuse  = light.Color * ComputeDiffuseFactor(N, L) * totalFalloff;
+        result.Specular = light.Color * ComputeSpecularFactor(V, N, L) * totalFalloff;
+    }
+    
+    return result;
+}
+
 LightResult ComputeTotalLighting(float3 P, float3 N)
 {
     // Lighting calculations are performed in View Space.
@@ -135,9 +184,17 @@ LightResult ComputeTotalLighting(float3 P, float3 N)
         totalResult.Specular += result.Specular;
     }
     
-    for (uint i = 0; i < LightPropertiesCB.NumPointLights; ++i)
+    for (uint j = 0; j < LightPropertiesCB.NumPointLights; ++j)
     {
-        LightResult result = EvaluatePointLight(PointLights[i], V, P, N);
+        LightResult result = EvaluatePointLight(PointLights[j], V, P, N);
+        
+        totalResult.Diffuse  += result.Diffuse;
+        totalResult.Specular += result.Specular;
+    }
+    
+    for (uint k = 0; k < LightPropertiesCB.NumSpotLights; ++k)
+    {
+        LightResult result = EvaluateSpotLight(SpotLights[k], V, P, N);
         
         totalResult.Diffuse  += result.Diffuse;
         totalResult.Specular += result.Specular;

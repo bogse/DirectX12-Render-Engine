@@ -84,12 +84,14 @@ private:
 
 	std::unique_ptr<Mesh> m_CubeMesh;
 	std::unique_ptr<Mesh> m_SphereMesh;
+	std::unique_ptr<Mesh> m_ConeMesh;
 
 	CubeAnimation m_CubeAnimation;
 	Transform m_CubeTransform;
 
 	std::vector<DirectionalLight> m_DirectionalLights;
 	std::vector<PointLight> m_PointLights;
+	std::vector<SpotLight> m_SpotLights;
 
 	bool m_RenderWireframe;
 	bool m_EnableTextures;

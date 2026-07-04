@@ -36,8 +36,22 @@ struct PointLight
 	float Padding;
 };
 
+struct SpotLight
+{
+	DirectX::XMFLOAT4 PositionWS;
+	DirectX::XMFLOAT4 PositionVS;
+	DirectX::XMFLOAT4 DirectionWS;
+	DirectX::XMFLOAT4 DirectionVS;
+	DirectX::XMFLOAT4 Color;
+	float SpotAngle;
+	float ConstantAttenuation;
+	float LinearAttenuation;
+	float QuadraticAttenuation;
+};
+
 struct LightProperties
 {
 	uint32_t NumDirectionalLights;
 	uint32_t NumPointLights;
+	uint32_t NumSpotLights;
 };
