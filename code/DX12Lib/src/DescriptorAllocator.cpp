@@ -28,7 +28,8 @@ DescriptorAllocation DescriptorAllocator::Allocate(uint32_t numDescriptors)
 
 	DescriptorAllocation allocation;
 
-	for (auto iter = m_AvailableHeaps.begin(); iter != m_AvailableHeaps.end(); ++iter)
+	auto iter = m_AvailableHeaps.begin();
+	while (iter != m_AvailableHeaps.end())
 	{
 		std::shared_ptr<DescriptorAllocatorPage> allocatorPage = m_HeapPool[*iter];
 
@@ -37,6 +38,10 @@ DescriptorAllocation DescriptorAllocator::Allocate(uint32_t numDescriptors)
 		if (allocatorPage->NumFreeHandles() == 0)
 		{
 			iter = m_AvailableHeaps.erase(iter);
+		}
+		else
+		{
+			++iter;
 		}
 
 		// A valid allocation has been found.
