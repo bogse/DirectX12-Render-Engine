@@ -26,7 +26,7 @@
 /**
 * Windows Runtime Library. Needed for Microsoft::WRL::ComPtr<> template class.
 */
-#include <wrl.h>
+#include <wrl/client.h>
 
 /**
 * DirectX 12 specific headers.

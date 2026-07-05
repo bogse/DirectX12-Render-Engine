@@ -5,7 +5,7 @@
 
 #include "Defines.h"
 
-#include <wrl.h>
+#include <wrl/client.h>
 #include <d3d12.h>
 
 #include <memory>

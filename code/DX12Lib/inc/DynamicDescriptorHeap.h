@@ -2,7 +2,7 @@
 
 #include "d3dx12.h"
 
-#include <wrl.h>
+#include <wrl/client.h>
 
 #include <cstdint>
 #include <functional>

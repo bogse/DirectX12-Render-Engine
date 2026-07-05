@@ -6,6 +6,8 @@
 #include "CommandList.h"
 #include "ResourceStateTracker.h"
 
+#include <intsafe.h>
+
 CommandQueue::CommandQueue(D3D12_COMMAND_LIST_TYPE type)
 	: m_FenceValue(0)
 	, m_CommandListType(type)

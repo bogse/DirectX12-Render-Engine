@@ -5,7 +5,7 @@
 #include "imgui.h"
 
 #include <d3dx12.h>
-#include <wrl.h>
+#include <wrl/client.h>
 
 class CommandQueue;
 class CommandList;

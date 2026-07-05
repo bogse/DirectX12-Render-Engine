@@ -8,7 +8,7 @@
 #include "Helpers.h"
 #include "Window.h"
 
-#include <wrl.h>
+#include <wrl/client.h>
 
 #include <d3dx12.h>
 #include <d3dcompiler.h>

@@ -5,7 +5,7 @@
 
 #include <DirectXMath.h>
 
-#include <wrl.h>
+#include <wrl/client.h>
 
 #include <memory>
 #include <vector>

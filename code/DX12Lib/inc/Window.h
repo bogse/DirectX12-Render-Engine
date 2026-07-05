@@ -3,7 +3,7 @@
 #define WIN32_LEAN_AND_MEAN
 #include <Windows.h>
 
-#include <wrl.h>
+#include <wrl/client.h>
 #include <dxgi1_6.h>
 
 #include "Events.h"
