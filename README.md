@@ -42,3 +42,6 @@ cmake --build build --config Release
 ```
 
 *Note: To compile the project for debugging, change `--config Release` to `--config Debug`.*
+
+## Credits & License
+Inspired by Microsoft DX12 samples and Jeremiah van Oosten's `LearningDirectX12` repositories. See the `LICENSE` file for full terms.
