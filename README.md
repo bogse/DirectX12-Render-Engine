@@ -16,6 +16,7 @@ This is a DirectX 12 rendering engine built in C++ for learning and experimentat
 - Texture support via DirectXTex standalone pipeline (DDS, PNG, JPG, BMP, TGA, and HDR formats)
    - 1D and 2D mipmap generation via custom Compute Shader
 - Lighting & Materials:
+   - Dynamic directional, point and spot light rendering pipeline
    - Blinn-Phong lighting system with Emissive glow, Ambient, Lambertian Diffuse, and Specular highlight layers
    - Modular Material preset framework
 - Input system
