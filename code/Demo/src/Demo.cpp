@@ -57,6 +57,24 @@ namespace
 		return worldMatrix;
 	}
 
+	template<typename T, typename Func>
+	void RenderUILightCategory(const char* title, std::vector<T>& lights, Func editCallback, int idOffset)
+	{
+		if (ImGui::CollapsingHeader(title))
+		{
+			for (size_t i = 0; i < lights.size(); ++i)
+			{
+				const int id = static_cast<int>(i) + idOffset;
+				ImGui::PushID(id);
+				ImGui::Text("%s #%d", title, id);
+
+				editCallback(lights[i]);
+
+				ImGui::Separator();
+				ImGui::PopID();
+			}
+		}
+	}
 }
 
 Demo::Demo(const std::wstring& name, int width, int height, bool vSync)
@@ -702,6 +720,61 @@ void Demo::RenderUIPass(CommandList* commandList)
 		{
 			m_CameraController.SetMouseSensitivity(mouseSensitivity);
 		}
+	}
+
+	if (ImGui::CollapsingHeader("Lighting"))
+	{
+		ImGui::Indent();
+
+		const auto editDirectionalLight = [](DirectionalLight& directionalLight) {
+			if (ImGui::SliderFloat3("Direction", &directionalLight.DirectionWS.x, -1.f, 1.f))
+			{
+				XMVECTOR directionVector = XMLoadFloat4(&directionalLight.DirectionWS);
+				XMStoreFloat4(&directionalLight.DirectionWS, XMVector3Normalize(directionVector));
+			}
+
+			ImGui::ColorEdit3("Color", &directionalLight.Color.x);
+			};
+
+		const auto editPointLight = [](PointLight& pointLight) {
+			ImGui::SliderFloat3("Position", &pointLight.PositionWS.x, -10.f, 10.f);
+			ImGui::ColorEdit3("Color", &pointLight.Color.x);
+			ImGui::SliderFloat("Constant Attenuation", &pointLight.ConstantAttenuation, 0.01f, 2.f);
+			ImGui::SliderFloat("Linear Attenuation", &pointLight.LinearAttenuation, 0.f, 1.f);
+			ImGui::SliderFloat("Quadratic Attenuation", &pointLight.QuadraticAttenuation, 0.f, 0.5f);
+			};
+
+		const auto editSpotLight = [](SpotLight& spotLight) {
+			ImGui::SliderFloat3("Position", &spotLight.PositionWS.x, -10.f, 10.f);
+
+			if (ImGui::SliderFloat3("Direction", &spotLight.DirectionWS.x, -1.f, 1.f))
+			{
+				XMVECTOR directionVector = XMLoadFloat4(&spotLight.DirectionWS);
+				if (*XMVector3LengthSq(directionVector).m128_f32 > 0.01f)
+				{
+					XMStoreFloat4(&spotLight.DirectionWS, XMVector3Normalize(directionVector));
+				}
+			}
+
+			ImGui::ColorEdit3("Color", &spotLight.Color.x);
+
+			const float currentAngle = acosf(spotLight.SpotAngle);
+			float degrees = XMConvertToDegrees(currentAngle);
+			if (ImGui::SliderFloat("Beam Angle", &degrees, 1.f, 89.f))
+			{
+				spotLight.SpotAngle = cosf(XMConvertToRadians(degrees));
+			}
+
+			ImGui::SliderFloat("Constant Attenuation", &spotLight.ConstantAttenuation, 0.01f, 2.f);
+			ImGui::SliderFloat("Linear Attenuation", &spotLight.LinearAttenuation, 0.f, 1.f);
+			ImGui::SliderFloat("Quadratic Attenuation", &spotLight.QuadraticAttenuation, 0.f, 0.5f);
+		};
+
+		RenderUILightCategory("Directional Light", m_DirectionalLights, editDirectionalLight, 0);
+		RenderUILightCategory("Point Light"		 , m_PointLights	  , editPointLight		, 100);
+		RenderUILightCategory("Spotlight"		 , m_SpotLights		  , editSpotLight		, 200);
+
+		ImGui::Unindent();
 	}
 
 	ImGui::End();
