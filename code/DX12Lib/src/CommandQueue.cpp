@@ -126,10 +126,10 @@ uint64_t CommandQueue::ExecuteCommandLists(const std::vector<std::shared_ptr<Com
 	// after the initial resource command lists have finished.
 	if (generateMipsCommandLists.size() > 0)
 	{
-		std::shared_ptr<CommandQueue> computeQueue =
+		CommandQueue& computeQueue =
 			Application::GetInstance().GetCommandQueue(D3D12_COMMAND_LIST_TYPE_COMPUTE);
-		computeQueue->Wait(*this);
-		computeQueue->ExecuteCommandLists(generateMipsCommandLists);
+		computeQueue.Wait(*this);
+		computeQueue.ExecuteCommandLists(generateMipsCommandLists);
 	}
 
 	return fenceValue;

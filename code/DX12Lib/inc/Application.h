@@ -67,7 +67,7 @@ public:
 	 * - D3D12_COMMAND_LIST_TYPE_COMPUTE: Can be used for dispatch or copy commands.
 	 * - D3D12_COMMAND_LIST_TYPE_COPY   : Can be used for copy commands.
 	 */
-	std::shared_ptr<CommandQueue> GetCommandQueue(D3D12_COMMAND_LIST_TYPE type = D3D12_COMMAND_LIST_TYPE_DIRECT) const;
+	CommandQueue& GetCommandQueue(D3D12_COMMAND_LIST_TYPE type = D3D12_COMMAND_LIST_TYPE_DIRECT) const;
 
 	/**
 	* Flush all command queues.

@@ -431,7 +431,7 @@ void CommandList::GenerateMips(const Texture& texture)
 		if (!m_ComputeCommandList)
 		{
 			m_ComputeCommandList = Application::GetInstance().
-				GetCommandQueue(D3D12_COMMAND_LIST_TYPE_COMPUTE)->GetCommandList();
+				GetCommandQueue(D3D12_COMMAND_LIST_TYPE_COMPUTE).GetCommandList();
 		}
 		m_ComputeCommandList->GenerateMips(texture);
 		return;

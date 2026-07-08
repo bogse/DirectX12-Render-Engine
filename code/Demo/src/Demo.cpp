@@ -108,8 +108,8 @@ Demo::Demo(const std::wstring& name, int width, int height, bool vSync)
 
 bool Demo::LoadContent()
 {
-	std::shared_ptr<CommandQueue> commandQueue = Application::GetInstance().GetCommandQueue(D3D12_COMMAND_LIST_TYPE_COPY);
-	std::shared_ptr<CommandList> commandList = commandQueue->GetCommandList();
+	CommandQueue& commandQueue = Application::GetInstance().GetCommandQueue(D3D12_COMMAND_LIST_TYPE_COPY);
+	std::shared_ptr<CommandList> commandList = commandQueue.GetCommandList();
 
 	// Load texture.
 	const std::wstring path = ASSET_DIR L"/Textures/DirectX12.png";
@@ -277,8 +277,8 @@ bool Demo::LoadContent()
 	CreatePSO(D3D12_FILL_MODE_SOLID, m_SolidPipelineState);
 	CreatePSO(D3D12_FILL_MODE_WIREFRAME, m_WireframePipelineState);
 
-	uint64_t fenceValue = commandQueue->ExecuteCommandList(commandList);
-	commandQueue->WaitForFenceValue(fenceValue);
+	uint64_t fenceValue = commandQueue.ExecuteCommandList(commandList);
+	commandQueue.WaitForFenceValue(fenceValue);
 
 	m_ActiveMaterial = MaterialPresets::CreateSatinWood();
 
@@ -334,13 +334,13 @@ void Demo::OnRender(RenderEventArgs& eventArgs)
 {
 	Super::OnRender(eventArgs);
 
-	std::shared_ptr<CommandQueue> commandQueue = Application::GetInstance().GetCommandQueue(D3D12_COMMAND_LIST_TYPE_DIRECT);
-	std::shared_ptr<CommandList> commandList = commandQueue->GetCommandList();
+	CommandQueue& commandQueue = Application::GetInstance().GetCommandQueue(D3D12_COMMAND_LIST_TYPE_DIRECT);
+	std::shared_ptr<CommandList> commandList = commandQueue.GetCommandList();
 
 	RenderScenePass(commandList.get());
 	RenderUIPass(commandList.get());
 
-	commandQueue->ExecuteCommandList(commandList);
+	commandQueue.ExecuteCommandList(commandList);
 
 	// Present.
 	std::shared_ptr<Texture> finalColorTex = m_RenderTarget.GetTexture(AttachmentPoint::Color0);

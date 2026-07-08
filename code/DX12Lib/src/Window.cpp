@@ -306,7 +306,7 @@ Microsoft::WRL::ComPtr<IDXGISwapChain4> Window::CreateSwapChain()
 	// It is recommended to always allow tearing if tearing support is available.
 	swapChainDesc.Flags = m_IsTearingSupported ? DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING : 0;
 	
-	ID3D12CommandQueue* pCommandQueue = app.GetCommandQueue()->GetD3D12CommandQueue().Get();
+	ID3D12CommandQueue* pCommandQueue = app.GetCommandQueue().GetD3D12CommandQueue().Get();
 
 	Microsoft::WRL::ComPtr<IDXGISwapChain1> swapChain1;
 	ThrowIfFailed(dxgiFactory4->CreateSwapChainForHwnd(
@@ -351,26 +351,26 @@ const Texture& Window::GetCurrentRenderTarget() const
 
 UINT Window::Present(const std::shared_ptr<Texture>& texture)
 {
-	std::shared_ptr<CommandQueue> commandQueue = Application::GetInstance().GetCommandQueue(D3D12_COMMAND_LIST_TYPE_DIRECT);
-	std::shared_ptr<CommandList> commandList = commandQueue->GetCommandList();
+	CommandQueue& commandQueue = Application::GetInstance().GetCommandQueue(D3D12_COMMAND_LIST_TYPE_DIRECT);
+	std::shared_ptr<CommandList> commandList = commandQueue.GetCommandList();
 
 	const Texture& backBuffer = m_BackBufferTextures[m_CurrentBackBufferIndex];
 	if (texture)
 		commandList->CopyResource(backBuffer, *texture);
 
 	commandList->TransitionBarrier(backBuffer, D3D12_RESOURCE_STATE_PRESENT);
-	commandQueue->ExecuteCommandList(commandList);
+	commandQueue.ExecuteCommandList(commandList);
 
 	UINT syncInterval = m_vSync ? 1 : 0;
 	UINT presentFlags = m_IsTearingSupported && !m_vSync ? DXGI_PRESENT_ALLOW_TEARING : 0;
 	ThrowIfFailed(m_dxgiSwapChain->Present(syncInterval, presentFlags));
 
-	m_FenceValues[m_CurrentBackBufferIndex] = commandQueue->Signal();
+	m_FenceValues[m_CurrentBackBufferIndex] = commandQueue.Signal();
 	m_FrameValues[m_CurrentBackBufferIndex] = Application::GetFrameCount();
 
 	m_CurrentBackBufferIndex = m_dxgiSwapChain->GetCurrentBackBufferIndex();
 
-	commandQueue->WaitForFenceValue(m_FenceValues[m_CurrentBackBufferIndex]);
+	commandQueue.WaitForFenceValue(m_FenceValues[m_CurrentBackBufferIndex]);
 
 	Application::GetInstance().ReleaseStaleDescriptors(m_FrameValues[m_CurrentBackBufferIndex]);
 

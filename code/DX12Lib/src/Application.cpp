@@ -291,7 +291,7 @@ std::shared_ptr<Window> Application::CreateRenderWindow(const std::wstring& wind
 	m_GUISystem->Initialize(
 		hWnd,
 		m_d3d12Device.Get(),
-		GetCommandQueue(D3D12_COMMAND_LIST_TYPE_DIRECT).get()
+		&GetCommandQueue(D3D12_COMMAND_LIST_TYPE_DIRECT)
 	);
 
 	return pWindow;
@@ -361,25 +361,25 @@ Microsoft::WRL::ComPtr<ID3D12Device2> Application::GetDevice() const
 	return m_d3d12Device;
 }
 
-std::shared_ptr<CommandQueue> Application::GetCommandQueue(D3D12_COMMAND_LIST_TYPE type) const
+CommandQueue& Application::GetCommandQueue(D3D12_COMMAND_LIST_TYPE type) const
 {
-	std::shared_ptr<CommandQueue> commandQueue;
+	CommandQueue* commandQueue;
 	switch (type)
 	{
 	case D3D12_COMMAND_LIST_TYPE_DIRECT:
-		commandQueue = m_DirectCommandQueue;
+		commandQueue = m_DirectCommandQueue.get();
 		break;
 	case D3D12_COMMAND_LIST_TYPE_COMPUTE:
-		commandQueue = m_ComputeCommandQueue;
+		commandQueue = m_ComputeCommandQueue.get();
 		break;
 	case D3D12_COMMAND_LIST_TYPE_COPY:
-		commandQueue = m_CopyCommandQueue;
+		commandQueue = m_CopyCommandQueue.get();
 		break;
 	default:
 		assert(false && "Invalid command queue type.");
 	}
 
-	return commandQueue;
+	return *commandQueue;
 }
 
 void Application::Flush()
