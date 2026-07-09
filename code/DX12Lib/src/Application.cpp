@@ -3,8 +3,7 @@
 #include "Application.h"
 
 #include "CommandQueue.h"
-#include "DescriptorAllocator.h"
-#include "DescriptorAllocatorPage.h"
+#include "Device.h"
 #include "GUISystem.h"
 #include "Input.h"
 #include "RenderApp.h"
@@ -84,33 +83,10 @@ void Application::Initialize()
 		MessageBoxA(NULL, "Unable to register the window class.", "Error", MB_OK | MB_ICONERROR);
 	}
 
-	Microsoft::WRL::ComPtr<IDXGIAdapter4> dxgiAdapter = GetAdapter(false);
-	if (!dxgiAdapter)
-	{
-		// If no supporting DX12 adapters exist, fall back to WARP.
-		dxgiAdapter = GetAdapter(true);
-	}
-
-	if (dxgiAdapter)
-	{
-		m_d3d12Device = CreateDevice(dxgiAdapter);
-	}
-	else
-	{
-		throw std::exception("DXGI adapter enumeration failed.");
-	}
-
-	m_DirectCommandQueue = std::make_shared<CommandQueue>(D3D12_COMMAND_LIST_TYPE_DIRECT);
-	m_ComputeCommandQueue = std::make_shared<CommandQueue>(D3D12_COMMAND_LIST_TYPE_COMPUTE);
-	m_CopyCommandQueue = std::make_shared<CommandQueue>(D3D12_COMMAND_LIST_TYPE_COPY);
+	m_Device = Device::Create();
+	m_Device->Initialize();
 
 	m_TearingSupported = CheckTearingSupport();
-
-	// Create descriptor allocators
-	for (int i = 0; i < D3D12_DESCRIPTOR_HEAP_TYPE_NUM_TYPES; ++i)
-	{
-		m_DescriptorAllocators[i] = std::make_unique<DescriptorAllocator>(static_cast<D3D12_DESCRIPTOR_HEAP_TYPE>(i));
-	}
 
 	// Initialize frame counter
 	ms_FrameCount = 0;
@@ -141,92 +117,6 @@ void Application::Destroy()
 		delete g_pSingleton;
 		g_pSingleton = nullptr;
 	}
-}
-
-Microsoft::WRL::ComPtr<IDXGIAdapter4> Application::GetAdapter(bool bUseWarp)
-{
-	Microsoft::WRL::ComPtr<IDXGIFactory4> dxgiFactory;
-	UINT createFactoryFlags = 0;
-#if defined(_DEBUG)
-	createFactoryFlags = DXGI_CREATE_FACTORY_DEBUG;
-#endif
-
-	ThrowIfFailed(CreateDXGIFactory2(createFactoryFlags, IID_PPV_ARGS(&dxgiFactory)));
-
-	Microsoft::WRL::ComPtr<IDXGIAdapter1> dxgiAdapter1;
-	Microsoft::WRL::ComPtr<IDXGIAdapter4> dxgiAdapter4;
-
-	if (bUseWarp)
-	{
-		ThrowIfFailed(dxgiFactory->EnumWarpAdapter(IID_PPV_ARGS(&dxgiAdapter1)));
-		ThrowIfFailed(dxgiAdapter1.As(&dxgiAdapter4));
-	}
-	else
-	{
-		SIZE_T maxDedicatedVideoMemory = 0;
-		for (UINT i = 0; dxgiFactory->EnumAdapters1(i, &dxgiAdapter1) != DXGI_ERROR_NOT_FOUND; ++i)
-		{
-			DXGI_ADAPTER_DESC1 dxgiAdapterDesc1;
-			dxgiAdapter1->GetDesc1(&dxgiAdapterDesc1);
-
-			// Check to see if the adapter can create a D3D12 device without actually
-			// creating it. The adapter with the largest dedicated video memory is favored.
-			if ((dxgiAdapterDesc1.Flags & DXGI_ADAPTER_FLAG_SOFTWARE) == 0 &&
-				SUCCEEDED(D3D12CreateDevice(dxgiAdapter1.Get(),
-					D3D_FEATURE_LEVEL_11_0, __uuidof(ID3D12Device), nullptr)) &&
-				dxgiAdapterDesc1.DedicatedVideoMemory > maxDedicatedVideoMemory)
-			{
-				maxDedicatedVideoMemory = dxgiAdapterDesc1.DedicatedVideoMemory;
-				ThrowIfFailed(dxgiAdapter1.As(&dxgiAdapter4));
-			}
-		}
-	}
-
-	return dxgiAdapter4;
-}
-
-Microsoft::WRL::ComPtr<ID3D12Device2> Application::CreateDevice(Microsoft::WRL::ComPtr<IDXGIAdapter4> adapter)
-{
-	Microsoft::WRL::ComPtr<ID3D12Device2> d3d12Device2;
-	ThrowIfFailed(D3D12CreateDevice(adapter.Get(), D3D_FEATURE_LEVEL_11_0, IID_PPV_ARGS(&d3d12Device2)));
-	// NAME_D3D12_OBJECT(d3d12Device2);
-
-	// Enable debug messages in debug mode.
-#if defined(_DEBUG)
-	Microsoft::WRL::ComPtr<ID3D12InfoQueue> pInfoQueue;
-	if (SUCCEEDED(d3d12Device2.As(&pInfoQueue)))
-	{
-		pInfoQueue->SetBreakOnSeverity(D3D12_MESSAGE_SEVERITY_CORRUPTION, TRUE);
-		pInfoQueue->SetBreakOnSeverity(D3D12_MESSAGE_SEVERITY_ERROR, TRUE);
-		pInfoQueue->SetBreakOnSeverity(D3D12_MESSAGE_SEVERITY_WARNING, TRUE);
-
-		// Suppress whole categories of messages
-		// D3D12_MESSAGE_CATEGORY catergories[] = {};
-
-		// Suppress messages based on their severity level
-		D3D12_MESSAGE_SEVERITY severities[] = { D3D12_MESSAGE_SEVERITY_INFO };
-
-		// Suppress individual messages by their ID
-		D3D12_MESSAGE_ID denyIds[] =
-		{
-			D3D12_MESSAGE_ID_CLEARRENDERTARGETVIEW_MISMATCHINGCLEARVALUE,	// I'm really not sure how to avoid this message.
-			D3D12_MESSAGE_ID_MAP_INVALID_NULLRANGE,							// This warning occurs when using capture frame while graphics debugging.
-			D3D12_MESSAGE_ID_UNMAP_INVALID_NULLRANGE,						// This warning occurs when using capture frame while graphics debugging.
-		};
-
-		D3D12_INFO_QUEUE_FILTER newFilter = {};
-		// newFilter.DenyList.NumCategories = _countof(categories);
-		// newFilter.DenyList.pCatergoyList = categories;
-		newFilter.DenyList.NumSeverities = _countof(severities);
-		newFilter.DenyList.pSeverityList = severities;
-		newFilter.DenyList.NumIDs = _countof(denyIds);
-		newFilter.DenyList.pIDList = denyIds;
-
-		ThrowIfFailed(pInfoQueue->PushStorageFilter(&newFilter));
-	}
-#endif
-
-	return d3d12Device2;
 }
 
 bool Application::CheckTearingSupport()
@@ -290,7 +180,7 @@ std::shared_ptr<Window> Application::CreateRenderWindow(const std::wstring& wind
 
 	m_GUISystem->Initialize(
 		hWnd,
-		m_d3d12Device.Get(),
+		m_Device->GetD3D12Device().Get(),
 		&GetCommandQueue(D3D12_COMMAND_LIST_TYPE_DIRECT)
 	);
 
@@ -358,67 +248,32 @@ void Application::Quit(int exitCode)
 
 Microsoft::WRL::ComPtr<ID3D12Device2> Application::GetDevice() const
 {
-	return m_d3d12Device;
+	return m_Device->GetD3D12Device();
 }
 
 CommandQueue& Application::GetCommandQueue(D3D12_COMMAND_LIST_TYPE type) const
 {
-	CommandQueue* commandQueue;
-	switch (type)
-	{
-	case D3D12_COMMAND_LIST_TYPE_DIRECT:
-		commandQueue = m_DirectCommandQueue.get();
-		break;
-	case D3D12_COMMAND_LIST_TYPE_COMPUTE:
-		commandQueue = m_ComputeCommandQueue.get();
-		break;
-	case D3D12_COMMAND_LIST_TYPE_COPY:
-		commandQueue = m_CopyCommandQueue.get();
-		break;
-	default:
-		assert(false && "Invalid command queue type.");
-	}
-
-	return *commandQueue;
+	return m_Device->GetCommandQueue(type);
 }
 
 void Application::Flush()
 {
-	m_DirectCommandQueue->Flush();
-	m_ComputeCommandQueue->Flush();
-	m_CopyCommandQueue->Flush();
+	m_Device->Flush();
 }
 
 DescriptorAllocation Application::AllocateDescriptors(D3D12_DESCRIPTOR_HEAP_TYPE type, uint32_t numDescriptors)
 {
-	return m_DescriptorAllocators[type]->Allocate(numDescriptors);
+	return m_Device->AllocateDescriptors(type, numDescriptors);
 }
 
 void Application::ReleaseStaleDescriptors(uint64_t finishedFrame)
 {
-	for (int i = 0; i < D3D12_DESCRIPTOR_HEAP_TYPE_NUM_TYPES; ++i)
-	{
-		m_DescriptorAllocators[i]->ReleaseStaleDescriptors(finishedFrame);
-	}
-}
-
-Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> Application::CreateDescriptorHeap(UINT numDescriptors, D3D12_DESCRIPTOR_HEAP_TYPE type)
-{
-	D3D12_DESCRIPTOR_HEAP_DESC desc = {};
-	desc.Type = type;
-	desc.NumDescriptors = numDescriptors;
-	desc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
-	desc.NodeMask = 0;
-
-	Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> descriptorHeap;
-	ThrowIfFailed(m_d3d12Device->CreateDescriptorHeap(&desc, IID_PPV_ARGS(&descriptorHeap)));
-
-	return descriptorHeap;
+	m_Device->ReleaseStaleDescriptors(finishedFrame);
 }
 
 UINT Application::GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE type) const
 {
-	return m_d3d12Device->GetDescriptorHandleIncrementSize(type);
+	return m_Device->GetDescriptorHandleIncrementSize(type);
 }
 
 // Remove a window from our window lists.

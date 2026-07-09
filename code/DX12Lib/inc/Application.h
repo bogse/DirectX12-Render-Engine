@@ -13,7 +13,7 @@
 #include "DescriptorAllocation.h"
 
 class CommandQueue;
-class DescriptorAllocator;
+class Device;
 class GUISystem;
 class RenderApp;
 class Window;
@@ -84,7 +84,6 @@ public:
 	*/
 	void ReleaseStaleDescriptors(uint64_t finishedFrame);
 
-	Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> CreateDescriptorHeap(UINT nameDescriptors, D3D12_DESCRIPTOR_HEAP_TYPE type);
 	UINT GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE type) const;
 
 	GUISystem* GetGUISystem() const { return m_GUISystem.get(); }
@@ -103,8 +102,6 @@ protected:
 
 	void Initialize();
 
-	Microsoft::WRL::ComPtr<IDXGIAdapter4> GetAdapter(bool bUseWarp);
-	Microsoft::WRL::ComPtr<ID3D12Device2> CreateDevice(Microsoft::WRL::ComPtr<IDXGIAdapter4> adapter);
 	bool CheckTearingSupport();
 
 private:
@@ -114,14 +111,7 @@ private:
 
 	HINSTANCE m_hInstance;
 
-	Microsoft::WRL::ComPtr<ID3D12Device2> m_d3d12Device;
-
-	std::shared_ptr<CommandQueue> m_DirectCommandQueue;
-	std::shared_ptr<CommandQueue> m_ComputeCommandQueue;
-	std::shared_ptr<CommandQueue> m_CopyCommandQueue;
-
-	std::unique_ptr<DescriptorAllocator> m_DescriptorAllocators[D3D12_DESCRIPTOR_HEAP_TYPE_NUM_TYPES];
-
+	std::shared_ptr<Device> m_Device;
 	std::unique_ptr<GUISystem> m_GUISystem;
 
 	bool m_TearingSupported;

@@ -13,6 +13,7 @@ endif()
 # Headers files.
 set(DX12_HEADERS
     inc/DX12LibPCH.h
+	inc/Adapter.h
     inc/Application.h
     inc/Buffer.h
 	inc/Camera.h
@@ -22,6 +23,7 @@ set(DX12_HEADERS
     inc/DescriptorAllocation.h
     inc/DescriptorAllocator.h
     inc/DescriptorAllocatorPage.h
+	inc/Device.h
     inc/DynamicDescriptorHeap.h
     inc/Events.h
 	inc/GenerateMipsPSO.h
@@ -48,6 +50,7 @@ set(DX12_HEADERS
 # Source files.
 set(DX12_SOURCES
     src/DX12LibPCH.cpp
+	src/Adapter.cpp
     src/Application.cpp
     src/Buffer.cpp
 	src/Camera.cpp
@@ -57,6 +60,7 @@ set(DX12_SOURCES
     src/DescriptorAllocation.cpp
     src/DescriptorAllocator.cpp
     src/DescriptorAllocatorPage.cpp
+	src/Device.cpp
     src/DynamicDescriptorHeap.cpp
 	src/GenerateMipsPSO.cpp
     src/GUISystem.cpp
