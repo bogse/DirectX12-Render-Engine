@@ -41,6 +41,7 @@ set(DX12_HEADERS
     inc/Resource.h
     inc/ResourceStateTracker.h
     inc/RootSignature.h
+	inc/SwapChain.h
 	inc/Texture.h
     inc/UploadBuffer.h
     inc/VertexBuffer.h
@@ -73,6 +74,7 @@ set(DX12_SOURCES
     src/Resource.cpp
     src/ResourceStateTracker.cpp
     src/RootSignature.cpp
+	src/SwapChain.cpp
 	src/Texture.cpp
     src/UploadBuffer.cpp
     src/VertexBuffer.cpp
