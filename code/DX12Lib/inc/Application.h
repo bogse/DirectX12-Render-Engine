@@ -60,6 +60,10 @@ public:
 	void Quit(int exitCode = 0);
 
 	Microsoft::WRL::ComPtr<ID3D12Device2> GetDevice() const;
+	std::shared_ptr<Device> GetDevicePtr() const
+	{
+		return m_Device;
+	}
 
 	/**
 	 * Get a command queue. Valid types are:

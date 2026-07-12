@@ -5,29 +5,24 @@
 #include "Application.h"
 #include "CommandQueue.h"
 #include "CommandList.h"
+#include "Device.h"
 #include "ResourceStateTracker.h"
 #include "RenderApp.h"
+#include "SwapChain.h"
 
 Window::Window(HWND hWnd, const std::wstring& windowName, int clientWidth, int clientHeight, bool vSync)
 	: m_hWnd(hWnd)
 	, m_WindowName(windowName)
 	, m_ClientWidth(clientWidth)
 	, m_ClientHeight(clientHeight)
-	, m_vSync(vSync)
-	, m_Fullscreen(false)
 	, m_RenderClock()
 	, m_UpdateClock()
-	, m_FenceValues{0}
 	, m_FrameValues{0}
 	, m_PreviousMouseX(0)
 	, m_PreviousMouseY(0)
 {
 	const Application& app = Application::GetInstance();
-	m_IsTearingSupported = app.IsTearingSupported();
-
-	m_dxgiSwapChain = CreateSwapChain();
-
-	UpdateRenderTargetViews();
+	m_SwapChain = app.GetDevicePtr()->CreateSwapChain(hWnd);
 }
 
 Window::~Window()
@@ -64,14 +59,6 @@ void Window::Destroy()
 		pRenderApp->OnWindowDestroy();
 	}
 
-	// Remove back buffer resource from the global resource state tracker.
-	for (int i = 0; i < BufferCount; ++i)
-	{
-		ID3D12Resource* resource = m_BackBufferTextures[i].GetD3D12Resource().Get();
-		ResourceStateTracker::RemoveGlobalResourceState(resource);
-		m_BackBufferTextures[i].Reset();
-	}
-
 	if (m_hWnd)
 	{
 		DestroyWindow(m_hWnd);
@@ -89,19 +76,14 @@ int Window::GetClientHeight() const
 	return m_ClientHeight;
 }
 
-bool Window::IsVSync() const
-{
-	return m_vSync;
-}
-
 void Window::SetVSync(bool vSync)
 {
-	m_vSync = vSync;
+	m_SwapChain->SetVSync(vSync);
 }
 
 void Window::ToggleVSync()
 {
-	SetVSync(!m_vSync);
+	m_SwapChain->ToggleVSync();
 }
 
 bool Window::IsFullscreen() const
@@ -162,7 +144,7 @@ void Window::SetFullscreen(bool fullscreen)
 
 void Window::ToggleFullscreen()
 {
-	SetFullscreen(!m_Fullscreen);
+	m_SwapChain->ToggleFullscreen();
 }
 
 void Window::RegisterCallbacks(std::shared_ptr<RenderApp> pRenderApp)
@@ -172,6 +154,8 @@ void Window::RegisterCallbacks(std::shared_ptr<RenderApp> pRenderApp)
 
 void Window::OnUpdate(UpdateEventArgs& eventArgs)
 {
+	m_SwapChain->WaitForSwapChain();
+
 	m_UpdateClock.Tick();
 
 	if (std::shared_ptr<RenderApp> pRenderApp = m_pRenderApp.lock())
@@ -254,23 +238,7 @@ void Window::OnResize(ResizeEventArgs& eventArgs)
 		m_ClientWidth = std::max(1, eventArgs.m_Width);
 		m_ClientHeight = std::max(1, eventArgs.m_Height);
 
-		Application::GetInstance().Flush();
-
-		for (int i = 0; i < BufferCount; ++i)
-		{
-			ID3D12Resource* resource = m_BackBufferTextures[i].GetD3D12Resource().Get();
-			ResourceStateTracker::RemoveGlobalResourceState(resource);
-			m_BackBufferTextures[i].Reset();
-		}
-
-		DXGI_SWAP_CHAIN_DESC swapChainDesc = {};
-		ThrowIfFailed(m_dxgiSwapChain->GetDesc(&swapChainDesc));
-		ThrowIfFailed(m_dxgiSwapChain->ResizeBuffers(BufferCount, m_ClientWidth,
-			m_ClientHeight, swapChainDesc.BufferDesc.Format, swapChainDesc.Flags));
-
-		m_CurrentBackBufferIndex = m_dxgiSwapChain->GetCurrentBackBufferIndex();
-
-		UpdateRenderTargetViews();
+		m_SwapChain->Resize(m_ClientWidth, m_ClientHeight);
 	}
 
 	if (std::shared_ptr<RenderApp> pRenderApp = m_pRenderApp.lock())
@@ -279,100 +247,7 @@ void Window::OnResize(ResizeEventArgs& eventArgs)
 	}
 }
 
-Microsoft::WRL::ComPtr<IDXGISwapChain4> Window::CreateSwapChain()
-{
-	Application& app = Application::GetInstance();
-
-	Microsoft::WRL::ComPtr<IDXGISwapChain4> dxgiSwapChain4;
-	Microsoft::WRL::ComPtr<IDXGIFactory4> dxgiFactory4;
-	UINT createFactoryFlags = 0;
-#if defined(_DEBUG)
-	createFactoryFlags = DXGI_CREATE_FACTORY_DEBUG;
-#endif
-
-	ThrowIfFailed(CreateDXGIFactory2(createFactoryFlags, IID_PPV_ARGS(&dxgiFactory4)));
-
-	DXGI_SWAP_CHAIN_DESC1 swapChainDesc = {};
-	swapChainDesc.Width = m_ClientWidth;
-	swapChainDesc.Height = m_ClientHeight;
-	swapChainDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
-	swapChainDesc.Stereo = FALSE;
-	swapChainDesc.SampleDesc = { 1, 0 };
-	swapChainDesc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
-	swapChainDesc.BufferCount = BufferCount;
-	swapChainDesc.Scaling = DXGI_SCALING_STRETCH;
-	swapChainDesc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
-	swapChainDesc.AlphaMode = DXGI_ALPHA_MODE_UNSPECIFIED;
-	// It is recommended to always allow tearing if tearing support is available.
-	swapChainDesc.Flags = m_IsTearingSupported ? DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING : 0;
-	
-	ID3D12CommandQueue* pCommandQueue = app.GetCommandQueue().GetD3D12CommandQueue().Get();
-
-	Microsoft::WRL::ComPtr<IDXGISwapChain1> swapChain1;
-	ThrowIfFailed(dxgiFactory4->CreateSwapChainForHwnd(
-		pCommandQueue,
-		m_hWnd,
-		&swapChainDesc,
-		nullptr,
-		nullptr,
-		&swapChain1));
-
-	// Disable the Alt+Enter fullscreen toggle feature. Switching to fullscreen will be handled manually.
-	ThrowIfFailed(dxgiFactory4->MakeWindowAssociation(m_hWnd, DXGI_MWA_NO_ALT_ENTER));
-
-	ThrowIfFailed(swapChain1.As(&dxgiSwapChain4));
-
-	m_CurrentBackBufferIndex = dxgiSwapChain4->GetCurrentBackBufferIndex();
-
-	return dxgiSwapChain4;
-}
-
-// Update the render target views for the swapchain back buffers.
-void Window::UpdateRenderTargetViews()
-{
-	for (int i = 0; i < BufferCount; ++i)
-	{
-		m_BackBufferTextures[i].SetName(L"Backbuffer[" + std::to_wstring(i) + L"]");
-
-		Microsoft::WRL::ComPtr<ID3D12Resource> backBuffer;
-		ThrowIfFailed(m_dxgiSwapChain->GetBuffer(i, IID_PPV_ARGS(&backBuffer)));
-
-		ResourceStateTracker::AddGlobalResourceState(backBuffer.Get(), D3D12_RESOURCE_STATE_COMMON);
-
-		m_BackBufferTextures[i].SetD3D12Resource(backBuffer);
-		m_BackBufferTextures[i].CreateViews();
-	}
-}
-
-const Texture& Window::GetCurrentRenderTarget() const
-{
-	return m_BackBufferTextures[m_CurrentBackBufferIndex];
-}
-
 UINT Window::Present(const std::shared_ptr<Texture>& texture)
 {
-	CommandQueue& commandQueue = Application::GetInstance().GetCommandQueue(D3D12_COMMAND_LIST_TYPE_DIRECT);
-	std::shared_ptr<CommandList> commandList = commandQueue.GetCommandList();
-
-	const Texture& backBuffer = m_BackBufferTextures[m_CurrentBackBufferIndex];
-	if (texture)
-		commandList->CopyResource(backBuffer, *texture);
-
-	commandList->TransitionBarrier(backBuffer, D3D12_RESOURCE_STATE_PRESENT);
-	commandQueue.ExecuteCommandList(commandList);
-
-	UINT syncInterval = m_vSync ? 1 : 0;
-	UINT presentFlags = m_IsTearingSupported && !m_vSync ? DXGI_PRESENT_ALLOW_TEARING : 0;
-	ThrowIfFailed(m_dxgiSwapChain->Present(syncInterval, presentFlags));
-
-	m_FenceValues[m_CurrentBackBufferIndex] = commandQueue.Signal();
-	m_FrameValues[m_CurrentBackBufferIndex] = Application::GetFrameCount();
-
-	m_CurrentBackBufferIndex = m_dxgiSwapChain->GetCurrentBackBufferIndex();
-
-	commandQueue.WaitForFenceValue(m_FenceValues[m_CurrentBackBufferIndex]);
-
-	Application::GetInstance().ReleaseStaleDescriptors(m_FrameValues[m_CurrentBackBufferIndex]);
-
-	return m_CurrentBackBufferIndex;
+	return m_SwapChain->Present(texture);
 }

@@ -5,6 +5,7 @@
 #include "Adapter.h"
 #include "CommandQueue.h"
 #include "DescriptorAllocator.h"
+#include "SwapChain.h"
 
 namespace
 {
@@ -19,11 +20,24 @@ namespace
 		{
 		}
 	};
+
+	class MakeSwapChain : public SwapChain
+	{
+	public:
+		MakeSwapChain(Device& device, HWND hWnd)
+			: SwapChain(device, hWnd)
+		{}
+	};
 }
 
 std::shared_ptr<Device> Device::Create(std::shared_ptr<Adapter> adapter)
 {
 	return std::make_shared<MakeDevice>(adapter);
+}
+
+std::shared_ptr<SwapChain> Device::CreateSwapChain(HWND hWnd)
+{
+	return std::make_shared<MakeSwapChain>(*this, hWnd);
 }
 
 Device::Device(std::shared_ptr<Adapter> adapter)

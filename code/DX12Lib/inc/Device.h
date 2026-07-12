@@ -10,6 +10,7 @@
 class Adapter;
 class CommandQueue;
 class DescriptorAllocator;
+class SwapChain;
 
 class Device
 {
@@ -19,6 +20,11 @@ public:
 	* If no adapter is specified, the the highest performance adapter will be chosen.
 	*/
 	static std::shared_ptr<Device> Create(std::shared_ptr<Adapter> adapter = nullptr);
+
+	/**
+	* Create a swap chain using the provided OS window handle.
+	*/
+	std::shared_ptr<SwapChain> CreateSwapChain(HWND hWnd);
 
 	/**
 	* Allocate a number of CPU visible descriptors.

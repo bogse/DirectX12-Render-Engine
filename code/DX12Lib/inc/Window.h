@@ -11,6 +11,7 @@
 #include "Texture.h"
 
 class RenderApp;
+class SwapChain;
 
 class Window
 {
@@ -26,7 +27,6 @@ public:
 	int GetClientWidth() const;
 	int GetClientHeight() const;
 
-	bool IsVSync() const;
 	void SetVSync(bool vSync);
 	void ToggleVSync();
 
@@ -41,11 +41,6 @@ public:
 	* Present the swapchain's back buffer to the screen. Returns the current back buffer index after the present.
 	*/
 	UINT Present(const std::shared_ptr<Texture>& texture = nullptr);
-
-	/*
-	* Get the back buffer resource for the current back buffer.
-	*/
-	const Texture& GetCurrentRenderTarget() const;
 
 protected:
 	/*
@@ -83,10 +78,6 @@ protected:
 
 	virtual void OnResize(ResizeEventArgs& eventArgs);
 
-	Microsoft::WRL::ComPtr<IDXGISwapChain4> CreateSwapChain();
-
-	void UpdateRenderTargetViews();
-
 private:
 	Window(const Window& otherWindow) = delete;
 	Window& operator= (const Window& otherWindow) = delete;
@@ -97,25 +88,18 @@ private:
 
 	int m_ClientWidth;
 	int m_ClientHeight;
-	bool m_vSync;
 	bool m_Fullscreen;
 
 	HighResolutionClock m_UpdateClock;
 	HighResolutionClock m_RenderClock;
 
-	UINT64 m_FenceValues[BufferCount];
 	uint64_t m_FrameValues[BufferCount];
 
 	std::weak_ptr<RenderApp> m_pRenderApp;
 
-	Microsoft::WRL::ComPtr<IDXGISwapChain4> m_dxgiSwapChain;
-
-	Texture m_BackBufferTextures[BufferCount];
-
-	UINT m_CurrentBackBufferIndex;
+	std::shared_ptr<SwapChain> m_SwapChain;
 
 	RECT m_WindowRect;
-	bool m_IsTearingSupported;
 
 	int m_PreviousMouseX;
 	int m_PreviousMouseY;
