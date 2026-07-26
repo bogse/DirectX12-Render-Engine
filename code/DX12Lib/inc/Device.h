@@ -10,6 +10,7 @@
 class Adapter;
 class CommandQueue;
 class DescriptorAllocator;
+class RootSignature;
 class SwapChain;
 
 class Device
@@ -25,6 +26,8 @@ public:
 	* Create a swap chain using the provided OS window handle.
 	*/
 	std::shared_ptr<SwapChain> CreateSwapChain(HWND hWnd);
+
+	std::shared_ptr<RootSignature> CreateRootSignature(const D3D12_ROOT_SIGNATURE_DESC1& rootSignatureDesc);
 
 	/**
 	* Allocate a number of CPU visible descriptors.
@@ -74,6 +77,11 @@ public:
 		return m_d3d12Device->GetDescriptorHandleIncrementSize(type);
 	}
 
+	D3D_ROOT_SIGNATURE_VERSION GetHighestRootSignatureVersion() const
+	{
+		return m_HighestRootSignatureVersion;
+	}
+
 protected:
 	explicit Device(std::shared_ptr<Adapter> adapter);
 	virtual ~Device() = default;
@@ -97,4 +105,6 @@ private:
 	* Descriptor allocators.
 	*/
 	std::unique_ptr<DescriptorAllocator> m_DescriptorAllocators[D3D12_DESCRIPTOR_HEAP_TYPE_NUM_TYPES];
+
+	D3D_ROOT_SIGNATURE_VERSION m_HighestRootSignatureVersion;
 };

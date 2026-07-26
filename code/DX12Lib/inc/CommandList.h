@@ -254,8 +254,8 @@ public:
 	/**
 	* Set the current root signature on the command list.
 	*/
-	void SetGraphicsRootSignature(const RootSignature& rootSignature);
-	void SetComputeRootSignature(const RootSignature& rootSignature);
+	void SetGraphicsRootSignature(const std::shared_ptr<RootSignature> rootSignature);
+	void SetComputeRootSignature(const std::shared_ptr<RootSignature> rootSignature);
 
 	/**
 	* Set the SRV on the graphics pipeline.

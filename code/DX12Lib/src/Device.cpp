@@ -5,6 +5,7 @@
 #include "Adapter.h"
 #include "CommandQueue.h"
 #include "DescriptorAllocator.h"
+#include "RootSignature.h"
 #include "SwapChain.h"
 
 namespace
@@ -36,8 +37,15 @@ namespace
 	public:
 		MakeDevice(std::shared_ptr<Adapter> adapter)
 			: Device(adapter)
-		{
-		}
+		{}
+	};
+
+	class MakeRootSignature : public RootSignature
+	{
+	public:
+		MakeRootSignature(Device& device, const D3D12_ROOT_SIGNATURE_DESC1& rootSignatureDesc)
+			: RootSignature(device, rootSignatureDesc)
+		{}
 	};
 
 	class MakeSwapChain : public SwapChain
@@ -57,6 +65,11 @@ std::shared_ptr<Device> Device::Create(std::shared_ptr<Adapter> adapter)
 std::shared_ptr<SwapChain> Device::CreateSwapChain(HWND hWnd)
 {
 	return std::make_shared<MakeSwapChain>(*this, hWnd);
+}
+
+std::shared_ptr<RootSignature> Device::CreateRootSignature(const D3D12_ROOT_SIGNATURE_DESC1& rootSignatureDesc)
+{
+	return std::make_shared<MakeRootSignature>(*this, rootSignatureDesc);
 }
 
 Device::Device(std::shared_ptr<Adapter> adapter)
@@ -140,6 +153,17 @@ void Device::Initialize()
 		m_DescriptorAllocators[i] =
 			std::make_unique<MakeDescriptorAllocator>(*this, static_cast<D3D12_DESCRIPTOR_HEAP_TYPE>(i));
 	}
+
+	D3D12_FEATURE_DATA_ROOT_SIGNATURE featureData;
+	featureData.HighestVersion = D3D_ROOT_SIGNATURE_VERSION_1_1;
+
+	if (FAILED(m_d3d12Device->CheckFeatureSupport(
+		D3D12_FEATURE_ROOT_SIGNATURE, &featureData, sizeof(D3D12_FEATURE_DATA_ROOT_SIGNATURE))))
+	{
+		featureData.HighestVersion = D3D_ROOT_SIGNATURE_VERSION_1_0;
+	}
+
+	m_HighestRootSignatureVersion = featureData.HighestVersion;
 }
 
 const std::wstring Device::GetDescription() const
