@@ -10,17 +10,12 @@
 #include <queue>
 
 class CommandList;
+class Device;
 class RootSignature;
 
 class DynamicDescriptorHeap
 {
 public:
-	DynamicDescriptorHeap(
-		D3D12_DESCRIPTOR_HEAP_TYPE type,
-		uint32_t numDescriptorsPerHeap = 1024);
-
-	virtual ~DynamicDescriptorHeap();
-
 	/**
 	* Stages a contiguous range of CPU visible descriptors.
 	* Descriptors are not copied to the GPU visible descriptor heap
@@ -77,6 +72,19 @@ public:
 	*/
 	void Reset();
 
+protected:
+	friend class std::default_delete<DynamicDescriptorHeap>;
+
+	/**
+	* Dynamic descriptor heap can only be created through CommandList.
+	*/
+	DynamicDescriptorHeap(
+		Device& device,
+		D3D12_DESCRIPTOR_HEAP_TYPE type,
+		uint32_t numDescriptorsPerHeap = 1024);
+
+	virtual ~DynamicDescriptorHeap();
+
 private:
 	/**
 	* Request a descriptor heap if one is available.
@@ -130,6 +138,11 @@ private:
 		*/
 		D3D12_CPU_DESCRIPTOR_HANDLE* BaseDescriptor;
 	};
+
+	/**
+	* The device that is used to create this descriptor heap.
+	*/
+	Device& m_Device;
 
 	/**
 	* Describes the type of descriptors that can be staged 

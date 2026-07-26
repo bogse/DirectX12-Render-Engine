@@ -3,8 +3,27 @@
 #include "DescriptorAllocator.h"
 #include "DescriptorAllocatorPage.h"
 
-DescriptorAllocator::DescriptorAllocator(D3D12_DESCRIPTOR_HEAP_TYPE type, uint32_t numDescriptorsPerHeap)
-	: m_HeapType(type)
+namespace
+{
+	// Local pass-through helper class to allow std::make_shared
+	// to instantiate objects with protected constructors.
+
+	class MakeAllocatorPage : public DescriptorAllocatorPage
+	{
+	public:
+		MakeAllocatorPage(Device& device, D3D12_DESCRIPTOR_HEAP_TYPE type, uint32_t numDescriptors)
+			: DescriptorAllocatorPage(device, type, numDescriptors)
+		{}
+	};
+}
+
+DescriptorAllocator::DescriptorAllocator(
+	Device& device,
+	D3D12_DESCRIPTOR_HEAP_TYPE type,
+	uint32_t numDescriptorsPerHeap
+)
+	: m_Device(device)
+	, m_HeapType(type)
 	, m_NumDescriptorsPerHeap(numDescriptorsPerHeap)
 {}
 
@@ -14,7 +33,7 @@ DescriptorAllocator::~DescriptorAllocator()
 std::shared_ptr<DescriptorAllocatorPage> DescriptorAllocator::CreateAllocatorPage()
 {
 	std::shared_ptr<DescriptorAllocatorPage> newPage = 
-		std::make_shared<DescriptorAllocatorPage>(m_HeapType, m_NumDescriptorsPerHeap);
+		std::make_shared<MakeAllocatorPage>(m_Device, m_HeapType, m_NumDescriptorsPerHeap);
 
 	m_HeapPool.emplace_back(newPage);
 	m_AvailableHeaps.insert(m_HeapPool.size() - 1);

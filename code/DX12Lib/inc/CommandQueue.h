@@ -11,13 +11,11 @@
 #include <queue>
 
 class CommandList;
+class Device;
 
 class CommandQueue
 {
 public:
-	CommandQueue(D3D12_COMMAND_LIST_TYPE type);
-	virtual ~CommandQueue();
-
 	std::shared_ptr<CommandList> GetCommandList();
 
 	/** 
@@ -38,6 +36,15 @@ public:
 	*/
 	void Wait(const CommandQueue& other);
 
+protected:
+	friend class std::default_delete<CommandQueue>;
+
+	/**
+	* Command queues can only be created through the Device.
+	*/
+	CommandQueue(Device& device, D3D12_COMMAND_LIST_TYPE type);
+	virtual ~CommandQueue();
+
 private:
 	/**
 	* Keep track of the command allocators that are "in-flight"
@@ -50,6 +57,7 @@ private:
 
 	using CommandListQueue = std::queue<CommandListEntry>;
 
+	Device&										m_Device;
 	D3D12_COMMAND_LIST_TYPE						m_CommandListType;
 	Microsoft::WRL::ComPtr<ID3D12CommandQueue>	m_d3d12CommandQueue;
 	Microsoft::WRL::ComPtr<ID3D12Fence>			m_d3d12Fence;

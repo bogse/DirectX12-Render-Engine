@@ -2,8 +2,8 @@
 
 #include "CommandList.h"
 
-#include "Application.h"
 #include "CommandQueue.h"
+#include "Device.h"
 #include "DynamicDescriptorHeap.h"
 #include "GenerateMipsPSO.h"
 #include "IndexBuffer.h"
@@ -17,27 +17,54 @@
 
 #include <filesystem>
 
+namespace
+{
+	// Local pass-through helper class to allow std::make_shared and std::make_unique
+	// to instantiate objects with protected constructors.
+
+	class MakeDynamicDescriptorHeap : public DynamicDescriptorHeap
+	{
+	public:
+		MakeDynamicDescriptorHeap(Device& device,
+			D3D12_DESCRIPTOR_HEAP_TYPE heapType,
+			uint32_t numDescriptorsPerHeap = 1024
+		)
+			: DynamicDescriptorHeap(device, heapType, numDescriptorsPerHeap)
+		{}
+	};
+
+	class MakeUploadBuffer : public UploadBuffer
+	{
+	public:
+		MakeUploadBuffer(Device& device, size_t pageSize = _2MB)
+			: UploadBuffer(device, pageSize)
+		{}
+	};
+}
+
 std::map<std::wstring, ID3D12Resource*> CommandList::ms_TextureCache;
 std::mutex CommandList::ms_TextureCacheMutex;
 
-CommandList::CommandList(D3D12_COMMAND_LIST_TYPE type)
-	: m_d3d12CommandListType(type)
+CommandList::CommandList(Device& device, D3D12_COMMAND_LIST_TYPE type)
+	: m_Device(device)
+	, m_d3d12CommandListType(type)
 	, m_RootSignature(nullptr)
 {
-	Microsoft::WRL::ComPtr<ID3D12Device2> device = Application::GetInstance().GetDevice();
+	Microsoft::WRL::ComPtr<ID3D12Device8> d3d12Device = m_Device.GetD3D12Device();
 
-	ThrowIfFailed(device->CreateCommandAllocator(m_d3d12CommandListType, IID_PPV_ARGS(&m_d3d12CommandAllocator)));
+	ThrowIfFailed(d3d12Device->CreateCommandAllocator(m_d3d12CommandListType, IID_PPV_ARGS(&m_d3d12CommandAllocator)));
 
-	ThrowIfFailed(device->CreateCommandList(0, m_d3d12CommandListType, m_d3d12CommandAllocator.Get(),
+	ThrowIfFailed(d3d12Device->CreateCommandList(0, m_d3d12CommandListType, m_d3d12CommandAllocator.Get(),
 		nullptr, IID_PPV_ARGS(&m_d3d12CommandList)));
 
-	m_UploadBuffer = std::make_unique<UploadBuffer>();
+	m_UploadBuffer = std::make_unique<MakeUploadBuffer>(m_Device);
 
 	m_ResourceStateTracker = std::make_unique<ResourceStateTracker>();
 
 	for (int i = 0; i < D3D12_DESCRIPTOR_HEAP_TYPE_NUM_TYPES; ++i)
 	{
-		m_DynamicDescriptorHeap[i] = std::make_unique<DynamicDescriptorHeap>(static_cast<D3D12_DESCRIPTOR_HEAP_TYPE>(i));
+		m_DynamicDescriptorHeap[i] =
+			std::make_unique<MakeDynamicDescriptorHeap>(device, static_cast<D3D12_DESCRIPTOR_HEAP_TYPE>(i));
 		m_DescriptorHeaps[i] = nullptr;
 	}
 }
@@ -178,8 +205,6 @@ void CommandList::TrackResource(const Resource& resource)
 
 void CommandList::CopyBuffer(Buffer& buffer, size_t numElements, size_t elementSize, const void* bufferData, D3D12_RESOURCE_FLAGS flags)
 {
-	Microsoft::WRL::ComPtr<ID3D12Device2> device = Application::GetInstance().GetDevice();
-
 	size_t bufferSize = numElements * elementSize;
 
 	Microsoft::WRL::ComPtr<ID3D12Resource> d3d12Resource;
@@ -189,10 +214,12 @@ void CommandList::CopyBuffer(Buffer& buffer, size_t numElements, size_t elementS
 	}
 	else
 	{
+		Microsoft::WRL::ComPtr<ID3D12Device8> d3d12Device = m_Device.GetD3D12Device();
+
 		CD3DX12_HEAP_PROPERTIES defaultHeapProperties = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT);
 		CD3DX12_RESOURCE_DESC defaultResourceDesc = CD3DX12_RESOURCE_DESC::Buffer(bufferSize, flags);
 
-		ThrowIfFailed(device->CreateCommittedResource(
+		ThrowIfFailed(d3d12Device->CreateCommittedResource(
 			&defaultHeapProperties,
 			D3D12_HEAP_FLAG_NONE,
 			&defaultResourceDesc,
@@ -210,7 +237,7 @@ void CommandList::CopyBuffer(Buffer& buffer, size_t numElements, size_t elementS
 			CD3DX12_HEAP_PROPERTIES uploadHeapProperties = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD);
 			CD3DX12_RESOURCE_DESC uploadResourceDesc = CD3DX12_RESOURCE_DESC::Buffer(bufferSize);
 
-			ThrowIfFailed(device->CreateCommittedResource(
+			ThrowIfFailed(d3d12Device->CreateCommittedResource(
 				&uploadHeapProperties,
 				D3D12_HEAP_FLAG_NONE,
 				&uploadResourceDesc,
@@ -335,7 +362,7 @@ void CommandList::LoadTextureFromFile(
 		break;
 	}
 
-	const Microsoft::WRL::ComPtr<ID3D12Device2>& d3d12Device = Application::GetInstance().GetDevice();
+	Microsoft::WRL::ComPtr<ID3D12Device8> d3d12Device = m_Device.GetD3D12Device();
 
 	CD3DX12_HEAP_PROPERTIES heapProp(D3D12_HEAP_TYPE_DEFAULT);
 	Microsoft::WRL::ComPtr<ID3D12Resource> textureResource;
@@ -391,7 +418,7 @@ void CommandList::CopyTextureSubresource(
 	uint32_t numSubresources,
 	D3D12_SUBRESOURCE_DATA* subresourceData)
 {
-	Microsoft::WRL::ComPtr<ID3D12Device2> device = Application::GetInstance().GetDevice();
+	Microsoft::WRL::ComPtr<ID3D12Device8> d3d12Device = m_Device.GetD3D12Device();
 	Microsoft::WRL::ComPtr<ID3D12Resource> destinationResource = texture.GetD3D12Resource();
 
 	if (destinationResource)
@@ -407,7 +434,7 @@ void CommandList::CopyTextureSubresource(
 		CD3DX12_RESOURCE_DESC resourceDesc = CD3DX12_RESOURCE_DESC::Buffer(requiredSize);
 
 		Microsoft::WRL::ComPtr<ID3D12Resource> intermediateResource;
-		ThrowIfFailed(device->CreateCommittedResource(
+		ThrowIfFailed(d3d12Device->CreateCommittedResource(
 			&heapProp,
 			D3D12_HEAP_FLAG_NONE,
 			&resourceDesc,
@@ -430,8 +457,7 @@ void CommandList::GenerateMips(const Texture& texture)
 	{
 		if (!m_ComputeCommandList)
 		{
-			m_ComputeCommandList = Application::GetInstance().
-				GetCommandQueue(D3D12_COMMAND_LIST_TYPE_COMPUTE).GetCommandList();
+			m_ComputeCommandList = m_Device.GetCommandQueue(D3D12_COMMAND_LIST_TYPE_COMPUTE).GetCommandList();
 		}
 		m_ComputeCommandList->GenerateMips(texture);
 		return;
@@ -468,7 +494,7 @@ void CommandList::GenerateMips(const Texture& texture)
 	if (!texture.CheckUAVSupport() ||
 		(resourceDesc.Flags & D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS) == 0)
 	{
-		const Microsoft::WRL::ComPtr<ID3D12Device2>& device = Application::GetInstance().GetDevice();
+		Microsoft::WRL::ComPtr<ID3D12Device8> d3d12Device = m_Device.GetD3D12Device();
 
 		// Describe an alias resource that is used to copy the original texture.
 		D3D12_RESOURCE_DESC aliasDesc = resourceDesc;
@@ -488,7 +514,7 @@ void CommandList::GenerateMips(const Texture& texture)
 
 		// Create a heap that is large enough to store a copy of the original resource.
 		const UINT numDescriptions = sizeof(resourceDescriptions) / sizeof(resourceDescriptions[0]);
-		D3D12_RESOURCE_ALLOCATION_INFO allocationInfo = device->GetResourceAllocationInfo(
+		D3D12_RESOURCE_ALLOCATION_INFO allocationInfo = d3d12Device->GetResourceAllocationInfo(
 			0, numDescriptions, resourceDescriptions
 		);
 
@@ -501,7 +527,7 @@ void CommandList::GenerateMips(const Texture& texture)
 		heapDesc.Properties.Type					= D3D12_HEAP_TYPE_DEFAULT;
 
 		Microsoft::WRL::ComPtr<ID3D12Heap> heap;
-		ThrowIfFailed(device->CreateHeap(&heapDesc, IID_PPV_ARGS(&heap)));
+		ThrowIfFailed(d3d12Device->CreateHeap(&heapDesc, IID_PPV_ARGS(&heap)));
 
 		// Make sure the heap does not go out of scope until the command
 		// is finished executing the command queue.
@@ -509,7 +535,7 @@ void CommandList::GenerateMips(const Texture& texture)
 
 		// Create a placed resource that matches the description of the original resource.
 		// This resource is used to copy the original texture to the UAV compatible resource.
-		ThrowIfFailed(device->CreatePlacedResource(
+		ThrowIfFailed(d3d12Device->CreatePlacedResource(
 			heap.Get(),
 			0,
 			&aliasDesc,
@@ -523,7 +549,7 @@ void CommandList::GenerateMips(const Texture& texture)
 		TrackObject(aliasResource);
 
 		// Create a UAV compatible resource in the same heap as the alias resource.
-		ThrowIfFailed(device->CreatePlacedResource(
+		ThrowIfFailed(d3d12Device->CreatePlacedResource(
 			heap.Get(),
 			0,
 			&uavDesc,

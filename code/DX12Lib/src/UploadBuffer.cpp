@@ -2,15 +2,16 @@
 
 #include "UploadBuffer.h"
 
-#include "Application.h"
+#include "Device.h"
 #include "Helpers.h"
 
 #include <d3dx12.h>
 
 #include <new>
 
-UploadBuffer::UploadBuffer(size_t pageSize)
-	: m_PageSize(pageSize)
+UploadBuffer::UploadBuffer(Device& device, size_t pageSize)
+	: m_Device(device)
+	, m_PageSize(pageSize)
 {}
 
 UploadBuffer::~UploadBuffer()
@@ -45,7 +46,7 @@ std::shared_ptr<UploadBuffer::Page> UploadBuffer::RequestPage()
 	}
 	else
 	{
-		page = std::make_shared<Page>(m_PageSize);
+		page = std::make_shared<Page>(m_Device, m_PageSize);
 		m_PagePool.push_back(page);
 	}
 
@@ -65,18 +66,18 @@ void UploadBuffer::Reset()
 	}
 }
 
-UploadBuffer::Page::Page(size_t sizeInBytes)
+UploadBuffer::Page::Page(Device& device, size_t sizeInBytes)
 	: m_PageSize(sizeInBytes)
 	, m_Offset(0)
 	, m_CPUPtr(nullptr)
 	, m_GPUPtr(D3D12_GPU_VIRTUAL_ADDRESS(0))
 {
-	Microsoft::WRL::ComPtr<ID3D12Device2> device = Application::GetInstance().GetDevice();
+	Microsoft::WRL::ComPtr<ID3D12Device8> d3d12Device = device.GetD3D12Device();
 
 	CD3DX12_HEAP_PROPERTIES uploadProperties(D3D12_HEAP_TYPE_UPLOAD);
 	CD3DX12_RESOURCE_DESC resourceDesc = CD3DX12_RESOURCE_DESC::Buffer(m_PageSize);
 
-	ThrowIfFailed(device->CreateCommittedResource(
+	ThrowIfFailed(d3d12Device->CreateCommittedResource(
 		&uploadProperties,
 		D3D12_HEAP_FLAG_NONE,
 		&resourceDesc,
