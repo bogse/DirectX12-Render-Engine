@@ -17,11 +17,11 @@
 #include <mutex>
 #include <queue>
 
+class Device;
+
 class DescriptorAllocatorPage : public std::enable_shared_from_this<DescriptorAllocatorPage>
 {
 public:
-	DescriptorAllocatorPage(D3D12_DESCRIPTOR_HEAP_TYPE type, uint32_t numDescriptors);
-
 	D3D12_DESCRIPTOR_HEAP_TYPE GetHeapType() const;
 
 	/**
@@ -55,6 +55,12 @@ public:
 	void ReleaseStaleDescriptors(uint64_t frameNumber);
 
 protected:
+	/**
+	* Descriptor allocator pages can only be created through DescriptorAllocator.
+	*/
+	DescriptorAllocatorPage(Device& device, D3D12_DESCRIPTOR_HEAP_TYPE type, uint32_t numDescriptors);
+	virtual ~DescriptorAllocatorPage() = default;
+
 	/**
 	* Compute the offset of the descriptor handle from the start of the heap.
 	*/

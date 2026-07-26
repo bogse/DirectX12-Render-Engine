@@ -9,8 +9,27 @@
 
 namespace
 {
-	// Local pass-through helper class to allow std::make_shared
+	// Local pass-through helper class to allow std::make_shared and std::make_unique
 	// to instantiate objects with protected constructors.
+
+	class MakeCommandQueue : public CommandQueue
+	{
+	public:
+		MakeCommandQueue(Device& device, D3D12_COMMAND_LIST_TYPE type)
+			: CommandQueue(device, type)
+		{}
+	};
+
+	class MakeDescriptorAllocator : public DescriptorAllocator
+	{
+	public:
+		MakeDescriptorAllocator(Device& device,
+			D3D12_DESCRIPTOR_HEAP_TYPE type,
+			uint32_t numDescriptorsPerHeap = 256
+		)
+			: DescriptorAllocator(device, type, numDescriptorsPerHeap)
+		{}
+	};
 
 	class MakeDevice : public Device
 	{
@@ -112,14 +131,14 @@ void Device::Flush()
 
 void Device::Initialize()
 {
-	m_DirectCommandQueue = std::make_unique<CommandQueue>(D3D12_COMMAND_LIST_TYPE_DIRECT);
-	m_ComputeCommandQueue = std::make_unique<CommandQueue>(D3D12_COMMAND_LIST_TYPE_COMPUTE);
-	m_CopyCommandQueue = std::make_unique<CommandQueue>(D3D12_COMMAND_LIST_TYPE_COPY);
+	m_DirectCommandQueue = std::make_unique<MakeCommandQueue>(*this, D3D12_COMMAND_LIST_TYPE_DIRECT);
+	m_ComputeCommandQueue = std::make_unique<MakeCommandQueue>(*this, D3D12_COMMAND_LIST_TYPE_COMPUTE);
+	m_CopyCommandQueue = std::make_unique<MakeCommandQueue>(*this, D3D12_COMMAND_LIST_TYPE_COPY);
 
 	for (int i = 0; i < D3D12_DESCRIPTOR_HEAP_TYPE_NUM_TYPES; ++i)
 	{
 		m_DescriptorAllocators[i] =
-			std::make_unique<DescriptorAllocator>(static_cast<D3D12_DESCRIPTOR_HEAP_TYPE>(i));
+			std::make_unique<MakeDescriptorAllocator>(*this, static_cast<D3D12_DESCRIPTOR_HEAP_TYPE>(i));
 	}
 }
 

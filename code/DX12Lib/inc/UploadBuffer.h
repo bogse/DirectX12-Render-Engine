@@ -11,6 +11,8 @@
 #include <memory>
 #include <deque>
 
+class Device;
+
 class UploadBuffer
 {
 public:
@@ -22,13 +24,6 @@ public:
 		void* CPU;
 		D3D12_GPU_VIRTUAL_ADDRESS GPU;
 	};
-
-	/**
-	* @param pageSize The size to use to allocate new pages in GPU memory.
-	*/
-	explicit UploadBuffer(size_t pageSize = _2MB);
-
-	virtual ~UploadBuffer();
 
 	/*
 	* The maximum size of an allocation is the size of a single page.
@@ -49,13 +44,22 @@ public:
 	*/
 	void Reset();
 
+protected:
+	friend class std::default_delete<UploadBuffer>;
+
+	/**
+	* @param pageSize The size to use to allocate new pages in GPU memory.
+	*/
+	explicit UploadBuffer(Device& device, size_t pageSize = _2MB);
+	virtual ~UploadBuffer();
+
 private:
 	/* 
 	* A single page for the allocator.
 	*/
 	struct Page
 	{
-		Page(size_t sizeInBytes);
+		Page(Device& device, size_t sizeInBytes);
 		~Page();
 
 		/*
@@ -105,6 +109,11 @@ private:
 	* or create a new page if there are no available pages.
 	*/
 	std::shared_ptr<Page> RequestPage();
+
+	/**
+	* The device that was used to create this upload buffer.
+	*/
+	Device& m_Device;
 
 	PagePool m_PagePool;
 	PagePool m_AvailablePages;

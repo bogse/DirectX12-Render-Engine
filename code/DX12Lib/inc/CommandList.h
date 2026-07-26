@@ -16,6 +16,7 @@
 
 class Buffer;
 class ConstantBuffer;
+class Device;
 class DynamicDescriptorHeap;
 class GenerateMipsPSO;
 class IndexBuffer;
@@ -30,9 +31,6 @@ class VertexBuffer;
 class CommandList
 {
 public:
-	CommandList(D3D12_COMMAND_LIST_TYPE type);
-	virtual ~CommandList();
-
 	D3D12_COMMAND_LIST_TYPE GetCommandListType() const;
 
 	Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList2> GetGraphicsCommandList() const;
@@ -331,6 +329,16 @@ public:
 	*/
 	void Dispatch(uint32_t numGroupsX, uint32_t numGroupsY = 1, uint32_t numGroupsZ = 1);
 
+protected:
+	friend class CommandQueue;
+	friend class std::default_delete<CommandList>;
+
+	/**
+	* Command queues can only be created through the CommandQueue.
+	*/
+	CommandList(Device& device, D3D12_COMMAND_LIST_TYPE type);
+	virtual ~CommandList();
+
 private:
 	void TrackObject(Microsoft::WRL::ComPtr<ID3D12Object> object);
 	void TrackResource(const Resource& resource);
@@ -347,6 +355,11 @@ private:
 	void BindDescriptorHeaps();
 
 	using TrackedObjects = std::vector<Microsoft::WRL::ComPtr<ID3D12Object>>;
+
+	/**
+	* The device that is used to create this command list.
+	*/
+	Device& m_Device;
 
 	D3D12_COMMAND_LIST_TYPE m_d3d12CommandListType;
 	Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList2> m_d3d12CommandList;

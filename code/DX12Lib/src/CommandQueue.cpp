@@ -2,17 +2,32 @@
 
 #include "CommandQueue.h"
 
-#include "Application.h"
 #include "CommandList.h"
+#include "Device.h"
 #include "ResourceStateTracker.h"
 
 #include <intsafe.h>
 
-CommandQueue::CommandQueue(D3D12_COMMAND_LIST_TYPE type)
-	: m_FenceValue(0)
+namespace
+{
+	// Local pass-through helper class to allow std::make_shared
+	// to instantiate objects with protected constructors.
+
+	class MakeCommandList : public CommandList
+	{
+	public:
+		MakeCommandList(Device& device, D3D12_COMMAND_LIST_TYPE type)
+			: CommandList(device, type)
+		{}
+	};
+}
+
+CommandQueue::CommandQueue(Device& device, D3D12_COMMAND_LIST_TYPE type)
+	: m_Device(device)
+	, m_FenceValue(0)
 	, m_CommandListType(type)
 {
-	Microsoft::WRL::ComPtr<ID3D12Device2> device = Application::GetInstance().GetDevice();
+	Microsoft::WRL::ComPtr<ID3D12Device8> d3d12Device = m_Device.GetD3D12Device();
 
 	D3D12_COMMAND_QUEUE_DESC desc = {};
 	desc.Type = type;
@@ -20,8 +35,8 @@ CommandQueue::CommandQueue(D3D12_COMMAND_LIST_TYPE type)
 	desc.Flags = D3D12_COMMAND_QUEUE_FLAG_NONE;
 	desc.NodeMask = 0;
 
-	ThrowIfFailed(device->CreateCommandQueue(&desc, IID_PPV_ARGS(&m_d3d12CommandQueue)));
-	ThrowIfFailed(device->CreateFence(m_FenceValue, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&m_d3d12Fence)));
+	ThrowIfFailed(d3d12Device->CreateCommandQueue(&desc, IID_PPV_ARGS(&m_d3d12CommandQueue)));
+	ThrowIfFailed(d3d12Device->CreateFence(m_FenceValue, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&m_d3d12Fence)));
 
 	switch (type)
 	{
@@ -58,7 +73,7 @@ std::shared_ptr<CommandList> CommandQueue::GetCommandList()
 	else
 	{
 		// Otherwise create a new command list.
-		commandList = std::make_shared<CommandList>(m_CommandListType);
+		commandList = std::make_shared<MakeCommandList>(m_Device, m_CommandListType);
 	}
 
 	return commandList;
@@ -126,8 +141,7 @@ uint64_t CommandQueue::ExecuteCommandLists(const std::vector<std::shared_ptr<Com
 	// after the initial resource command lists have finished.
 	if (generateMipsCommandLists.size() > 0)
 	{
-		CommandQueue& computeQueue =
-			Application::GetInstance().GetCommandQueue(D3D12_COMMAND_LIST_TYPE_COMPUTE);
+		CommandQueue& computeQueue = m_Device.GetCommandQueue(D3D12_COMMAND_LIST_TYPE_COMPUTE);
 		computeQueue.Wait(*this);
 		computeQueue.ExecuteCommandLists(generateMipsCommandLists);
 	}
