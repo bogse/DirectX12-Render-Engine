@@ -1,11 +1,13 @@
 #pragma once
 
 #include "DescriptorAllocation.h"
-#include "RootSignature.h"
 
 #include <d3d12.h>
 #include <DirectXMath.h>
 #include <wrl/client.h>
+
+class Device;
+class RootSignature;
 
 struct alignas(16) GenerateMipsCB
 {
@@ -32,9 +34,9 @@ namespace GenerateMips
 class GenerateMipsPSO
 {
 public:
-	GenerateMipsPSO();
+	GenerateMipsPSO(Device& device);
 
-	const RootSignature& GetRootSignature() const
+	std::shared_ptr<RootSignature> GetRootSignature() const
 	{
 		return m_RootSignature;
 	}
@@ -50,7 +52,7 @@ public:
 	}
 
 private:
-	RootSignature m_RootSignature;
+	std::shared_ptr<RootSignature> m_RootSignature;
 	Microsoft::WRL::ComPtr<ID3D12PipelineState> m_PipelineState;
 	
 	/**

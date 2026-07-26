@@ -69,7 +69,7 @@ private:
 
 	RenderTarget m_RenderTarget;
 
-	std::unique_ptr<RootSignature> m_RootSignature;
+	std::shared_ptr<RootSignature> m_RootSignature;
 
 	Microsoft::WRL::ComPtr<ID3D12PipelineState> m_SolidPipelineState;
 	Microsoft::WRL::ComPtr<ID3D12PipelineState> m_WireframePipelineState;

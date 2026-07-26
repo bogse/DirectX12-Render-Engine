@@ -4,6 +4,7 @@
 #include "CommandList.h"
 #include "CommandQueue.h"
 #include "DescriptorAllocation.h"
+#include "Device.h"
 #include "GUISystem.h"
 #include "Helpers.h"
 #include "Window.h"
@@ -227,7 +228,7 @@ bool Demo::LoadContent()
 	rootSignatureDescription.Init_1_1(_countof(rootParameters),
 		rootParameters, 1, &linearRepeatSampler, rootSignatureFlags);
 
-	m_RootSignature = std::make_unique<RootSignature>(rootSignatureDescription.Desc_1_1, featureData.HighestVersion);
+	m_RootSignature = Application::GetInstance().GetDevicePtr()->CreateRootSignature(rootSignatureDescription.Desc_1_1);
 
 	auto CreatePSO = [this, &device, &vertexShaderBlob, &pixelShaderBlob](D3D12_FILL_MODE fillMode,
 		Microsoft::WRL::ComPtr<ID3D12PipelineState>& outPSO)
@@ -249,7 +250,7 @@ bool Demo::LoadContent()
 		rasterizerDesc.FillMode = fillMode;
 		rasterizerDesc.CullMode = D3D12_CULL_MODE_BACK;
 
-		pipelineStateStream.pRootSignature = m_RootSignature->GetRootSignature().Get();
+		pipelineStateStream.pRootSignature = m_RootSignature->GetD3D12RootSignature().Get();
 		pipelineStateStream.InputLayout =
 		{ 
 			VertexPositionNormalColorTexture::InputElements,
@@ -428,7 +429,7 @@ void Demo::RenderScenePass(CommandList* commandList)
 	{
 		commandList->SetPipelineState(m_SolidPipelineState.Get());
 	}
-	commandList->SetGraphicsRootSignature(*m_RootSignature);
+	commandList->SetGraphicsRootSignature(m_RootSignature);
 
 	// Setup the Rasterizer State.
 	commandList->SetViewport(m_Viewport);

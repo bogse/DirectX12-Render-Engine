@@ -588,7 +588,7 @@ void CommandList::GenerateMipsUAV(const Texture& texture, bool isSRGB)
 {
 	if (!m_GenerateMipsPSO)
 	{
-		m_GenerateMipsPSO = std::make_unique<GenerateMipsPSO>();
+		m_GenerateMipsPSO = std::make_unique<GenerateMipsPSO>(m_Device);
 	}
 
 	m_d3d12CommandList->SetPipelineState(m_GenerateMipsPSO->GetPipelineState().Get());
@@ -816,9 +816,9 @@ void CommandList::ClearDepthStencilTexture(
 	TrackResource(texture);
 }
 
-void CommandList::SetGraphicsRootSignature(const RootSignature& rootSignature)
+void CommandList::SetGraphicsRootSignature(const std::shared_ptr<RootSignature> rootSignature)
 {
-	ID3D12RootSignature* d3d12RootSignature = rootSignature.GetRootSignature().Get();
+	ID3D12RootSignature* d3d12RootSignature = rootSignature->GetD3D12RootSignature().Get();
 	if (m_RootSignature != d3d12RootSignature)
 	{
 		m_RootSignature = d3d12RootSignature;
@@ -834,9 +834,11 @@ void CommandList::SetGraphicsRootSignature(const RootSignature& rootSignature)
 	}
 }
 
-void CommandList::SetComputeRootSignature(const RootSignature& rootSignature)
+void CommandList::SetComputeRootSignature(const std::shared_ptr<RootSignature> rootSignature)
 {
-	ID3D12RootSignature* d3d12RootSignature = rootSignature.GetRootSignature().Get();
+	assert(rootSignature);
+
+	ID3D12RootSignature* d3d12RootSignature = rootSignature->GetD3D12RootSignature().Get();
 	if (m_RootSignature != d3d12RootSignature)
 	{
 		m_RootSignature = d3d12RootSignature;
