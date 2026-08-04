@@ -2,6 +2,6 @@
 
 #include "Buffer.h"
 
-Buffer::Buffer(const std::wstring& name)
-	: Resource(name)
+Buffer::Buffer(Device& device, const std::wstring& name)
+	: Resource(device, name)
 {}

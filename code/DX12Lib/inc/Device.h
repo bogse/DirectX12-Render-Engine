@@ -10,8 +10,11 @@
 class Adapter;
 class CommandQueue;
 class DescriptorAllocator;
+class IndexBuffer;
 class RootSignature;
 class SwapChain;
+class Texture;
+class VertexBuffer;
 
 class Device
 {
@@ -22,12 +25,27 @@ public:
 	*/
 	static std::shared_ptr<Device> Create(std::shared_ptr<Adapter> adapter = nullptr);
 
+	std::shared_ptr<RootSignature> CreateRootSignature(const D3D12_ROOT_SIGNATURE_DESC1& rootSignatureDesc);
+
 	/**
 	* Create a swap chain using the provided OS window handle.
 	*/
 	std::shared_ptr<SwapChain> CreateSwapChain(HWND hWnd);
 
-	std::shared_ptr<RootSignature> CreateRootSignature(const D3D12_ROOT_SIGNATURE_DESC1& rootSignatureDesc);
+	std::shared_ptr<Texture> CreateTexture(
+		const D3D12_RESOURCE_DESC& resourceDesc,
+		const D3D12_CLEAR_VALUE* clearValue = nullptr,
+		D3D12_RESOURCE_STATES initialState = D3D12_RESOURCE_STATE_COMMON,
+		const std::wstring & name = L"Texture");
+
+	std::shared_ptr<Texture> CreateTexture(
+		Microsoft::WRL::ComPtr<ID3D12Resource> resource,
+		const D3D12_CLEAR_VALUE* clearValue = nullptr,
+		const std::wstring& name = L"Texture");
+
+	std::shared_ptr<IndexBuffer> CreateIndexBuffer(const std::wstring& name = L"IndexBuffer");
+
+	std::shared_ptr<VertexBuffer> CreateVertexBuffer(const std::wstring& name = L"VertexBuffer");
 
 	/**
 	* Allocate a number of CPU visible descriptors.

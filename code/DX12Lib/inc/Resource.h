@@ -9,17 +9,11 @@
 
 #include <string>
 
+class Device;
+
 class Resource
 {
 public:
-	Resource(const std::wstring& name = L"");
-	Resource(const D3D12_RESOURCE_DESC& resourceDesc,
-		const D3D12_CLEAR_VALUE* clearValue = nullptr,
-		D3D12_RESOURCE_STATES initialState = D3D12_RESOURCE_STATE_COMMON,
-		const std::wstring& name = L"");
-	Resource(Microsoft::WRL::ComPtr<ID3D12Resource> resource,
-		const std::wstring& name = L"");
-
 	/**
 	* Copy not allowed for performance reasons.
 	*/
@@ -31,8 +25,6 @@ public:
 	*/
 	Resource(Resource&& move) noexcept;
 	Resource& operator=(Resource&& other) noexcept;
-
-	virtual ~Resource();
 
 	/**
 	* Get access to the underlying D3D12 resource.
@@ -74,9 +66,26 @@ public:
 	ULONG RefCount() const;
 
 protected:
+	/**
+	* Resources can only be created through the Device.
+	*/
+	Resource(Device& device, const std::wstring& name = L"Resource");
+	Resource(Device& device,
+			 const D3D12_RESOURCE_DESC& resourceDesc,
+			 const D3D12_CLEAR_VALUE* clearValue = nullptr,
+			 D3D12_RESOURCE_STATES initialState = D3D12_RESOURCE_STATE_COMMON,
+			 const std::wstring& name = L"Resource");
+	Resource(Device& device,
+			 Microsoft::WRL::ComPtr<ID3D12Resource> resource,
+			 const D3D12_CLEAR_VALUE* clearValue = nullptr,
+			 const std::wstring& name = L"Resource");
+
+	virtual ~Resource() = default;
+
+	Device*								   m_Device;
 	Microsoft::WRL::ComPtr<ID3D12Resource> m_d3d12Resource;
-	D3D12_FEATURE_DATA_FORMAT_SUPPORT m_FormatSupport;
-	std::unique_ptr<D3D12_CLEAR_VALUE> m_d3d12ClearValue;
+	D3D12_FEATURE_DATA_FORMAT_SUPPORT	   m_FormatSupport;
+	std::unique_ptr<D3D12_CLEAR_VALUE>	   m_d3d12ClearValue;
 
 private:
 	/*

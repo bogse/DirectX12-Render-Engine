@@ -76,12 +76,6 @@ SwapChain::SwapChain(Device& device, HWND hWnd)
 
 	m_hFrameLatencyWaitableObject = m_dxgiSwapChain->GetFrameLatencyWaitableObject();
 
-	for (int i = 0; i < BufferCount; ++i)
-	{
-		std::wstring resourceName = L"Backbuffer[" + std::to_wstring(i) + L"]";
-		m_BackBufferTextures[i] = std::make_shared<Texture>(resourceName);
-	}
-
 	UpdateRenderTargetViews();
 }
 
@@ -149,14 +143,19 @@ void SwapChain::UpdateRenderTargetViews()
 {
 	for (int i = 0; i < BufferCount; ++i)
 	{
-		m_BackBufferTextures[i]->SetName(L"Backbuffer[" + std::to_wstring(i) + L"]");
-
 		Microsoft::WRL::ComPtr<ID3D12Resource> backBuffer;
 		ThrowIfFailed(m_dxgiSwapChain->GetBuffer(i, IID_PPV_ARGS(&backBuffer)));
 
 		ResourceStateTracker::AddGlobalResourceState(backBuffer.Get(), D3D12_RESOURCE_STATE_COMMON);
 
-		m_BackBufferTextures[i]->SetD3D12Resource(backBuffer);
-		m_BackBufferTextures[i]->CreateViews();
+		std::shared_ptr<Texture>& backBufferTexture = m_BackBufferTextures[i];
+		if (!backBufferTexture)
+			backBufferTexture = m_Device.CreateTexture(backBuffer);
+		else
+			backBufferTexture->SetD3D12Resource(backBuffer);
+
+		backBufferTexture->SetName(L"Backbuffer[" + std::to_wstring(i) + L"]");
+
+		backBufferTexture->CreateViews();
 	}
 }

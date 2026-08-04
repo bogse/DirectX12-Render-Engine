@@ -5,9 +5,6 @@
 class VertexBuffer : public Buffer
 {
 public:
-	VertexBuffer(const std::wstring& name = L"");
-	virtual ~VertexBuffer();
-
 	void CreateViews(size_t numElements, size_t elementSize) override;
 
 	/**
@@ -22,6 +19,13 @@ public:
 	* Get the vertex buffer view for binding to the Input Assembler stage.
 	*/
 	D3D12_VERTEX_BUFFER_VIEW GetVertexBufferView() const;
+
+protected:
+	/**
+	* Vertex buffers can only be created through the Device.
+	*/
+	VertexBuffer(Device& device, const std::wstring& name = L"VertexBuffer");
+	virtual ~VertexBuffer() = default;
 
 private:
 	size_t m_NumVertices;

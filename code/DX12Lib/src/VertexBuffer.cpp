@@ -2,14 +2,11 @@
 
 #include "VertexBuffer.h"
 
-VertexBuffer::VertexBuffer(const std::wstring& name)
-	: Buffer(name)
+VertexBuffer::VertexBuffer(Device& device, const std::wstring& name)
+	: Buffer(device, name)
 	, m_NumVertices(0)
 	, m_VertexStride(0)
 	, m_VertexBufferView({})
-{}
-
-VertexBuffer::~VertexBuffer()
 {}
 
 void VertexBuffer::CreateViews(size_t numElements, size_t elementSize)

@@ -5,8 +5,11 @@
 #include "Adapter.h"
 #include "CommandQueue.h"
 #include "DescriptorAllocator.h"
+#include "IndexBuffer.h"
 #include "RootSignature.h"
 #include "SwapChain.h"
+#include "Texture.h"
+#include "VertexBuffer.h"
 
 namespace
 {
@@ -55,6 +58,46 @@ namespace
 			: SwapChain(device, hWnd)
 		{}
 	};
+
+	class MakeTexture : public Texture
+	{
+	public:
+		MakeTexture(
+			Device& device,
+			const D3D12_RESOURCE_DESC& resourceDesc,
+			const D3D12_CLEAR_VALUE* clearValue,
+			D3D12_RESOURCE_STATES initialState,
+			const std::wstring& name
+		)
+			: Texture(device, resourceDesc, clearValue, initialState, name)
+		{}
+
+		MakeTexture(
+			Device& device,
+			Microsoft::WRL::ComPtr<ID3D12Resource> resource,
+			const D3D12_CLEAR_VALUE* clearValue,
+			const std::wstring& name
+		)
+			: Texture(device, resource, clearValue, name)
+		{
+		}
+	};
+
+	class MakeIndexBuffer : public IndexBuffer
+	{
+	public:
+		MakeIndexBuffer(Device& device, const std::wstring& name)
+			: IndexBuffer(device, name)
+		{}
+	};
+
+	class MakeVertexBuffer : public VertexBuffer
+	{
+	public:
+		MakeVertexBuffer(Device& device, const std::wstring& name)
+			: VertexBuffer(device, name)
+		{}
+	};
 }
 
 std::shared_ptr<Device> Device::Create(std::shared_ptr<Adapter> adapter)
@@ -65,6 +108,33 @@ std::shared_ptr<Device> Device::Create(std::shared_ptr<Adapter> adapter)
 std::shared_ptr<SwapChain> Device::CreateSwapChain(HWND hWnd)
 {
 	return std::make_shared<MakeSwapChain>(*this, hWnd);
+}
+
+std::shared_ptr<Texture> Device::CreateTexture(
+	const D3D12_RESOURCE_DESC& resourceDesc,
+	const D3D12_CLEAR_VALUE* clearValue,
+	D3D12_RESOURCE_STATES initialState,
+	const std::wstring& name)
+{
+	return std::make_shared<MakeTexture>(*this, resourceDesc, clearValue, initialState, name);
+}
+
+std::shared_ptr<Texture> Device::CreateTexture(
+	Microsoft::WRL::ComPtr<ID3D12Resource> resource,
+	const D3D12_CLEAR_VALUE* clearValue,
+	const std::wstring& name)
+{
+	return std::make_shared<MakeTexture>(*this, resource, clearValue, name);
+}
+
+std::shared_ptr<IndexBuffer> Device::CreateIndexBuffer(const std::wstring& name)
+{
+	return std::make_shared<MakeIndexBuffer>(*this, name);
+}
+
+std::shared_ptr<VertexBuffer> Device::CreateVertexBuffer(const std::wstring& name)
+{
+	return std::make_shared<MakeVertexBuffer>(*this, name);
 }
 
 std::shared_ptr<RootSignature> Device::CreateRootSignature(const D3D12_ROOT_SIGNATURE_DESC1& rootSignatureDesc)

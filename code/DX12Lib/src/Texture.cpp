@@ -2,7 +2,7 @@
 
 #include "Texture.h"
 
-#include "Application.h"
+#include "Device.h"
 #include "ResourceStateTracker.h"
 
 namespace Texture_Private
@@ -66,24 +66,30 @@ namespace Texture_Private
 	}
 }
 
-Texture::Texture(const std::wstring& name)
-	: Resource(name)
+Texture::Texture(Device& device, const std::wstring& name)
+	: Resource(device, name)
 {
 }
 
 Texture::Texture(
+	Device& device,
 	const D3D12_RESOURCE_DESC& resourceDesc,
 	const D3D12_CLEAR_VALUE* clearValue,
 	D3D12_RESOURCE_STATES initialState,
 	const std::wstring& name
 )
-	: Resource(resourceDesc, clearValue, initialState, name)
+	: Resource(device, resourceDesc, clearValue, initialState, name)
 {
 	CreateViews();
 }
 
-Texture::Texture(Microsoft::WRL::ComPtr<ID3D12Resource> resource, const std::wstring& name)
-	: Resource(resource, name)
+Texture::Texture(
+	Device& device,
+	Microsoft::WRL::ComPtr<ID3D12Resource> resource,
+	const D3D12_CLEAR_VALUE* clearValue,
+	const std::wstring& name
+)
+	: Resource(device, resource, clearValue, name)
 {
 	CreateViews();
 }
@@ -120,34 +126,34 @@ void Texture::CreateViews()
 		return;
 	}
 
-	const Microsoft::WRL::ComPtr<ID3D12Device2>& device = Application::GetInstance().GetDevice();
+	const Microsoft::WRL::ComPtr<ID3D12Device8> d3d12Device = m_Device->GetD3D12Device();
 	CD3DX12_RESOURCE_DESC desc(m_d3d12Resource->GetDesc());
 
 	// Create SRV.
 	if ((desc.Flags & D3D12_RESOURCE_FLAG_DENY_SHADER_RESOURCE) == 0 &&
 		desc.Format != DXGI_FORMAT_D32_FLOAT)
 	{
-		m_ShaderResourceView = Application::GetInstance().AllocateDescriptors(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+		m_ShaderResourceView = m_Device->AllocateDescriptors(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 
 		if (m_ShaderResourceView.IsNull())
 		{
 			throw std::runtime_error("Descriptor Heap out of memory during SRV creation.");
 		}
 
-		device->CreateShaderResourceView(m_d3d12Resource.Get(), nullptr, m_ShaderResourceView.GetDescriptorHandle());
+		d3d12Device->CreateShaderResourceView(m_d3d12Resource.Get(), nullptr, m_ShaderResourceView.GetDescriptorHandle());
 	}
 
 	// Create UAV for each mip (only supported for 1D and 2D textures).
 	if ((desc.Flags & D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS) != 0 &&
 		desc.DepthOrArraySize == 1)
 	{
-		m_UnorderedAccessView = Application::GetInstance().AllocateDescriptors(
+		m_UnorderedAccessView = m_Device->AllocateDescriptors(
 			D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, desc.MipLevels);
 
 		for (int i = 0; i < desc.MipLevels; ++i)
 		{
 			const D3D12_UNORDERED_ACCESS_VIEW_DESC& uavDesc = Texture_Private::GetUAVDesc(desc, i);
-			device->CreateUnorderedAccessView(
+			d3d12Device->CreateUnorderedAccessView(
 				m_d3d12Resource.Get(), nullptr, &uavDesc, m_UnorderedAccessView.GetDescriptorHandle(i));
 		}
 	}
@@ -155,26 +161,26 @@ void Texture::CreateViews()
 	// Create DSV.
 	if ((desc.Flags & D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL) != 0)
 	{
-		m_DepthStencilView = Application::GetInstance().AllocateDescriptors(D3D12_DESCRIPTOR_HEAP_TYPE_DSV);
+		m_DepthStencilView = m_Device->AllocateDescriptors(D3D12_DESCRIPTOR_HEAP_TYPE_DSV);
 
 		if (m_DepthStencilView.IsNull())
 		{
 			throw std::runtime_error("Descriptor Heap out of memory during DSV creation.");
 		}
 
-		device->CreateDepthStencilView(m_d3d12Resource.Get(), nullptr, m_DepthStencilView.GetDescriptorHandle());
+		d3d12Device->CreateDepthStencilView(m_d3d12Resource.Get(), nullptr, m_DepthStencilView.GetDescriptorHandle());
 	}
 
 	if ((desc.Flags & D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET) != 0)
 	{
-		m_RenderTargetView = Application::GetInstance().AllocateDescriptors(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
+		m_RenderTargetView = m_Device->AllocateDescriptors(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
 
 		if (m_RenderTargetView.IsNull())
 		{
 			throw::std::runtime_error("Descriptor Heap out of memory during RTV creation.");
 		}
 
-		device->CreateRenderTargetView(m_d3d12Resource.Get(), nullptr, m_RenderTargetView.GetDescriptorHandle());
+		d3d12Device->CreateRenderTargetView(m_d3d12Resource.Get(), nullptr, m_RenderTargetView.GetDescriptorHandle());
 	}
 }
 
@@ -192,11 +198,11 @@ void Texture::Resize(const uint32_t width, const uint32_t height, const uint32_t
 	resourceDescription.Height = std::max(1, static_cast<int>(height));
 	resourceDescription.DepthOrArraySize = depthOrArraySize;
 
-	const Microsoft::WRL::ComPtr<ID3D12Device2>& device = Application::GetInstance().GetDevice();
+	const Microsoft::WRL::ComPtr<ID3D12Device8>& d3d12Device = m_Device->GetD3D12Device();
 
 	const CD3DX12_HEAP_PROPERTIES heapProperties(D3D12_HEAP_TYPE_DEFAULT);
 
-	ThrowIfFailed(device->CreateCommittedResource(
+	ThrowIfFailed(d3d12Device->CreateCommittedResource(
 		&heapProperties,
 		D3D12_HEAP_FLAG_NONE,
 		&resourceDescription,

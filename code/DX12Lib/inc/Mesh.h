@@ -5,13 +5,11 @@
 
 #include <DirectXMath.h>
 
+#include "d3d12.h"
 #include <wrl/client.h>
 
 #include <memory>
 #include <vector>
-
-#include <VertexBuffer.h>
-#include <IndexBuffer.h>
 
 /*
 * Vertex struct holding position, normal vector, and texture mapping information.
@@ -65,6 +63,8 @@ using VertexCollection = std::vector<VertexPositionNormalColorTexture>;
 using IndexCollection = std::vector<uint16_t>;
 
 class CommandList;
+class IndexBuffer;
+class VertexBuffer;
 
 class Mesh
 {
@@ -106,8 +106,8 @@ private:
 	void GenerateCubeVertices(VertexCollection& outVertices,
 							  const DirectX::XMFLOAT4* customColors);
 
-	VertexBuffer m_VertexBuffer;
-	IndexBuffer m_IndexBuffer;
+	std::shared_ptr<VertexBuffer> m_VertexBuffer;
+	std::shared_ptr<IndexBuffer> m_IndexBuffer;
 
 	UINT m_IndexCount;
 	float m_Size;

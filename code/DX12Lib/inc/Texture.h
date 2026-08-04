@@ -14,14 +14,6 @@
 class Texture : public Resource
 {
 public:
-	Texture(const std::wstring& name = L"");
-	Texture(const D3D12_RESOURCE_DESC& resourceDesc,
-		const D3D12_CLEAR_VALUE* clearValue = nullptr,
-		D3D12_RESOURCE_STATES initialState = D3D12_RESOURCE_STATE_COMMON,
-		const std::wstring& name = L"");
-	Texture(Microsoft::WRL::ComPtr<ID3D12Resource> resource,
-		const std::wstring& name = L"");
-
 	/**
 	* Copy not allowed for performance reasons.
 	*/
@@ -76,11 +68,26 @@ public:
 	static DXGI_FORMAT GetSRGBFormat(DXGI_FORMAT format);
 	static DXGI_FORMAT GetUAVCompatibleFormat(DXGI_FORMAT format);
 
+protected:
+	/**
+	* Textures can only be created through the Device.
+	*/
+	Texture(Device& device, const std::wstring& name = L"Texture");
+	Texture(Device& device,
+			const D3D12_RESOURCE_DESC& resourceDesc,
+			const D3D12_CLEAR_VALUE* clearValue = nullptr,
+			D3D12_RESOURCE_STATES initialState = D3D12_RESOURCE_STATE_COMMON,
+			const std::wstring& name = L"Texture");
+	Texture(Device& device,
+			Microsoft::WRL::ComPtr<ID3D12Resource> resource,
+			const D3D12_CLEAR_VALUE* clearValue,
+			const std::wstring& name = L"Texture");
+
+	virtual ~Texture() = default;
+
 private:
 	DescriptorAllocation m_ShaderResourceView;
 	DescriptorAllocation m_UnorderedAccessView;
 	DescriptorAllocation m_DepthStencilView;
 	DescriptorAllocation m_RenderTargetView;
-
-	D3D12_FEATURE_DATA_FORMAT_SUPPORT m_FormatSupport;
 };

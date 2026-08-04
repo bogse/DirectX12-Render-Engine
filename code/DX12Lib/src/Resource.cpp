@@ -2,21 +2,27 @@
 
 #include "Resource.h"
 
-#include "Application.h"
+#include "Device.h"
 #include "ResourceStateTracker.h"
 
-Resource::Resource(const std::wstring& name)
-	: m_ResourceName(name)
-	, m_FormatSupport({})
+Resource::Resource(Device& device, const std::wstring& name)
+	: m_Device(&device)
+	, m_d3d12Resource(nullptr)
+	, m_FormatSupport{}
+	, m_ResourceName(name)
 {}
 
 Resource::Resource(
-	const D3D12_RESOURCE_DESC & resourceDesc,
-	const D3D12_CLEAR_VALUE * clearValue,
+	Device& device,
+	const D3D12_RESOURCE_DESC& resourceDesc,
+	const D3D12_CLEAR_VALUE* clearValue,
 	D3D12_RESOURCE_STATES initialState,
-	const std::wstring & name)
+	const std::wstring& name
+)
+	: m_Device(&device)
+	, m_ResourceName(name)
 {
-	const Microsoft::WRL::ComPtr<ID3D12Device2>& device = Application::GetInstance().GetDevice();
+	const Microsoft::WRL::ComPtr<ID3D12Device8> d3d12Device = m_Device->GetD3D12Device();
 
 	if (clearValue)
 	{
@@ -24,7 +30,7 @@ Resource::Resource(
 	}
 
 	const CD3DX12_HEAP_PROPERTIES heapProperties(D3D12_HEAP_TYPE_DEFAULT);
-	ThrowIfFailed(device->CreateCommittedResource(
+	ThrowIfFailed(d3d12Device->CreateCommittedResource(
 		&heapProperties,
 		D3D12_HEAP_FLAG_NONE,
 		&resourceDesc,
@@ -36,27 +42,30 @@ Resource::Resource(
 	ResourceStateTracker::AddGlobalResourceState(m_d3d12Resource.Get(), initialState);
 
 	CheckFeatureSupport();
-	SetName(name);
 }
 
 Resource::Resource(
+	Device& device,
 	Microsoft::WRL::ComPtr<ID3D12Resource> resource,
+	const D3D12_CLEAR_VALUE* clearValue,
 	const std::wstring& name
 )
-	: m_d3d12Resource(resource)
+	: m_Device(&device)
+	, m_d3d12Resource(resource)
 	, m_FormatSupport({})
+	, m_d3d12ClearValue(clearValue ? std::make_unique<D3D12_CLEAR_VALUE>(*clearValue) : nullptr)
+	, m_ResourceName(name)
 {
 	CheckFeatureSupport();
-	SetName(name);
 }
 
 Resource::Resource(Resource&& move) noexcept
-	: m_d3d12Resource(std::move(move.m_d3d12Resource))
+	: m_Device(move.m_Device)
+	, m_d3d12Resource(std::move(move.m_d3d12Resource))
 	, m_FormatSupport({})
 	, m_d3d12ClearValue(std::move(move.m_d3d12ClearValue))
 	, m_ResourceName(std::move(move.m_ResourceName))
-{
-}
+{}
 
 Resource& Resource::operator=(Resource&& other) noexcept
 {
@@ -68,19 +77,19 @@ Resource& Resource::operator=(Resource&& other) noexcept
 			ResourceStateTracker::RemoveGlobalResourceState(m_d3d12Resource.Get());
 		}
 
+		m_Device		  = std::move(other.m_Device);
 		m_d3d12Resource	  = std::move(other.m_d3d12Resource);
 		m_FormatSupport	  = std::move(other.m_FormatSupport);
 		m_d3d12ClearValue = std::move(other.m_d3d12ClearValue);
 		m_ResourceName	  = std::move(other.m_ResourceName);
+
+		other.m_Device	  = nullptr;
 
 		// No tracker updates needed. It is already registered and raw address didn't change.
 	}
 
 	return *this;
 }
-
-Resource::~Resource()
-{}
 
 Microsoft::WRL::ComPtr<ID3D12Resource> Resource::GetD3D12Resource() const
 {
@@ -144,19 +153,12 @@ ULONG Resource::RefCount() const
 
 void Resource::CheckFeatureSupport()
 {
-	if (m_d3d12Resource)
-	{
-		const D3D12_RESOURCE_DESC& desc = m_d3d12Resource->GetDesc();
-		const Microsoft::WRL::ComPtr<ID3D12Device2>& device = Application::GetInstance().GetDevice();
+	const D3D12_RESOURCE_DESC& desc = m_d3d12Resource->GetDesc();
+	const Microsoft::WRL::ComPtr<ID3D12Device8>& d3d12Device = m_Device->GetD3D12Device();
 
-		m_FormatSupport.Format = desc.Format;
-		ThrowIfFailed(device->CheckFeatureSupport(
-			D3D12_FEATURE_FORMAT_SUPPORT,
-			&m_FormatSupport,
-			sizeof(D3D12_FEATURE_DATA_FORMAT_SUPPORT)));
-	}
-	else
-	{
-		m_FormatSupport = {};
-	}
+	m_FormatSupport.Format = desc.Format;
+	ThrowIfFailed(d3d12Device->CheckFeatureSupport(
+		D3D12_FEATURE_FORMAT_SUPPORT,
+		&m_FormatSupport,
+		sizeof(D3D12_FEATURE_DATA_FORMAT_SUPPORT)));
 }
