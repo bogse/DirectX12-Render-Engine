@@ -4,14 +4,11 @@
 
 #include <cassert>
 
-IndexBuffer::IndexBuffer(const std::wstring& name)
-	: Buffer(name)
+IndexBuffer::IndexBuffer(Device& device, const std::wstring& name)
+	: Buffer(device, name)
 	, m_NumIndicies(0)
 	, m_IndexFormat(DXGI_FORMAT_UNKNOWN)
 	, m_IndexBufferView({})
-{}
-
-IndexBuffer::~IndexBuffer()
 {}
 
 void IndexBuffer::CreateViews(size_t numElements, size_t elementSize)

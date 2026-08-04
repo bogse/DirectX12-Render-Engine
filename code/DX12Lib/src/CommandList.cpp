@@ -69,18 +69,7 @@ CommandList::CommandList(Device& device, D3D12_COMMAND_LIST_TYPE type)
 	}
 }
 
-CommandList::~CommandList()
-{}
-
-D3D12_COMMAND_LIST_TYPE CommandList::GetCommandListType() const
-{
-	return m_d3d12CommandListType;
-}
-
-Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList2> CommandList::GetGraphicsCommandList() const
-{
-	return m_d3d12CommandList;
-}
+CommandList::~CommandList() = default;
 
 void CommandList::TransitionBarrier(
 	const Resource& resource,
@@ -276,10 +265,7 @@ void CommandList::CopyIndexBuffer(IndexBuffer& indexBuffer, size_t numIndices, D
 	CopyBuffer(indexBuffer, numIndices, indexSizeInBytes, indexBufferData);
 }
 
-void CommandList::LoadTextureFromFile(
-	Texture& texture,
-	const std::wstring& filename,
-	const bool sRGB)
+std::shared_ptr<Texture> CommandList::LoadTextureFromFile(const std::wstring& filename, const bool sRGB)
 {
 	std::filesystem::path filepath(filename);
 
@@ -295,10 +281,7 @@ void CommandList::LoadTextureFromFile(
 
 	if (iter != ms_TextureCache.end())
 	{
-		texture.SetD3D12Resource(iter->second);
-		texture.CreateViews();
-		texture.SetName(filename);
-		return;
+		return m_Device.CreateTexture(iter->second);
 	}
 
 	DirectX::TexMetadata metadata;
@@ -375,9 +358,7 @@ void CommandList::LoadTextureFromFile(
 		nullptr,
 		IID_PPV_ARGS(&textureResource)));
 
-	texture.SetD3D12Resource(textureResource);
-	texture.SetName(filename);
-	texture.CreateViews();
+	std::shared_ptr<Texture> texture = m_Device.CreateTexture(textureResource);
 
 	// Update the global state tracker.
 	ResourceStateTracker::AddGlobalResourceState(textureResource.Get(), D3D12_RESOURCE_STATE_COMMON);
@@ -400,16 +381,18 @@ void CommandList::LoadTextureFromFile(
 		subresource.pData					= pImages[i].pixels;
 	}
 
-	CopyTextureSubresource(texture, 0, static_cast<uint32_t>(subresources.size()),
+	CopyTextureSubresource(*texture, 0, static_cast<uint32_t>(subresources.size()),
 		subresources.data());
 
 	if (subresources.size() < textureResource->GetDesc().MipLevels && textureResource->GetDesc().MipLevels > 1)
 	{
-		GenerateMips(texture);
+		GenerateMips(*texture);
 	}
 
 	// Add the texture resource to the texture cache.
 	ms_TextureCache[filename] = textureResource.Get();
+
+	return texture;
 }
 
 void CommandList::CopyTextureSubresource(
@@ -574,7 +557,8 @@ void CommandList::GenerateMips(const Texture& texture)
 	}
 
 	// Generate mips for the UAV compatible resource.
-	GenerateMipsUAV(Texture(uavResource), Texture::IsSRGBFormat(resourceDesc.Format));
+	std::shared_ptr<Texture> uavTexture = m_Device.CreateTexture(uavResource);
+	GenerateMipsUAV(*uavTexture, Texture::IsSRGBFormat(resourceDesc.Format));
 
 	if (aliasResource)
 	{

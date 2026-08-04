@@ -8,12 +8,12 @@
 #include <RenderApp.h>
 #include <RenderTarget.h>
 #include <RootSignature.h>
-#include <Texture.h>
 #include <Window.h>
 
 #include <DirectXMath.h>
 
 class CommandList;
+class Texture;
 
 class Demo : public RenderApp
 {
@@ -64,7 +64,7 @@ private:
 
 	PipelineOptionsCB m_PipelineOptions;
 
-	Texture m_DirectXTexture;
+	std::shared_ptr<Texture> m_DirectXTexture;
 	Material m_ActiveMaterial;
 
 	RenderTarget m_RenderTarget;

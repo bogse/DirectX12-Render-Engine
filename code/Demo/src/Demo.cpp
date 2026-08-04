@@ -114,7 +114,7 @@ bool Demo::LoadContent()
 
 	// Load texture.
 	const std::wstring path = ASSET_DIR L"/Textures/DirectX12.png";
-	commandList->LoadTextureFromFile(m_DirectXTexture, path, true);
+	m_DirectXTexture = commandList->LoadTextureFromFile(path, true);
 
 	// Create meshes.
 	m_CubeMesh = Mesh::CreateCube(*commandList, 2.f);
@@ -138,7 +138,8 @@ bool Demo::LoadContent()
 	colorClearValue.Color[2] = 0.9f;
 	colorClearValue.Color[3] = 1.0f;
 
-	std::shared_ptr<Texture> colorTexture = std::make_shared<Texture>(
+	std::shared_ptr<Device> device = Application::GetInstance().GetDevicePtr();
+	std::shared_ptr<Texture> colorTexture = device->CreateTexture(
 		colorDesc, &colorClearValue, D3D12_RESOURCE_STATE_RENDER_TARGET, L"Color Render Target");
 
 	// Create a depth buffer.
@@ -154,7 +155,7 @@ bool Demo::LoadContent()
 	depthClearValue.Format = depthDesc.Format;
 	depthClearValue.DepthStencil = { 1.f, 0u };
 
-	std::shared_ptr<Texture> depthTexture = std::make_shared<Texture>(
+	std::shared_ptr<Texture> depthTexture = device->CreateTexture(
 		depthDesc, &depthClearValue, D3D12_RESOURCE_STATE_DEPTH_WRITE, L"Depth Render Target");
 
 	// Attach the textures to the render target.
@@ -170,11 +171,11 @@ bool Demo::LoadContent()
 	ThrowIfFailed(D3DReadFileToBlob(L"shaders/PixelShader.cso", &pixelShaderBlob));
 
 	// Create a root signature.
-	Microsoft::WRL::ComPtr<ID3D12Device2> device = Application::GetInstance().GetDevice();
+	Microsoft::WRL::ComPtr<ID3D12Device2> d3d12Device = Application::GetInstance().GetDevice();
 
 	D3D12_FEATURE_DATA_ROOT_SIGNATURE featureData = {};
 	featureData.HighestVersion = D3D_ROOT_SIGNATURE_VERSION_1_1;
-	if (FAILED(device->CheckFeatureSupport(D3D12_FEATURE_ROOT_SIGNATURE, &featureData, sizeof(featureData))))
+	if (FAILED(d3d12Device->CheckFeatureSupport(D3D12_FEATURE_ROOT_SIGNATURE, &featureData, sizeof(featureData))))
 	{
 		featureData.HighestVersion = D3D_ROOT_SIGNATURE_VERSION_1_0;
 	}
@@ -230,7 +231,7 @@ bool Demo::LoadContent()
 
 	m_RootSignature = Application::GetInstance().GetDevicePtr()->CreateRootSignature(rootSignatureDescription.Desc_1_1);
 
-	auto CreatePSO = [this, &device, &vertexShaderBlob, &pixelShaderBlob](D3D12_FILL_MODE fillMode,
+	auto CreatePSO = [this, &d3d12Device, &vertexShaderBlob, &pixelShaderBlob](D3D12_FILL_MODE fillMode,
 		Microsoft::WRL::ComPtr<ID3D12PipelineState>& outPSO)
 	{
 		struct PipelineStateStream
@@ -270,7 +271,7 @@ bool Demo::LoadContent()
 			&pipelineStateStream
 		};
 
-		ThrowIfFailed(device->CreatePipelineState(
+		ThrowIfFailed(d3d12Device->CreatePipelineState(
 			&pipelineStateStreamDesc,
 			IID_PPV_ARGS(&outPSO)));
 	};
@@ -457,7 +458,7 @@ void Demo::RenderScenePass(CommandList* commandList)
 
 	if (m_EnableTextures)
 	{
-		commandList->SetShaderResourceView(2, 0, m_DirectXTexture,
+		commandList->SetShaderResourceView(2, 0, *m_DirectXTexture,
 			D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
 	}
 
@@ -599,7 +600,7 @@ void Demo::RenderUIPass(CommandList* commandList)
 	{
 		if (!textureID)
 		{
-			D3D12_CPU_DESCRIPTOR_HANDLE textureCpuHandle = m_DirectXTexture.GetShaderResourceView();
+			D3D12_CPU_DESCRIPTOR_HANDLE textureCpuHandle = m_DirectXTexture->GetShaderResourceView();
 
 			textureID = guiSystem->RegisterTexture(device, textureCpuHandle);
 		}

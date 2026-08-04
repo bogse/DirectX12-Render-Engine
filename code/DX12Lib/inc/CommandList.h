@@ -31,9 +31,20 @@ class VertexBuffer;
 class CommandList
 {
 public:
-	D3D12_COMMAND_LIST_TYPE GetCommandListType() const;
+	Device& GetDevice() const
+	{
+		return m_Device;
+	}
 
-	Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList2> GetGraphicsCommandList() const;
+	D3D12_COMMAND_LIST_TYPE GetCommandListType() const
+	{
+		return m_d3d12CommandListType;
+	}
+
+	Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList2> GetGraphicsCommandList() const
+	{
+		return m_d3d12CommandList;
+	}
 
 	/**
 	* Transition a resource to a particular state.
@@ -123,7 +134,7 @@ public:
 	/**
 	* Load a texture by a filename.
 	*/
-	void LoadTextureFromFile(Texture& texture, const std::wstring& filename, const bool sRGB = false);
+	std::shared_ptr<Texture> LoadTextureFromFile(const std::wstring& filename, const bool sRGB = false);
 
 	/**
 	* Copy a subresource data to a texture.

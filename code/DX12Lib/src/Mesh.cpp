@@ -2,8 +2,10 @@
 
 #include "Mesh.h"
 
-#include "Application.h"
 #include "CommandList.h"
+#include "Device.h"
+#include "IndexBuffer.h"
+#include "VertexBuffer.h"
 
 namespace
 {
@@ -105,8 +107,6 @@ Mesh::Mesh()
 	, m_Size(0.f)
 	, m_UseLHCoordinateSystem(true)
 {
-	m_VertexBuffer.SetName(L"Demo::VertexBuffer");
-	m_IndexBuffer.SetName(L"Demo::IndexBuffer");
 }
 
 Mesh::~Mesh()
@@ -120,8 +120,8 @@ void Mesh::Draw(CommandList& commandList)
 	const UINT offsets[] = { 0 };
 
 	commandList.SetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-	commandList.SetVertexBuffer(0, m_VertexBuffer);
-	commandList.SetIndexBuffer(m_IndexBuffer);
+	commandList.SetVertexBuffer(0, *m_VertexBuffer);
+	commandList.SetIndexBuffer(*m_IndexBuffer);
 	commandList.DrawIndexed(m_IndexCount, 1, 0, 0, 0);
 }
 
@@ -131,7 +131,7 @@ void Mesh::UpdateCubeColors(CommandList& commandList, const DirectX::XMFLOAT4 (&
 	tempVertices.reserve(24);
 
 	GenerateCubeVertices(tempVertices, colors);
-	commandList.CopyVertexBuffer(m_VertexBuffer, tempVertices);
+	commandList.CopyVertexBuffer(*m_VertexBuffer, tempVertices);
 }
 
 std::unique_ptr<Mesh> Mesh::CreateCube(
@@ -346,8 +346,15 @@ void Mesh::Initialize(
 	if (useLHCoordinateSystem)
 		ReverseWinding(indices, vertices);
 
-	commandList.CopyVertexBuffer(m_VertexBuffer, vertices);
-	commandList.CopyIndexBuffer(m_IndexBuffer, indices);
+	Device& device = commandList.GetDevice();
+	m_IndexBuffer = device.CreateIndexBuffer(L"IndexBuffer");
+	m_VertexBuffer = device.CreateVertexBuffer(L"VertexBuffer");
+
+	if (!m_VertexBuffer || !m_IndexBuffer)
+		throw std::runtime_error("Factory failed to allocate VertexBuffer or IndexBuffer objects.");
+
+	commandList.CopyVertexBuffer(*m_VertexBuffer, vertices);
+	commandList.CopyIndexBuffer(*m_IndexBuffer, indices);
 
 	m_IndexCount = static_cast<UINT>(indices.size());
 	m_UseLHCoordinateSystem = useLHCoordinateSystem;
