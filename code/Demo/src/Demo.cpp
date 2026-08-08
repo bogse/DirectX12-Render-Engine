@@ -7,6 +7,7 @@
 #include "Device.h"
 #include "GUISystem.h"
 #include "Helpers.h"
+#include "Texture.h"
 #include "Window.h"
 
 #include <wrl/client.h>
@@ -346,39 +347,7 @@ void Demo::OnRender(RenderEventArgs& eventArgs)
 
 	// Present.
 	std::shared_ptr<Texture> finalColorTex = m_RenderTarget.GetTexture(AttachmentPoint::Color0);
-	m_pWindow->Present(finalColorTex);
-}
-
-void Demo::OnKeyPressed(KeyEventArgs& eventArgs)
-{
-	Super::OnKeyPressed(eventArgs);
-
-	switch (eventArgs.m_Key)
-	{
-	case KeyCode::Key::Escape:
-	{
-		Application::GetInstance().Quit(0);
-		break;
-	}
-	case KeyCode::Key::Enter:
-	{
-		if (eventArgs.m_Alt)
-		{
-			m_pWindow->ToggleFullscreen();
-		}
-		break;
-	}
-	case KeyCode::Key::F11:
-	{
-		m_pWindow->ToggleFullscreen();
-		break;
-	}
-	case KeyCode::Key::V:
-	{
-		m_pWindow->ToggleVSync();
-		break;
-	}
-	}
+	Present(finalColorTex);
 }
 
 void Demo::OnMouseMoved(MouseMotionEventArgs& eventArgs)

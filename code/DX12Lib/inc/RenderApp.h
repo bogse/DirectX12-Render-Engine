@@ -5,6 +5,8 @@
 #include <memory>
 #include <string>
 
+class SwapChain;
+class Texture;
 class Window;
 
 class RenderApp : public std::enable_shared_from_this<RenderApp>
@@ -31,6 +33,11 @@ public:
 protected:
 	friend class Window;
 
+	/*
+	* Present the swapchain's back buffer to the screen. Returns the current back buffer index after the present.
+	*/
+	UINT Present(const std::shared_ptr<Texture>& texture = nullptr);
+
 	virtual void OnUpdate(UpdateEventArgs& eventArgs);
 	virtual void OnRender(RenderEventArgs& eventArgs);
 
@@ -45,6 +52,7 @@ protected:
 	virtual void OnWindowDestroy();
 
 	std::shared_ptr<Window> m_pWindow;
+	std::shared_ptr<SwapChain> m_SwapChain;
 	float m_FPS;
 
 private:

@@ -13,7 +13,6 @@
 #include <DirectXMath.h>
 
 class CommandList;
-class Texture;
 
 class Demo : public RenderApp
 {
@@ -28,7 +27,6 @@ public:
 protected:
 	void OnUpdate(UpdateEventArgs& eventArgs) override;
 	void OnRender(RenderEventArgs& eventArgs) override;
-	void OnKeyPressed(KeyEventArgs& eventArgs) override;
 	void OnMouseMoved(MouseMotionEventArgs& eventArgs) override;
 	void OnMouseWheel(MouseWheelEventArgs& eventArgs) override;
 	void OnResize(ResizeEventArgs& eventArgs) override;

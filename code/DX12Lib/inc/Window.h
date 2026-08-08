@@ -8,10 +8,8 @@
 
 #include "Events.h"
 #include "HighResolutionClock.h"
-#include "Texture.h"
 
 class RenderApp;
-class SwapChain;
 
 class Window
 {
@@ -27,20 +25,12 @@ public:
 	int GetClientWidth() const;
 	int GetClientHeight() const;
 
-	void SetVSync(bool vSync);
-	void ToggleVSync();
-
 	bool IsFullscreen() const;
 	void SetFullscreen(const bool fullscreen);
 	void ToggleFullscreen();
 
 	void Show();
 	void Hide();
-
-	/*
-	* Present the swapchain's back buffer to the screen. Returns the current back buffer index after the present.
-	*/
-	UINT Present(const std::shared_ptr<Texture>& texture = nullptr);
 
 protected:
 	/*
@@ -96,8 +86,6 @@ private:
 	uint64_t m_FrameValues[BufferCount];
 
 	std::weak_ptr<RenderApp> m_pRenderApp;
-
-	std::shared_ptr<SwapChain> m_SwapChain;
 
 	RECT m_WindowRect;
 

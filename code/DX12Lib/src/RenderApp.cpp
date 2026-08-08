@@ -3,6 +3,8 @@
 #include "RenderApp.h"
 
 #include "Application.h"
+#include "Device.h"
+#include "SwapChain.h"
 #include "Window.h"
 
 RenderApp::RenderApp(const std::wstring& name, int width, int height, bool vSync)
@@ -31,6 +33,10 @@ bool RenderApp::Initialize()
 	m_pWindow->RegisterCallbacks(shared_from_this());
 	m_pWindow->Show();
 
+	const Application& app = Application::GetInstance();
+	HWND hWnd = m_pWindow.get()->GetWindowHandle();
+	m_SwapChain = app.GetDevicePtr()->CreateSwapChain(hWnd);
+
 	return true;
 }
 
@@ -40,8 +46,15 @@ void RenderApp::Destroy()
 	m_pWindow.reset();
 }
 
+UINT RenderApp::Present(const std::shared_ptr<Texture>& texture)
+{
+	return m_SwapChain->Present(texture);
+}
+
 void RenderApp::OnUpdate(UpdateEventArgs& eventArgs)
 {
+	m_SwapChain->WaitForSwapChain();
+
 	static uint64_t frameCount = 0;
 	static double totalTime = 0.0;
 
@@ -62,7 +75,32 @@ void RenderApp::OnRender(RenderEventArgs& eventArgs)
 
 void RenderApp::OnKeyPressed(KeyEventArgs& eventArgs)
 {
-	// By default, do nothing.
+	switch (eventArgs.m_Key)
+	{
+	case KeyCode::Key::Escape:
+	{
+		Application::GetInstance().Quit(0);
+		break;
+	}
+	case KeyCode::Key::Enter:
+	{
+		if (eventArgs.m_Alt)
+		{
+			m_pWindow->ToggleFullscreen();
+		}
+		break;
+	}
+	case KeyCode::Key::F11:
+	{
+		m_pWindow->ToggleFullscreen();
+		break;
+	}
+	case KeyCode::Key::V:
+	{
+		m_SwapChain->ToggleVSync();
+		break;
+	}
+	}
 }
 
 void RenderApp::OnKeyReleased(KeyEventArgs& eventArgs)
@@ -94,6 +132,8 @@ void RenderApp::OnResize(ResizeEventArgs& eventArgs)
 {
 	m_Width = eventArgs.m_Width;
 	m_Height = eventArgs.m_Height;
+
+	m_SwapChain->Resize(m_Width, m_Height);
 }
 
 void RenderApp::OnWindowDestroy()

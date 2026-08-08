@@ -2,13 +2,7 @@
 
 #include "Window.h"
 
-#include "Application.h"
-#include "CommandQueue.h"
-#include "CommandList.h"
-#include "Device.h"
-#include "ResourceStateTracker.h"
 #include "RenderApp.h"
-#include "SwapChain.h"
 
 Window::Window(HWND hWnd, const std::wstring& windowName, int clientWidth, int clientHeight, bool vSync)
 	: m_hWnd(hWnd)
@@ -21,8 +15,6 @@ Window::Window(HWND hWnd, const std::wstring& windowName, int clientWidth, int c
 	, m_PreviousMouseX(0)
 	, m_PreviousMouseY(0)
 {
-	const Application& app = Application::GetInstance();
-	m_SwapChain = app.GetDevicePtr()->CreateSwapChain(hWnd);
 }
 
 Window::~Window()
@@ -74,16 +66,6 @@ int Window::GetClientWidth() const
 int Window::GetClientHeight() const
 {
 	return m_ClientHeight;
-}
-
-void Window::SetVSync(bool vSync)
-{
-	m_SwapChain->SetVSync(vSync);
-}
-
-void Window::ToggleVSync()
-{
-	m_SwapChain->ToggleVSync();
 }
 
 bool Window::IsFullscreen() const
@@ -144,7 +126,7 @@ void Window::SetFullscreen(bool fullscreen)
 
 void Window::ToggleFullscreen()
 {
-	m_SwapChain->ToggleFullscreen();
+	SetFullscreen(!m_Fullscreen);
 }
 
 void Window::RegisterCallbacks(std::shared_ptr<RenderApp> pRenderApp)
@@ -154,8 +136,6 @@ void Window::RegisterCallbacks(std::shared_ptr<RenderApp> pRenderApp)
 
 void Window::OnUpdate(UpdateEventArgs& eventArgs)
 {
-	m_SwapChain->WaitForSwapChain();
-
 	m_UpdateClock.Tick();
 
 	if (std::shared_ptr<RenderApp> pRenderApp = m_pRenderApp.lock())
@@ -237,17 +217,10 @@ void Window::OnResize(ResizeEventArgs& eventArgs)
 	{
 		m_ClientWidth = std::max(1, eventArgs.m_Width);
 		m_ClientHeight = std::max(1, eventArgs.m_Height);
-
-		m_SwapChain->Resize(m_ClientWidth, m_ClientHeight);
 	}
 
 	if (std::shared_ptr<RenderApp> pRenderApp = m_pRenderApp.lock())
 	{
 		pRenderApp->OnResize(eventArgs);
 	}
-}
-
-UINT Window::Present(const std::shared_ptr<Texture>& texture)
-{
-	return m_SwapChain->Present(texture);
 }
