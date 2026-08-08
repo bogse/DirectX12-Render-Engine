@@ -38,14 +38,6 @@ public:
 	void Resize(const uint32_t width, const uint32_t height);
 
 	/**
-	* Swap chain is in fullscreen exclusive mode.
-	*/
-	bool IsFullscreen() const
-	{
-		return m_Fullscreen;
-	}
-
-	/**
 	* Check to see if tearing is supported.
 	* &see https://docs.microsoft.com/en-us/windows/win32/direct3ddxgi/variable-refresh-rate-displays
 	*/
@@ -57,22 +49,6 @@ public:
 	Microsoft::WRL::ComPtr<IDXGISwapChain4> GetDXGISwapChain() const
 	{
 		return m_dxgiSwapChain;
-	}
-
-	/**
-	* Set the swap chain to fullscreen exclusive mode (true) or windowed mode (false).
-	*/
-	void SetFullscreen(const bool fullscreen)
-	{
-		m_Fullscreen = (m_Fullscreen != fullscreen) ? fullscreen : m_Fullscreen;
-	}
-
-	/**
-	* Toggle fullscreen exclusive mode.
-	*/
-	void ToggleFullscreen()
-	{
-		SetFullscreen(!m_Fullscreen);
 	}
 
 	void SetVSync(bool vSync)
@@ -155,9 +131,4 @@ private:
 	* Whether or not tearing is supported.
 	*/
 	bool m_IsTearingSupported;
-
-	/**
-	* Whether the application is in fullscreen exclusive mode or windowed mode.
-	*/
-	bool m_Fullscreen;
 };

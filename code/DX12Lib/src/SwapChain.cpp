@@ -20,7 +20,6 @@ SwapChain::SwapChain(Device& device, HWND hWnd)
 	, m_Height(0u)
 	, m_VSync(true)
 	, m_IsTearingSupported(false)
-	, m_Fullscreen(false)
 {
 	assert(hWnd);
 

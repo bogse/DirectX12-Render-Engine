@@ -9,12 +9,14 @@ Window::Window(HWND hWnd, const std::wstring& windowName, int clientWidth, int c
 	, m_WindowName(windowName)
 	, m_ClientWidth(clientWidth)
 	, m_ClientHeight(clientHeight)
+	, m_Fullscreen(false)
 	, m_RenderClock()
 	, m_UpdateClock()
 	, m_FrameValues{0}
 	, m_PreviousMouseX(0)
 	, m_PreviousMouseY(0)
 {
+	::GetWindowRect(m_hWnd, &m_WindowRect);
 }
 
 Window::~Window()
