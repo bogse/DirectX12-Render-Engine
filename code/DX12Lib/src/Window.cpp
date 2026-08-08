@@ -12,7 +12,6 @@ Window::Window(HWND hWnd, const std::wstring& windowName, int clientWidth, int c
 	, m_Fullscreen(false)
 	, m_RenderClock()
 	, m_UpdateClock()
-	, m_FrameValues{0}
 	, m_PreviousMouseX(0)
 	, m_PreviousMouseY(0)
 {

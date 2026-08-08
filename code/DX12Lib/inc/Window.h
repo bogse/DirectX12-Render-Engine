@@ -83,8 +83,6 @@ private:
 	HighResolutionClock m_UpdateClock;
 	HighResolutionClock m_RenderClock;
 
-	uint64_t m_FrameValues[BufferCount];
-
 	std::weak_ptr<RenderApp> m_pRenderApp;
 
 	RECT m_WindowRect;
