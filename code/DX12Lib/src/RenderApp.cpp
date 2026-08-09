@@ -4,6 +4,7 @@
 
 #include "Application.h"
 #include "Device.h"
+#include "GUISystem.h"
 #include "SwapChain.h"
 #include "Window.h"
 
@@ -19,6 +20,8 @@ RenderApp::RenderApp(const std::wstring& name, int width, int height, bool vSync
 RenderApp::~RenderApp()
 {
 	assert(!m_pWindow && "Use RenderApp::Destroy() before destruction.");
+	m_GUISystem->Shutdown();
+	m_GUISystem.reset();
 }
 
 bool RenderApp::Initialize()
@@ -36,6 +39,23 @@ bool RenderApp::Initialize()
 	const Application& app = Application::GetInstance();
 	HWND hWnd = m_pWindow.get()->GetWindowHandle();
 	m_SwapChain = app.GetDevicePtr()->CreateSwapChain(hWnd);
+
+	// Initialize imgui wrapper class.
+	m_GUISystem = std::make_unique<GUISystem>();
+
+	m_GUISystem->Initialize(
+		hWnd,
+		app.GetDevice().Get(),
+		&app.GetDevicePtr()->GetCommandQueue(D3D12_COMMAND_LIST_TYPE_DIRECT));
+
+	Application::OnWndProcHandler = [this](HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) -> LRESULT {
+		assert(m_GUISystem);
+
+		if (m_GUISystem->WndProcHandler(hWnd, message, wParam, lParam))
+			return 1;
+
+		return 0;
+	};
 
 	return true;
 }

@@ -506,9 +506,7 @@ void Demo::RenderScenePass(CommandList* commandList)
 
 void Demo::RenderUIPass(CommandList* commandList)
 {
-	GUISystem& gui = *Application::GetInstance().GetGUISystem();
-
-	gui.BeginFrame();
+	m_GUISystem->BeginFrame();
 
 	ImGui::Begin("Debug");
 
@@ -563,7 +561,6 @@ void Demo::RenderUIPass(CommandList* commandList)
 	static ImTextureID textureID = ImTextureID_Invalid;
 	const Application& app = Application::GetInstance();
 	ID3D12Device2* device = app.GetDevice().Get();
-	GUISystem* guiSystem = app.GetGUISystem();
 
 	if (ImGui::CollapsingHeader("Texture Debugger"))
 	{
@@ -571,14 +568,14 @@ void Demo::RenderUIPass(CommandList* commandList)
 		{
 			D3D12_CPU_DESCRIPTOR_HANDLE textureCpuHandle = m_DirectXTexture->GetShaderResourceView();
 
-			textureID = guiSystem->RegisterTexture(device, textureCpuHandle);
+			textureID = m_GUISystem->RegisterTexture(device, textureCpuHandle);
 		}
 
 		ImGui::Image(textureID, ImVec2(126, 126));
 	}
 	else if (textureID)
 	{
-		guiSystem->UnregisterTexture(device);
+		m_GUISystem->UnregisterTexture(device);
 		textureID = ImTextureID_Invalid;
 	}
 
@@ -750,9 +747,9 @@ void Demo::RenderUIPass(CommandList* commandList)
 
 	ImGui::End();
 
-	gui.EndFrame();
+	m_GUISystem->EndFrame();
 
-	gui.Render(*commandList);
+	m_GUISystem->Render(*commandList);
 }
 
 void Demo::UpdateAnimation(float deltaTime)

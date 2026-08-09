@@ -5,6 +5,7 @@
 #include <memory>
 #include <string>
 
+class GUISystem;
 class SwapChain;
 class Texture;
 class Window;
@@ -53,6 +54,8 @@ protected:
 
 	std::shared_ptr<Window> m_pWindow;
 	std::shared_ptr<SwapChain> m_SwapChain;
+	std::unique_ptr<GUISystem> m_GUISystem;
+
 	float m_FPS;
 
 private:

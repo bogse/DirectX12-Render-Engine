@@ -7,6 +7,7 @@
 #include <dxgi1_6.h>
 #include <wrl/client.h>
 
+#include <functional>
 #include <memory>
 #include <string>
 
@@ -21,6 +22,8 @@ class Window;
 class Application
 {
 public:
+	using WndProcHandlerCallback = std::function<LRESULT(HWND, UINT, WPARAM, LPARAM)>;
+
 	// Create the application singleton with the application instance handle.
 	static void Create(HINSTANCE hInst);
 
@@ -90,12 +93,12 @@ public:
 
 	UINT GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE type) const;
 
-	GUISystem* GetGUISystem() const { return m_GUISystem.get(); }
-
 	static uint64_t GetFrameCount()
 	{
 		return ms_FrameCount;
 	}
+
+	static WndProcHandlerCallback OnWndProcHandler;
 
 protected:
 	Application(HINSTANCE hInst);
@@ -116,7 +119,6 @@ private:
 	HINSTANCE m_hInstance;
 
 	std::shared_ptr<Device> m_Device;
-	std::unique_ptr<GUISystem> m_GUISystem;
 
 	bool m_TearingSupported;
 
