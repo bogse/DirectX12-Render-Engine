@@ -20,8 +20,6 @@ RenderApp::RenderApp(const std::wstring& name, int width, int height, bool vSync
 RenderApp::~RenderApp()
 {
 	assert(!m_pWindow && "Use RenderApp::Destroy() before destruction.");
-	m_GUISystem->Shutdown();
-	m_GUISystem.reset();
 }
 
 bool RenderApp::Initialize()
@@ -38,15 +36,19 @@ bool RenderApp::Initialize()
 
 	const Application& app = Application::GetInstance();
 	HWND hWnd = m_pWindow.get()->GetWindowHandle();
-	m_SwapChain = app.GetDevicePtr()->CreateSwapChain(hWnd);
+
+	m_Device = Device::Create();
+	m_Device->Initialize();
+
+	m_SwapChain = m_Device->CreateSwapChain(hWnd);
 
 	// Initialize imgui wrapper class.
 	m_GUISystem = std::make_unique<GUISystem>();
 
 	m_GUISystem->Initialize(
 		hWnd,
-		app.GetDevice().Get(),
-		&app.GetDevicePtr()->GetCommandQueue(D3D12_COMMAND_LIST_TYPE_DIRECT));
+		m_Device->GetD3D12Device().Get(),
+		&m_Device->GetCommandQueue(D3D12_COMMAND_LIST_TYPE_DIRECT));
 
 	Application::OnWndProcHandler = [this](HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) -> LRESULT {
 		assert(m_GUISystem);
@@ -64,6 +66,12 @@ void RenderApp::Destroy()
 {
 	Application::GetInstance().DestroyWindow(m_pWindow);
 	m_pWindow.reset();
+
+	// Flush any commands in the commands queues before quitting;
+	m_Device->Flush();
+
+	m_GUISystem->Shutdown();
+	m_GUISystem.reset();
 }
 
 UINT RenderApp::Present(const std::shared_ptr<Texture>& texture)

@@ -1,6 +1,5 @@
 #include "Demo.h"
 
-#include "Application.h"
 #include "CommandList.h"
 #include "CommandQueue.h"
 #include "DescriptorAllocation.h"
@@ -110,7 +109,7 @@ Demo::Demo(const std::wstring& name, int width, int height, bool vSync)
 
 bool Demo::LoadContent()
 {
-	CommandQueue& commandQueue = Application::GetInstance().GetCommandQueue(D3D12_COMMAND_LIST_TYPE_COPY);
+	CommandQueue& commandQueue = m_Device->GetCommandQueue(D3D12_COMMAND_LIST_TYPE_COPY);
 	std::shared_ptr<CommandList> commandList = commandQueue.GetCommandList();
 
 	// Load texture.
@@ -139,8 +138,7 @@ bool Demo::LoadContent()
 	colorClearValue.Color[2] = 0.9f;
 	colorClearValue.Color[3] = 1.0f;
 
-	std::shared_ptr<Device> device = Application::GetInstance().GetDevicePtr();
-	std::shared_ptr<Texture> colorTexture = device->CreateTexture(
+	std::shared_ptr<Texture> colorTexture = m_Device->CreateTexture(
 		colorDesc, &colorClearValue, D3D12_RESOURCE_STATE_RENDER_TARGET, L"Color Render Target");
 
 	// Create a depth buffer.
@@ -156,7 +154,7 @@ bool Demo::LoadContent()
 	depthClearValue.Format = depthDesc.Format;
 	depthClearValue.DepthStencil = { 1.f, 0u };
 
-	std::shared_ptr<Texture> depthTexture = device->CreateTexture(
+	std::shared_ptr<Texture> depthTexture = m_Device->CreateTexture(
 		depthDesc, &depthClearValue, D3D12_RESOURCE_STATE_DEPTH_WRITE, L"Depth Render Target");
 
 	// Attach the textures to the render target.
@@ -172,7 +170,7 @@ bool Demo::LoadContent()
 	ThrowIfFailed(D3DReadFileToBlob(L"shaders/PixelShader.cso", &pixelShaderBlob));
 
 	// Create a root signature.
-	Microsoft::WRL::ComPtr<ID3D12Device2> d3d12Device = Application::GetInstance().GetDevice();
+	Microsoft::WRL::ComPtr<ID3D12Device8> d3d12Device = m_Device->GetD3D12Device();
 
 	D3D12_FEATURE_DATA_ROOT_SIGNATURE featureData = {};
 	featureData.HighestVersion = D3D_ROOT_SIGNATURE_VERSION_1_1;
@@ -230,7 +228,7 @@ bool Demo::LoadContent()
 	rootSignatureDescription.Init_1_1(_countof(rootParameters),
 		rootParameters, 1, &linearRepeatSampler, rootSignatureFlags);
 
-	m_RootSignature = Application::GetInstance().GetDevicePtr()->CreateRootSignature(rootSignatureDescription.Desc_1_1);
+	m_RootSignature = m_Device->CreateRootSignature(rootSignatureDescription.Desc_1_1);
 
 	auto CreatePSO = [this, &d3d12Device, &vertexShaderBlob, &pixelShaderBlob](D3D12_FILL_MODE fillMode,
 		Microsoft::WRL::ComPtr<ID3D12PipelineState>& outPSO)
@@ -337,7 +335,7 @@ void Demo::OnRender(RenderEventArgs& eventArgs)
 {
 	Super::OnRender(eventArgs);
 
-	CommandQueue& commandQueue = Application::GetInstance().GetCommandQueue(D3D12_COMMAND_LIST_TYPE_DIRECT);
+	CommandQueue& commandQueue = m_Device->GetCommandQueue(D3D12_COMMAND_LIST_TYPE_DIRECT);
 	std::shared_ptr<CommandList> commandList = commandQueue.GetCommandList();
 
 	RenderScenePass(commandList.get());
@@ -559,8 +557,7 @@ void Demo::RenderUIPass(CommandList* commandList)
 	ImGui::Checkbox("Enable mips", &m_EnableMips);
 
 	static ImTextureID textureID = ImTextureID_Invalid;
-	const Application& app = Application::GetInstance();
-	ID3D12Device2* device = app.GetDevice().Get();
+	ID3D12Device8* device = m_Device->GetD3D12Device().Get();
 
 	if (ImGui::CollapsingHeader("Texture Debugger"))
 	{

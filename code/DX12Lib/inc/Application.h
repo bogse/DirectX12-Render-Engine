@@ -62,37 +62,6 @@ public:
 	*/
 	void Quit(int exitCode = 0);
 
-	Microsoft::WRL::ComPtr<ID3D12Device2> GetDevice() const;
-	std::shared_ptr<Device> GetDevicePtr() const
-	{
-		return m_Device;
-	}
-
-	/**
-	 * Get a command queue. Valid types are:
-	 * - D3D12_COMMAND_LIST_TYPE_DIRECT : Can be used for draw, dispatch, or copy commands.
-	 * - D3D12_COMMAND_LIST_TYPE_COMPUTE: Can be used for dispatch or copy commands.
-	 * - D3D12_COMMAND_LIST_TYPE_COPY   : Can be used for copy commands.
-	 */
-	CommandQueue& GetCommandQueue(D3D12_COMMAND_LIST_TYPE type = D3D12_COMMAND_LIST_TYPE_DIRECT) const;
-
-	/**
-	* Flush all command queues.
-	*/
-	void Flush();
-
-	/**
-	* Allocate a number of CPU visible descriptors.
-	*/
-	DescriptorAllocation AllocateDescriptors(D3D12_DESCRIPTOR_HEAP_TYPE type, uint32_t numDescriptors = 1);
-
-	/**
-	* Release stale descriptors. This should only be called with a completed frame counter.
-	*/
-	void ReleaseStaleDescriptors(uint64_t finishedFrame);
-
-	UINT GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE type) const;
-
 	static uint64_t GetFrameCount()
 	{
 		return ms_FrameCount;
@@ -117,8 +86,6 @@ private:
 	Application& operator=(const Application& other) = delete;
 
 	HINSTANCE m_hInstance;
-
-	std::shared_ptr<Device> m_Device;
 
 	bool m_TearingSupported;
 

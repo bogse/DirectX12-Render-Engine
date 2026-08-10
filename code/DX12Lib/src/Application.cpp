@@ -37,12 +37,10 @@ Application::WndProcHandlerCallback Application::OnWndProcHandler = nullptr;
 
 Application::Application(HINSTANCE hInst)
 	: m_hInstance(hInst)
-	, m_TearingSupported(false)
 {}
 
 Application::~Application()
 {
-	Flush();
 }
 
 void Application::Initialize()
@@ -80,11 +78,6 @@ void Application::Initialize()
 	{
 		MessageBoxA(NULL, "Unable to register the window class.", "Error", MB_OK | MB_ICONERROR);
 	}
-
-	m_Device = Device::Create();
-	m_Device->Initialize();
-
-	m_TearingSupported = CheckTearingSupport();
 
 	// Initialize frame counter
 	ms_FrameCount = 0;
@@ -221,9 +214,6 @@ int Application::Run(std::shared_ptr<RenderApp> pRenderApp)
 		}
 	}
 
-	// Flush any commands in the commands queues before quitting;
-	Flush();
-
 	pRenderApp->UnloadContent();
 	pRenderApp->Destroy();
 
@@ -233,36 +223,6 @@ int Application::Run(std::shared_ptr<RenderApp> pRenderApp)
 void Application::Quit(int exitCode)
 {
 	PostQuitMessage(exitCode);
-}
-
-Microsoft::WRL::ComPtr<ID3D12Device2> Application::GetDevice() const
-{
-	return m_Device->GetD3D12Device();
-}
-
-CommandQueue& Application::GetCommandQueue(D3D12_COMMAND_LIST_TYPE type) const
-{
-	return m_Device->GetCommandQueue(type);
-}
-
-void Application::Flush()
-{
-	m_Device->Flush();
-}
-
-DescriptorAllocation Application::AllocateDescriptors(D3D12_DESCRIPTOR_HEAP_TYPE type, uint32_t numDescriptors)
-{
-	return m_Device->AllocateDescriptors(type, numDescriptors);
-}
-
-void Application::ReleaseStaleDescriptors(uint64_t finishedFrame)
-{
-	m_Device->ReleaseStaleDescriptors(finishedFrame);
-}
-
-UINT Application::GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE type) const
-{
-	return m_Device->GetDescriptorHandleIncrementSize(type);
 }
 
 // Remove a window from our window lists.

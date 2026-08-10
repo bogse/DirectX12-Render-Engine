@@ -5,6 +5,7 @@
 #include <memory>
 #include <string>
 
+class Device;
 class GUISystem;
 class SwapChain;
 class Texture;
@@ -53,6 +54,7 @@ protected:
 	virtual void OnWindowDestroy();
 
 	std::shared_ptr<Window> m_pWindow;
+	std::shared_ptr<Device> m_Device;
 	std::shared_ptr<SwapChain> m_SwapChain;
 	std::unique_ptr<GUISystem> m_GUISystem;
 
