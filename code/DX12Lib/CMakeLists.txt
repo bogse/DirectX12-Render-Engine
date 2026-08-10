@@ -122,7 +122,7 @@ target_link_libraries(DX12Lib
         dxguid
         ImGui
 		DirectXTexDX12
-        DirectX-Headers
+        DirectXHeaders
 )
 
 # Instruct the MSVC compiler compilation phase to use the precompiled header file
