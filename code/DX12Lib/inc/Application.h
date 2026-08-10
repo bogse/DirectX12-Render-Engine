@@ -45,7 +45,7 @@ public:
 	* window instance is returned. If a window with the given name already exists, that window will be
 	* returned.
 	*/
-	std::shared_ptr<Window> CreateRenderWindow(const std::wstring& windowName, int clientWidth, int clientHeight, bool vSync = true);
+	std::shared_ptr<Window> CreateRenderWindow(const std::wstring& windowName, int clientWidth, int clientHeight);
 
 	void DestroyWindow(const std::wstring& windowName);
 	void DestroyWindow(std::shared_ptr<Window> window);

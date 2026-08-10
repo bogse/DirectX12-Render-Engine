@@ -14,7 +14,7 @@ class Window;
 class RenderApp : public std::enable_shared_from_this<RenderApp>
 {
 public:
-	RenderApp(const std::wstring& name, int width, int height, bool vSync);
+	RenderApp(const std::wstring& name, int width, int height);
 	virtual ~RenderApp();
 
 	virtual bool Initialize();
@@ -64,5 +64,4 @@ private:
 	std::wstring m_Name;
 	int m_Width;
 	int m_Height;
-	bool m_vSync;
 };

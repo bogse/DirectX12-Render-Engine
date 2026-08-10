@@ -4,7 +4,7 @@
 
 #include "RenderApp.h"
 
-Window::Window(HWND hWnd, const std::wstring& windowName, int clientWidth, int clientHeight, bool vSync)
+Window::Window(HWND hWnd, const std::wstring& windowName, int clientWidth, int clientHeight)
 	: m_hWnd(hWnd)
 	, m_WindowName(windowName)
 	, m_ClientWidth(clientWidth)

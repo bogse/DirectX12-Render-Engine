@@ -8,11 +8,10 @@
 #include "SwapChain.h"
 #include "Window.h"
 
-RenderApp::RenderApp(const std::wstring& name, int width, int height, bool vSync)
+RenderApp::RenderApp(const std::wstring& name, int width, int height)
 	: m_Name(name)
 	, m_Width(width)
 	, m_Height(height)
-	, m_vSync(vSync)
 	, m_FPS(0.f)
 {
 }
@@ -30,7 +29,7 @@ bool RenderApp::Initialize()
 		return false;
 	}
 
-	m_pWindow = Application::GetInstance().CreateRenderWindow(m_Name, m_Width, m_Height, m_vSync);
+	m_pWindow = Application::GetInstance().CreateRenderWindow(m_Name, m_Width, m_Height);
 	m_pWindow->RegisterCallbacks(shared_from_this());
 	m_pWindow->Show();
 

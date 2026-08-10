@@ -27,8 +27,8 @@ static LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM l
 // class are protected and not accessible by the std::make_shared method.
 struct MakeWindow : public Window
 {
-	MakeWindow(HWND hWnd, const std::wstring& windowName, int clientWidth, int clientHeight, bool vSync)
-		: Window(hWnd, windowName, clientWidth, clientHeight, vSync)
+	MakeWindow(HWND hWnd, const std::wstring& windowName, int clientWidth, int clientHeight)
+		: Window(hWnd, windowName, clientWidth, clientHeight)
 	{
 	}
 };
@@ -110,7 +110,7 @@ void Application::Destroy()
 	}
 }
 
-std::shared_ptr<Window> Application::CreateRenderWindow(const std::wstring& windowName, int clientWidth, int clientHeight, bool vSync)
+std::shared_ptr<Window> Application::CreateRenderWindow(const std::wstring& windowName, int clientWidth, int clientHeight)
 {
 	// First check if a window with the given name already exists.
 	WindowNameMap::iterator windowIter = g_WindowByName.find(windowName);
@@ -134,7 +134,7 @@ std::shared_ptr<Window> Application::CreateRenderWindow(const std::wstring& wind
 		return nullptr;
 	}
 
-	WindowPtr pWindow = std::make_shared<MakeWindow>(hWnd, windowName, clientWidth, clientHeight, vSync);
+	WindowPtr pWindow = std::make_shared<MakeWindow>(hWnd, windowName, clientWidth, clientHeight);
 
 	g_Windows.insert(WindowMap::value_type(hWnd, pWindow));
 	g_WindowByName.insert(WindowNameMap::value_type(windowName, pWindow));

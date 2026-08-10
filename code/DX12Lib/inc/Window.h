@@ -47,7 +47,7 @@ protected:
 	friend class RenderApp;
 
 	Window() = delete;
-	Window(HWND hWnd, const std::wstring& windowName, int clientWidth, int clientHeight, bool vSync);
+	Window(HWND hWnd, const std::wstring& windowName, int clientWidth, int clientHeight);
 	virtual ~Window();
 
 	/*

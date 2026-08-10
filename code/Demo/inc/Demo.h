@@ -19,7 +19,7 @@ class Demo : public RenderApp
 public:
 	using Super = RenderApp;
 
-	Demo(const std::wstring& name, int width, int height, bool vSync = false);
+	Demo(const std::wstring& name, int width, int height);
 
 	bool LoadContent() override;
 	void UnloadContent() override;

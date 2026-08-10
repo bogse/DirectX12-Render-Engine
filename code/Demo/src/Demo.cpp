@@ -78,8 +78,8 @@ namespace
 	}
 }
 
-Demo::Demo(const std::wstring& name, int width, int height, bool vSync)
-	: Super(name, width, height, vSync)
+Demo::Demo(const std::wstring& name, int width, int height)
+	: Super(name, width, height)
 	, m_PipelineOptions{true, true}
 	, m_ScissorRect(CD3DX12_RECT(0, 0, LONG_MAX, LONG_MAX))
 	, m_Viewport(CD3DX12_VIEWPORT(0.0f, 0.0f, static_cast<float>(width), static_cast<float>(height)))
