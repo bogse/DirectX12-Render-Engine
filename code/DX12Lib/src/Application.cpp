@@ -110,33 +110,6 @@ void Application::Destroy()
 	}
 }
 
-bool Application::CheckTearingSupport()
-{
-	BOOL allowTearing = false;
-
-	// Rather than create a DXGI 1.5 factory interface directly, we create the the 
-	// DXGI 1.4 interface and query for the 1.5 interface. This is to enabled the 
-	// graphics debugging tools which will not support the 1.5 factory interface
-	// until a future update.
-	Microsoft::WRL::ComPtr<IDXGIFactory4> factory4;
-	if (SUCCEEDED(CreateDXGIFactory1(IID_PPV_ARGS(&factory4))))
-	{
-		Microsoft::WRL::ComPtr<IDXGIFactory5> factory5;
-		if (SUCCEEDED(factory4.As(&factory5)))
-		{
-			factory5->CheckFeatureSupport(DXGI_FEATURE_PRESENT_ALLOW_TEARING,
-				&allowTearing, sizeof(allowTearing));
-		}
-	}
-
-	return allowTearing == TRUE;
-}
-
-bool Application::IsTearingSupported() const
-{
-	return m_TearingSupported;
-}
-
 std::shared_ptr<Window> Application::CreateRenderWindow(const std::wstring& windowName, int clientWidth, int clientHeight, bool vSync)
 {
 	// First check if a window with the given name already exists.

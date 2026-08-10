@@ -78,16 +78,12 @@ protected:
 
 	void Initialize();
 
-	bool CheckTearingSupport();
-
 private:
 	friend LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam);
 	Application(const Application& copy) = delete;
 	Application& operator=(const Application& other) = delete;
 
 	HINSTANCE m_hInstance;
-
-	bool m_TearingSupported;
 
 	static uint64_t ms_FrameCount;
 };
