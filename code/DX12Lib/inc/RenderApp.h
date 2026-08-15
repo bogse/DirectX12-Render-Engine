@@ -11,7 +11,7 @@ class SwapChain;
 class Texture;
 class Window;
 
-class RenderApp : public std::enable_shared_from_this<RenderApp>
+class RenderApp
 {
 public:
 	RenderApp(const std::wstring& name, int width, int height);
@@ -61,6 +61,8 @@ protected:
 	float m_FPS;
 
 private:
+	void RegisterEvents();
+
 	std::wstring m_Name;
 	int m_Width;
 	int m_Height;

@@ -2,8 +2,6 @@
 
 #include "Window.h"
 
-#include "RenderApp.h"
-
 Window::Window(HWND hWnd, const std::wstring& windowName, int clientWidth, int clientHeight)
 	: m_hWnd(hWnd)
 	, m_WindowName(windowName)
@@ -36,11 +34,8 @@ void Window::Hide()
 
 void Window::Destroy()
 {
-	if (std::shared_ptr<RenderApp> pRenderApp = m_pRenderApp.lock())
-	{
-		// Notify the registered render app that the window is being destroyed.
-		pRenderApp->OnWindowDestroy();
-	}
+	EventArgs eventArgs;
+	WindowDestroy.Broadcast(eventArgs);
 
 	if (m_hWnd)
 	{
@@ -105,47 +100,38 @@ void Window::ToggleFullscreen()
 	SetFullscreen(!m_Fullscreen);
 }
 
-void Window::RegisterCallbacks(std::shared_ptr<RenderApp> pRenderApp)
-{
-	m_pRenderApp = pRenderApp;
-}
-
 void Window::OnUpdate(UpdateEventArgs& eventArgs)
 {
 	m_UpdateClock.Tick();
 
-	if (std::shared_ptr<RenderApp> pRenderApp = m_pRenderApp.lock())
-	{
-		UpdateEventArgs updateEventArgs(m_UpdateClock.GetDeltaSeconds(), m_UpdateClock.GetTotalSeconds(), eventArgs.m_FrameNumber);
-		pRenderApp->OnUpdate(updateEventArgs);
-	}
+	UpdateEventArgs updateEventArgs(
+		m_UpdateClock.GetDeltaSeconds(),
+		m_UpdateClock.GetTotalSeconds(),
+		eventArgs.m_FrameNumber);
+
+	Update.Broadcast(updateEventArgs);
 }
 
 void Window::OnRender(RenderEventArgs& eventArgs)
 {
 	m_RenderClock.Tick();
 
-	if (std::shared_ptr<RenderApp> pRenderApp = m_pRenderApp.lock())
-	{
-		RenderEventArgs renderEventArgs(m_RenderClock.GetDeltaSeconds(), m_RenderClock.GetTotalSeconds(), eventArgs.m_FrameNumber);
-		pRenderApp->OnRender(renderEventArgs);
-	}
+	RenderEventArgs renderEventArgs(
+		m_RenderClock.GetDeltaSeconds(),
+		m_RenderClock.GetTotalSeconds(),
+		eventArgs.m_FrameNumber);
+
+	Render.Broadcast(renderEventArgs);
 }
 
 void Window::OnKeyPressed(KeyEventArgs& eventArgs)
 {
-	if (std::shared_ptr<RenderApp> pRenderApp = m_pRenderApp.lock())
-	{
-		pRenderApp->OnKeyPressed(eventArgs);
-	}
+	KeyPressed.Broadcast(eventArgs);
 }
 
 void Window::OnKeyReleased(KeyEventArgs& eventArgs)
 {
-	if (std::shared_ptr<RenderApp> pRenderApp = m_pRenderApp.lock())
-	{
-		pRenderApp->OnKeyReleased(eventArgs);
-	}
+	KeyReleased.Broadcast(eventArgs);
 }
 
 void Window::OnMouseMoved(MouseMotionEventArgs& eventArgs)
@@ -156,34 +142,22 @@ void Window::OnMouseMoved(MouseMotionEventArgs& eventArgs)
 	m_PreviousMouseX = eventArgs.m_X;
 	m_PreviousMouseY = eventArgs.m_Y;
 
-	if (std::shared_ptr<RenderApp> pRenderApp = m_pRenderApp.lock())
-	{
-		pRenderApp->OnMouseMoved(eventArgs);
-	}
+	MouseMoved.Broadcast(eventArgs);
 }
 
 void Window::OnMouseButtonPressed(MouseButtonEventArgs& eventArgs)
 {
-	if (std::shared_ptr<RenderApp> pRenderApp = m_pRenderApp.lock())
-	{
-		pRenderApp->OnMouseButtonPressed(eventArgs);
-	}
+	MouseButtonPressed.Broadcast(eventArgs);
 }
 
 void Window::OnMouseButtonReleased(MouseButtonEventArgs& eventArgs)
 {
-	if (std::shared_ptr<RenderApp> pRenderApp = m_pRenderApp.lock())
-	{
-		pRenderApp->OnMouseButtonReleased(eventArgs);
-	}
+	MouseButtonReleased.Broadcast(eventArgs);
 }
 
 void Window::OnMouseWheel(MouseWheelEventArgs& eventArgs)
 {
-	if (std::shared_ptr<RenderApp> pRenderApp = m_pRenderApp.lock())
-	{
-		pRenderApp->OnMouseWheel(eventArgs);
-	}
+	MouseWheel.Broadcast(eventArgs);
 }
 
 void Window::OnResize(ResizeEventArgs& eventArgs)
@@ -193,10 +167,7 @@ void Window::OnResize(ResizeEventArgs& eventArgs)
 	{
 		m_ClientWidth = std::max(1, eventArgs.m_Width);
 		m_ClientHeight = std::max(1, eventArgs.m_Height);
-	}
 
-	if (std::shared_ptr<RenderApp> pRenderApp = m_pRenderApp.lock())
-	{
-		pRenderApp->OnResize(eventArgs);
+		Resize.Broadcast(eventArgs);
 	}
 }

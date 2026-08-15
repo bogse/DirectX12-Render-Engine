@@ -9,8 +9,6 @@
 #include "Event.h"
 #include "HighResolutionClock.h"
 
-class RenderApp;
-
 class Window
 {
 public:
@@ -47,6 +45,17 @@ public:
 	void Show();
 	void Hide();
 
+	Event<UpdateEventArgs>		Update;
+	Event<RenderEventArgs>		Render;
+	Event<KeyEventArgs>			KeyPressed;
+	Event<KeyEventArgs>			KeyReleased;
+	Event<MouseMotionEventArgs> MouseMoved;
+	Event<MouseButtonEventArgs> MouseButtonPressed;
+	Event<MouseButtonEventArgs> MouseButtonReleased;
+	Event<MouseWheelEventArgs>	MouseWheel;
+	Event<ResizeEventArgs>		Resize;
+	Event<EventArgs>			WindowDestroy;
+
 protected:
 	/*
 	* The Window procedure needsto call protected methods of this class.
@@ -56,38 +65,27 @@ protected:
 	* Only the application can create a window.
 	*/
 	friend class Application;
-	/*
-	* The DirectXTemplate class needs to register itself with a window.
-	*/
-	friend class RenderApp;
 
 	Window() = delete;
 	Window(HWND hWnd, const std::wstring& windowName, int clientWidth, int clientHeight);
 	virtual ~Window();
 
-	/*
-	* Register a RenderApp with this window. This allows the window to callback functions in the RenderApp class.
-	*/
-	void RegisterCallbacks(std::shared_ptr<RenderApp> pRenderApp);
+	void OnUpdate(UpdateEventArgs& eventArgs);
+	void OnRender(RenderEventArgs& eventArgs);
 
-	virtual void OnUpdate(UpdateEventArgs& eventArgs);
-	virtual void OnRender(RenderEventArgs& eventArgs);
+	void OnKeyPressed(KeyEventArgs& eventArgs);
+	void OnKeyReleased(KeyEventArgs& eventArgs);
 
-	virtual void OnKeyPressed(KeyEventArgs& eventArgs);
-	virtual void OnKeyReleased(KeyEventArgs& eventArgs);
+	void OnMouseMoved(MouseMotionEventArgs& eventArgs);
+	void OnMouseButtonPressed(MouseButtonEventArgs& eventArgs);
+	void OnMouseButtonReleased(MouseButtonEventArgs& eventArgs);
+	void OnMouseWheel(MouseWheelEventArgs& eventArgs);
 
-	virtual void OnMouseMoved(MouseMotionEventArgs& eventArgs);
-	virtual void OnMouseButtonPressed(MouseButtonEventArgs& eventArgs);
-	virtual void OnMouseButtonReleased(MouseButtonEventArgs& eventArgs);
-	virtual void OnMouseWheel(MouseWheelEventArgs& eventArgs);
-
-	virtual void OnResize(ResizeEventArgs& eventArgs);
+	void OnResize(ResizeEventArgs& eventArgs);
 
 private:
 	Window(const Window& otherWindow) = delete;
 	Window& operator= (const Window& otherWindow) = delete;
-
-	std::weak_ptr<RenderApp> m_pRenderApp;
 
 	HighResolutionClock m_UpdateClock;
 	HighResolutionClock m_RenderClock;
