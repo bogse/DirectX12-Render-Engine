@@ -32,8 +32,6 @@ public:
 	
 	static Application& GetInstance();
 
-	bool IsTearingSupported() const;
-
     /**
 	* Create a new DirectX12 render window instance.
 	* @param windowName The name of the window. This name will appear in the title bar of the window. This name should be unique.
@@ -61,11 +59,6 @@ public:
 	* Request to quit the application and close all windows. @param exitCode The error code to return to the invoking process.
 	*/
 	void Quit(int exitCode = 0);
-
-	static uint64_t GetFrameCount()
-	{
-		return ms_FrameCount;
-	}
 
 	static WndProcHandlerCallback OnWndProcHandler;
 
