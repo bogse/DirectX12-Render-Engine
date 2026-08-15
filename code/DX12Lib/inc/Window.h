@@ -6,7 +6,7 @@
 #include <wrl/client.h>
 #include <dxgi1_6.h>
 
-#include "Events.h"
+#include "Event.h"
 #include "HighResolutionClock.h"
 
 class RenderApp;
@@ -14,7 +14,6 @@ class RenderApp;
 class Window
 {
 public:
-
 	void Destroy();
 
 	int GetClientWidth() const
