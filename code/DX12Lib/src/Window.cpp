@@ -24,16 +24,6 @@ Window::~Window()
 	assert(!m_hWnd && "Use Application::DestroyWindow before destruction.");
 }
 
-HWND Window::GetWindowHandle() const
-{
-	return m_hWnd;
-}
-
-const std::wstring& Window::GetWindowName() const
-{
-	return m_WindowName;
-}
-
 void Window::Show()
 {
 	::ShowWindow(m_hWnd, SW_SHOW);
@@ -57,21 +47,6 @@ void Window::Destroy()
 		DestroyWindow(m_hWnd);
 		m_hWnd = nullptr;
 	}
-}
-
-int Window::GetClientWidth() const
-{
-	return m_ClientWidth;
-}
-
-int Window::GetClientHeight() const
-{
-	return m_ClientHeight;
-}
-
-bool Window::IsFullscreen() const
-{
-	return m_Fullscreen;
 }
 
 void Window::SetFullscreen(bool fullscreen)

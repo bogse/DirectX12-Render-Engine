@@ -14,18 +14,34 @@ class RenderApp;
 class Window
 {
 public:
-	static constexpr UINT BufferCount = 3;
-
-	HWND GetWindowHandle() const;
 
 	void Destroy();
 
-	const std::wstring& GetWindowName() const;
+	int GetClientWidth() const
+	{
+		return m_ClientWidth;
+	}
 
-	int GetClientWidth() const;
-	int GetClientHeight() const;
+	int GetClientHeight() const
+	{
+		return m_ClientHeight;
+	}
 
-	bool IsFullscreen() const;
+	HWND GetWindowHandle() const
+	{
+		return m_hWnd;
+	}
+
+	const std::wstring& GetWindowName() const
+	{
+		return m_WindowName;
+	}
+
+	bool IsFullscreen() const
+	{
+		return m_Fullscreen;
+	}
+
 	void SetFullscreen(const bool fullscreen);
 	void ToggleFullscreen();
 
@@ -72,21 +88,21 @@ private:
 	Window(const Window& otherWindow) = delete;
 	Window& operator= (const Window& otherWindow) = delete;
 
-	HWND m_hWnd;
+	std::weak_ptr<RenderApp> m_pRenderApp;
+
+	HighResolutionClock m_UpdateClock;
+	HighResolutionClock m_RenderClock;
 
 	std::wstring m_WindowName;
 
 	int m_ClientWidth;
 	int m_ClientHeight;
-	bool m_Fullscreen;
-
-	HighResolutionClock m_UpdateClock;
-	HighResolutionClock m_RenderClock;
-
-	std::weak_ptr<RenderApp> m_pRenderApp;
 
 	RECT m_WindowRect;
+	HWND m_hWnd;
 
 	int m_PreviousMouseX;
 	int m_PreviousMouseY;
+
+	bool m_Fullscreen;
 };
