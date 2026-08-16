@@ -3,20 +3,12 @@
 */
 #pragma once
 
-#include <d3d12.h>
-#include <dxgi1_6.h>
-#include <wrl/client.h>
+#include <windows.h>
 
 #include <functional>
 #include <memory>
 #include <string>
 
-#include "DescriptorAllocation.h"
-
-class CommandQueue;
-class Device;
-class GUISystem;
-class RenderApp;
 class Window;
 
 class Application
@@ -53,7 +45,7 @@ public:
 	/**
 	* Run the application loop and message pump. Return the error code if an error occurred.
 	*/
-	int Run(std::shared_ptr<RenderApp> pRenderApp);
+	int Run();
 
 	/**
 	* Request to quit the application and close all windows. @param exitCode The error code to return to the invoking process.

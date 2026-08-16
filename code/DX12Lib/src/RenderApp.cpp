@@ -73,6 +73,24 @@ void RenderApp::Destroy()
 	m_GUISystem.reset();
 }
 
+int RenderApp::Run()
+{
+	if (!Initialize())
+		return 1;
+
+	if (!LoadContent())
+		return 2;
+
+	m_pWindow->Show();
+
+	int retCode = Application::GetInstance().Run();
+
+	UnloadContent();
+	Destroy();
+
+	return retCode;
+}
+
 UINT RenderApp::Present(const std::shared_ptr<Texture>& texture)
 {
 	return m_SwapChain->Present(texture);

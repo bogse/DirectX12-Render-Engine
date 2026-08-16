@@ -37,10 +37,10 @@ int CALLBACK wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR lpCmdL
 	}
 
 	Application::Create(hInstance);
-	{
-		std::shared_ptr<Demo> demo = std::make_shared<Demo>(L"DirectX 12 Render Engine", 1280, 720);
-		retCode = Application::GetInstance().Run(demo);
-	}
+
+	std::shared_ptr<Demo> demo = std::make_shared<Demo>(L"DirectX 12 Render Engine", 1280, 720);
+	retCode = demo->Run();
+
 	Application::Destroy();
 
 	atexit(&ReportLiveObjects);

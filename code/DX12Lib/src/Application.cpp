@@ -2,10 +2,7 @@
 
 #include "Application.h"
 
-#include "CommandQueue.h"
-#include "Device.h"
 #include "Input.h"
-#include "RenderApp.h"
 #include "Window.h"
 
 constexpr wchar_t WINDOW_CLASS_NAME[] = L"DX12RenderWindowClass";
@@ -169,14 +166,8 @@ std::shared_ptr<Window> Application::GetWindowByName(const std::wstring& windowN
 	return window;
 }
 
-int Application::Run(std::shared_ptr<RenderApp> pRenderApp)
+int Application::Run()
 {
-	if (!pRenderApp->Initialize()) 
-		return 1;
-
-	if (!pRenderApp->LoadContent()) 
-		return 2;
-
 	MSG msg = { 0 };
 	while (msg.message != WM_QUIT)
 	{
@@ -186,9 +177,6 @@ int Application::Run(std::shared_ptr<RenderApp> pRenderApp)
 			DispatchMessage(&msg);
 		}
 	}
-
-	pRenderApp->UnloadContent();
-	pRenderApp->Destroy();
 
 	return static_cast<int>(msg.wParam);
 }

@@ -22,6 +22,8 @@ public:
 	virtual void UnloadContent() = 0;
 	virtual void Destroy();
 
+	int Run();
+
 	int GetClientWidth() const
 	{
 		return m_Width;
