@@ -16,5 +16,4 @@ public:
     virtual void OnMouseButtonReleased(MouseButtonEventArgs& eventArgs) {}
     virtual void OnMouseWheel(MouseWheelEventArgs& eventArgs) {}
     virtual void OnResize(ResizeEventArgs& eventArgs) {}
-    virtual void OnWindowDestroy() {}
 };

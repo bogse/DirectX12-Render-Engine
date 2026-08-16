@@ -180,10 +180,3 @@ void RenderApp::OnResize(ResizeEventArgs& eventArgs)
 
 	m_SwapChain->Resize(m_Width, m_Height);
 }
-
-void RenderApp::OnWindowDestroy()
-{
-	// If the Window which we are registered to is destroyed, 
-	// then any resources which are associated to the window must be released.
-	UnloadContent();
-}

@@ -47,17 +47,6 @@ public:
 	void Show();
 	void Hide();
 
-	Event<UpdateEventArgs>		Update;
-	Event<RenderEventArgs>		Render;
-	Event<KeyEventArgs>			KeyPressed;
-	Event<KeyEventArgs>			KeyReleased;
-	Event<MouseMotionEventArgs> MouseMoved;
-	Event<MouseButtonEventArgs> MouseButtonPressed;
-	Event<MouseButtonEventArgs> MouseButtonReleased;
-	Event<MouseWheelEventArgs>	MouseWheel;
-	Event<ResizeEventArgs>		Resize;
-	Event<EventArgs>			WindowDestroy;
-
 protected:
 	/*
 	* The Window procedure needsto call protected methods of this class.
@@ -106,4 +95,14 @@ private:
 	int m_PreviousMouseY;
 
 	bool m_Fullscreen;
+
+	Event<UpdateEventArgs>		m_Update;
+	Event<RenderEventArgs>		m_Render;
+	Event<KeyEventArgs>			m_KeyPressed;
+	Event<KeyEventArgs>			m_KeyReleased;
+	Event<MouseMotionEventArgs> m_MouseMoved;
+	Event<MouseButtonEventArgs> m_MouseButtonPressed;
+	Event<MouseButtonEventArgs> m_MouseButtonReleased;
+	Event<MouseWheelEventArgs>	m_MouseWheel;
+	Event<ResizeEventArgs>		m_Resize;
 };

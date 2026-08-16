@@ -26,16 +26,15 @@ Window::~Window()
 
 void Window::RegisterEvents(WindowListener* listener)
 {
-	Update.AddListener([listener](UpdateEventArgs& eventArgs) { listener->OnUpdate(eventArgs); });
-	Render.AddListener([listener](RenderEventArgs& eventArgs) { listener->OnRender(eventArgs); });
-	KeyPressed.AddListener([listener](KeyEventArgs& eventArgs) { listener->OnKeyPressed(eventArgs); });
-	KeyReleased.AddListener([listener](KeyEventArgs& eventArgs) { listener->OnKeyReleased(eventArgs); });
-	MouseMoved.AddListener([listener](MouseMotionEventArgs& eventArgs) { listener->OnMouseMoved(eventArgs); });
-	MouseButtonPressed.AddListener([listener](MouseButtonEventArgs& eventArgs) { listener->OnMouseButtonPressed(eventArgs); });
-	MouseButtonReleased.AddListener([listener](MouseButtonEventArgs& eventArgs) { listener->OnMouseButtonReleased(eventArgs); });
-	MouseWheel.AddListener([listener](MouseWheelEventArgs& eventArgs) { listener->OnMouseWheel(eventArgs); });
-	Resize.AddListener([listener](ResizeEventArgs& eventArgs) { listener->OnResize(eventArgs); });
-	WindowDestroy.AddListener([listener](EventArgs& eventArgs) { listener->OnWindowDestroy(); });
+	m_Update.AddListener([listener](UpdateEventArgs& eventArgs) { listener->OnUpdate(eventArgs); });
+	m_Render.AddListener([listener](RenderEventArgs& eventArgs) { listener->OnRender(eventArgs); });
+	m_KeyPressed.AddListener([listener](KeyEventArgs& eventArgs) { listener->OnKeyPressed(eventArgs); });
+	m_KeyReleased.AddListener([listener](KeyEventArgs& eventArgs) { listener->OnKeyReleased(eventArgs); });
+	m_MouseMoved.AddListener([listener](MouseMotionEventArgs& eventArgs) { listener->OnMouseMoved(eventArgs); });
+	m_MouseButtonPressed.AddListener([listener](MouseButtonEventArgs& eventArgs) { listener->OnMouseButtonPressed(eventArgs); });
+	m_MouseButtonReleased.AddListener([listener](MouseButtonEventArgs& eventArgs) { listener->OnMouseButtonReleased(eventArgs); });
+	m_MouseWheel.AddListener([listener](MouseWheelEventArgs& eventArgs) { listener->OnMouseWheel(eventArgs); });
+	m_Resize.AddListener([listener](ResizeEventArgs& eventArgs) { listener->OnResize(eventArgs); });
 }
 
 void Window::Show()
@@ -51,7 +50,6 @@ void Window::Hide()
 void Window::Destroy()
 {
 	EventArgs eventArgs;
-	WindowDestroy.Broadcast(eventArgs);
 
 	if (m_hWnd)
 	{
@@ -125,7 +123,7 @@ void Window::OnUpdate(UpdateEventArgs& eventArgs)
 		m_UpdateClock.GetTotalSeconds(),
 		eventArgs.m_FrameNumber);
 
-	Update.Broadcast(updateEventArgs);
+	m_Update.Broadcast(updateEventArgs);
 }
 
 void Window::OnRender(RenderEventArgs& eventArgs)
@@ -137,17 +135,17 @@ void Window::OnRender(RenderEventArgs& eventArgs)
 		m_RenderClock.GetTotalSeconds(),
 		eventArgs.m_FrameNumber);
 
-	Render.Broadcast(renderEventArgs);
+	m_Render.Broadcast(renderEventArgs);
 }
 
 void Window::OnKeyPressed(KeyEventArgs& eventArgs)
 {
-	KeyPressed.Broadcast(eventArgs);
+	m_KeyPressed.Broadcast(eventArgs);
 }
 
 void Window::OnKeyReleased(KeyEventArgs& eventArgs)
 {
-	KeyReleased.Broadcast(eventArgs);
+	m_KeyReleased.Broadcast(eventArgs);
 }
 
 void Window::OnMouseMoved(MouseMotionEventArgs& eventArgs)
@@ -158,22 +156,22 @@ void Window::OnMouseMoved(MouseMotionEventArgs& eventArgs)
 	m_PreviousMouseX = eventArgs.m_X;
 	m_PreviousMouseY = eventArgs.m_Y;
 
-	MouseMoved.Broadcast(eventArgs);
+	m_MouseMoved.Broadcast(eventArgs);
 }
 
 void Window::OnMouseButtonPressed(MouseButtonEventArgs& eventArgs)
 {
-	MouseButtonPressed.Broadcast(eventArgs);
+	m_MouseButtonPressed.Broadcast(eventArgs);
 }
 
 void Window::OnMouseButtonReleased(MouseButtonEventArgs& eventArgs)
 {
-	MouseButtonReleased.Broadcast(eventArgs);
+	m_MouseButtonReleased.Broadcast(eventArgs);
 }
 
 void Window::OnMouseWheel(MouseWheelEventArgs& eventArgs)
 {
-	MouseWheel.Broadcast(eventArgs);
+	m_MouseWheel.Broadcast(eventArgs);
 }
 
 void Window::OnResize(ResizeEventArgs& eventArgs)
@@ -184,6 +182,6 @@ void Window::OnResize(ResizeEventArgs& eventArgs)
 		m_ClientWidth = std::max(1, eventArgs.m_Width);
 		m_ClientHeight = std::max(1, eventArgs.m_Height);
 
-		Resize.Broadcast(eventArgs);
+		m_Resize.Broadcast(eventArgs);
 	}
 }

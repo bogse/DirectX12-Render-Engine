@@ -52,8 +52,6 @@ protected:
 	virtual void OnMouseWheel(MouseWheelEventArgs& eventArgs);
 	virtual void OnResize(ResizeEventArgs& eventArgs);
 
-	virtual void OnWindowDestroy();
-
 	std::shared_ptr<Device> m_Device;
 	std::shared_ptr<SwapChain> m_SwapChain;
 	std::unique_ptr<GUISystem> m_GUISystem;
