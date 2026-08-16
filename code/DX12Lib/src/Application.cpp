@@ -7,9 +7,8 @@
 
 constexpr wchar_t WINDOW_CLASS_NAME[] = L"DX12RenderWindowClass";
 
-using WindowPtr =		std::shared_ptr<Window>;
-using WindowMap =		std::map<HWND, WindowPtr>;
-using WindowNameMap =	std::map <std::wstring, WindowPtr>;
+using WindowMap =		std::map<HWND, std::shared_ptr<Window>>;
+using WindowNameMap =	std::map <std::wstring, std::shared_ptr<Window>>;
 
 static Application*		g_pSingleton = nullptr;
 static WindowMap		g_Windows;
@@ -136,7 +135,7 @@ std::shared_ptr<Window> Application::CreateRenderWindow(
 		return nullptr;
 	}
 
-	WindowPtr pWindow = std::make_shared<MakeWindow>(hWnd, windowName, clientWidth, clientHeight);
+	std::shared_ptr<Window> pWindow = std::make_shared<MakeWindow>(hWnd, windowName, clientWidth, clientHeight);
 	pWindow->Show();
 
 	g_Windows.insert(WindowMap::value_type(hWnd, pWindow));
@@ -155,7 +154,7 @@ void Application::DestroyWindow(std::shared_ptr<Window> window)
 
 void Application::DestroyWindow(const std::wstring& windowName)
 {
-	WindowPtr pWindow = GetWindowByName(windowName);
+	std::shared_ptr<Window> pWindow = GetWindowByName(windowName);
 	if (pWindow)
 	{
 		DestroyWindow(pWindow);
@@ -178,7 +177,7 @@ std::shared_ptr<Window> Application::GetWindowByName(const std::wstring& windowN
 
 HWND Application::GetWindowHandle(const std::wstring& windowName)
 {
-	WindowPtr window = nullptr;
+	std::shared_ptr<Window> window = nullptr;
 	WindowNameMap::iterator iter = g_WindowByName.find(windowName);
 	if (iter != g_WindowByName.end())
 	{
@@ -210,7 +209,7 @@ void Application::Quit(int exitCode)
 
 void Application::ToggleFullscreen(const std::wstring& windowName)
 {
-	WindowPtr window = nullptr;
+	std::shared_ptr<Window> window = nullptr;
 	WindowNameMap::iterator iter = g_WindowByName.find(windowName);
 	if (iter != g_WindowByName.end())
 	{
@@ -226,7 +225,7 @@ static void RemoveWindow(HWND hWnd)
 	WindowMap::iterator windowIter = g_Windows.find(hWnd);
 	if (windowIter != g_Windows.end())
 	{
-		WindowPtr pWindow = windowIter->second;
+		std::shared_ptr<Window> pWindow = windowIter->second;
 		g_WindowByName.erase(pWindow->GetWindowName());
 		g_Windows.erase(windowIter);
 	}
@@ -274,7 +273,7 @@ static LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM l
 			return result;
 	}
 
-	WindowPtr pWindow;
+	std::shared_ptr<Window> pWindow;
 	{
 		WindowMap::iterator iter = g_Windows.find(hWnd);
 		if (iter != g_Windows.end())
