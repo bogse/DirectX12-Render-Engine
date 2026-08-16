@@ -107,7 +107,11 @@ void Application::Destroy()
 	}
 }
 
-std::shared_ptr<Window> Application::CreateRenderWindow(const std::wstring& windowName, int clientWidth, int clientHeight)
+std::shared_ptr<Window> Application::CreateRenderWindow(
+	WindowListener* listener,
+	const std::wstring& windowName,
+	int clientWidth,
+	int clientHeight)
 {
 	// First check if a window with the given name already exists.
 	WindowNameMap::iterator windowIter = g_WindowByName.find(windowName);
@@ -135,6 +139,8 @@ std::shared_ptr<Window> Application::CreateRenderWindow(const std::wstring& wind
 
 	g_Windows.insert(WindowMap::value_type(hWnd, pWindow));
 	g_WindowByName.insert(WindowNameMap::value_type(windowName, pWindow));
+
+	pWindow->RegisterEvents(listener);
 
 	return pWindow;
 }

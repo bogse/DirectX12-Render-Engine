@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Event.h"
+#include "WindowListener.h"
 
 #include <memory>
 #include <string>
@@ -11,7 +11,7 @@ class SwapChain;
 class Texture;
 class Window;
 
-class RenderApp
+class RenderApp : public WindowListener
 {
 public:
 	RenderApp(const std::wstring& name, int width, int height);
@@ -63,8 +63,6 @@ protected:
 	float m_FPS;
 
 private:
-	void RegisterEvents();
-
 	std::wstring m_Name;
 	int m_Width;
 	int m_Height;

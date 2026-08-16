@@ -2,6 +2,8 @@
 
 #include "Window.h"
 
+#include "WindowListener.h"
+
 Window::Window(HWND hWnd, const std::wstring& windowName, int clientWidth, int clientHeight)
 	: m_hWnd(hWnd)
 	, m_WindowName(windowName)
@@ -20,6 +22,20 @@ Window::~Window()
 {
 	// Window should be destroyed with Application::DestroyWindow before the window goes out of scope.
 	assert(!m_hWnd && "Use Application::DestroyWindow before destruction.");
+}
+
+void Window::RegisterEvents(WindowListener* listener)
+{
+	Update.AddListener([listener](UpdateEventArgs& eventArgs) { listener->OnUpdate(eventArgs); });
+	Render.AddListener([listener](RenderEventArgs& eventArgs) { listener->OnRender(eventArgs); });
+	KeyPressed.AddListener([listener](KeyEventArgs& eventArgs) { listener->OnKeyPressed(eventArgs); });
+	KeyReleased.AddListener([listener](KeyEventArgs& eventArgs) { listener->OnKeyReleased(eventArgs); });
+	MouseMoved.AddListener([listener](MouseMotionEventArgs& eventArgs) { listener->OnMouseMoved(eventArgs); });
+	MouseButtonPressed.AddListener([listener](MouseButtonEventArgs& eventArgs) { listener->OnMouseButtonPressed(eventArgs); });
+	MouseButtonReleased.AddListener([listener](MouseButtonEventArgs& eventArgs) { listener->OnMouseButtonReleased(eventArgs); });
+	MouseWheel.AddListener([listener](MouseWheelEventArgs& eventArgs) { listener->OnMouseWheel(eventArgs); });
+	Resize.AddListener([listener](ResizeEventArgs& eventArgs) { listener->OnResize(eventArgs); });
+	WindowDestroy.AddListener([listener](EventArgs& eventArgs) { listener->OnWindowDestroy(); });
 }
 
 void Window::Show()

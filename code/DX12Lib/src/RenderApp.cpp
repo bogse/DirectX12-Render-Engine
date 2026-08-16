@@ -29,8 +29,7 @@ bool RenderApp::Initialize()
 		return false;
 	}
 
-	m_pWindow = Application::GetInstance().CreateRenderWindow(m_Name, m_Width, m_Height);
-	RegisterEvents();
+	m_pWindow = Application::GetInstance().CreateRenderWindow(this, m_Name, m_Width, m_Height);
 	m_pWindow->Show();
 
 	const Application& app = Application::GetInstance();
@@ -186,18 +185,4 @@ void RenderApp::OnWindowDestroy()
 	// If the Window which we are registered to is destroyed, 
 	// then any resources which are associated to the window must be released.
 	UnloadContent();
-}
-
-void RenderApp::RegisterEvents()
-{
-	m_pWindow->Update.AddListener([this](UpdateEventArgs& eventArgs) { OnUpdate(eventArgs); });
-	m_pWindow->Render.AddListener([this](RenderEventArgs& eventArgs) { OnRender(eventArgs); });
-	m_pWindow->KeyPressed.AddListener([this](KeyEventArgs& eventArgs) { OnKeyPressed(eventArgs); });
-	m_pWindow->KeyReleased.AddListener([this](KeyEventArgs& eventArgs) { OnKeyReleased(eventArgs); });
-	m_pWindow->MouseMoved.AddListener([this](MouseMotionEventArgs& eventArgs) { OnMouseMoved(eventArgs); });
-	m_pWindow->MouseButtonPressed.AddListener([this](MouseButtonEventArgs& eventArgs) { OnMouseButtonPressed(eventArgs); });
-	m_pWindow->MouseButtonReleased.AddListener([this](MouseButtonEventArgs& eventArgs) { OnMouseButtonReleased(eventArgs); });
-	m_pWindow->MouseWheel.AddListener([this](MouseWheelEventArgs& eventArgs) { OnMouseWheel(eventArgs); });
-	m_pWindow->Resize.AddListener([this](ResizeEventArgs& eventArgs) { OnResize(eventArgs); });
-	m_pWindow->WindowDestroy.AddListener([this](EventArgs& eventArgs) { OnWindowDestroy(); });
 }

@@ -47,6 +47,7 @@ set(DX12_HEADERS
     inc/UploadBuffer.h
     inc/VertexBuffer.h
     inc/Window.h
+	inc/WindowListener.h
 )
 
 # Source files.

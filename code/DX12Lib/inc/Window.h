@@ -9,6 +9,8 @@
 #include "Event.h"
 #include "HighResolutionClock.h"
 
+class WindowListener;
+
 class Window
 {
 public:
@@ -69,6 +71,8 @@ protected:
 	Window() = delete;
 	Window(HWND hWnd, const std::wstring& windowName, int clientWidth, int clientHeight);
 	virtual ~Window();
+
+	void RegisterEvents(WindowListener* listener);
 
 	void OnUpdate(UpdateEventArgs& eventArgs);
 	void OnRender(RenderEventArgs& eventArgs);
