@@ -38,6 +38,7 @@ Application::Application(HINSTANCE hInst)
 
 Application::~Application()
 {
+
 }
 
 void Application::Initialize()
@@ -136,6 +137,7 @@ std::shared_ptr<Window> Application::CreateRenderWindow(
 	}
 
 	WindowPtr pWindow = std::make_shared<MakeWindow>(hWnd, windowName, clientWidth, clientHeight);
+	pWindow->Show();
 
 	g_Windows.insert(WindowMap::value_type(hWnd, pWindow));
 	g_WindowByName.insert(WindowNameMap::value_type(windowName, pWindow));
@@ -158,6 +160,8 @@ void Application::DestroyWindow(const std::wstring& windowName)
 	{
 		DestroyWindow(pWindow);
 	}
+
+	pWindow.reset();
 }
 
 std::shared_ptr<Window> Application::GetWindowByName(const std::wstring& windowName)
@@ -170,6 +174,18 @@ std::shared_ptr<Window> Application::GetWindowByName(const std::wstring& windowN
 	}
 
 	return window;
+}
+
+HWND Application::GetWindowHandle(const std::wstring& windowName)
+{
+	WindowPtr window = nullptr;
+	WindowNameMap::iterator iter = g_WindowByName.find(windowName);
+	if (iter != g_WindowByName.end())
+	{
+		window = iter->second;
+	}
+
+	return window->GetWindowHandle();
 }
 
 int Application::Run()
@@ -190,6 +206,18 @@ int Application::Run()
 void Application::Quit(int exitCode)
 {
 	PostQuitMessage(exitCode);
+}
+
+void Application::ToggleFullscreen(const std::wstring& windowName)
+{
+	WindowPtr window = nullptr;
+	WindowNameMap::iterator iter = g_WindowByName.find(windowName);
+	if (iter != g_WindowByName.end())
+	{
+		window = iter->second;
+	}
+
+	window->ToggleFullscreen();
 }
 
 // Remove a window from our window lists.
@@ -424,6 +452,11 @@ static LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM l
 		case WM_KILLFOCUS:
 		{
 			Input::ClearStates();
+			break;
+		}
+		case WM_CLOSE:
+		{
+			pWindow->Destroy();
 			break;
 		}
 		case WM_DESTROY:

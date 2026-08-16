@@ -47,10 +47,14 @@ public:
 	
 	std::shared_ptr<Window> GetWindowByName(const std::wstring& windowName);
 
+	HWND GetWindowHandle(const std::wstring& windowName);
+
 	/**
 	* Run the application loop and message pump. Return the error code if an error occurred.
 	*/
 	int Run();
+
+	void ToggleFullscreen(const std::wstring& windowName);
 
 	/**
 	* Request to quit the application and close all windows. @param exitCode The error code to return to the invoking process.

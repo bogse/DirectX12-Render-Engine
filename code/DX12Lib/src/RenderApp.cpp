@@ -6,7 +6,6 @@
 #include "Device.h"
 #include "GUISystem.h"
 #include "SwapChain.h"
-#include "Window.h"
 
 RenderApp::RenderApp(const std::wstring& name, int width, int height)
 	: m_Name(name)
@@ -18,7 +17,9 @@ RenderApp::RenderApp(const std::wstring& name, int width, int height)
 
 RenderApp::~RenderApp()
 {
-	assert(!m_pWindow && "Use RenderApp::Destroy() before destruction.");
+	m_SwapChain.reset();
+	m_Device.reset();
+	assert(!m_GUISystem && "Use RenderApp::Destroy() before destruction.");
 }
 
 bool RenderApp::Initialize()
@@ -29,11 +30,11 @@ bool RenderApp::Initialize()
 		return false;
 	}
 
-	m_pWindow = Application::GetInstance().CreateRenderWindow(this, m_Name, m_Width, m_Height);
-	m_pWindow->Show();
+	Application& app = Application::GetInstance();
 
-	const Application& app = Application::GetInstance();
-	HWND hWnd = m_pWindow.get()->GetWindowHandle();
+	app.CreateRenderWindow(this, m_Name, m_Width, m_Height);
+
+	HWND hWnd = app.GetWindowHandle(m_Name);
 
 	m_Device = Device::Create();
 	m_Device->Initialize();
@@ -62,13 +63,13 @@ bool RenderApp::Initialize()
 
 void RenderApp::Destroy()
 {
-	Application::GetInstance().DestroyWindow(m_pWindow);
-	m_pWindow.reset();
+	Application::GetInstance().DestroyWindow(m_Name);
 
 	// Flush any commands in the commands queues before quitting;
 	m_Device->Flush();
 
 	m_GUISystem->Shutdown();
+
 	m_GUISystem.reset();
 }
 
@@ -79,8 +80,6 @@ int RenderApp::Run()
 
 	if (!LoadContent())
 		return 2;
-
-	m_pWindow->Show();
 
 	int retCode = Application::GetInstance().Run();
 
@@ -119,24 +118,26 @@ void RenderApp::OnRender(RenderEventArgs& eventArgs)
 
 void RenderApp::OnKeyPressed(KeyEventArgs& eventArgs)
 {
+	Application& app = Application::GetInstance();
+
 	switch (eventArgs.m_Key)
 	{
 	case KeyCode::Key::Escape:
 	{
-		Application::GetInstance().Quit(0);
+		app.Quit(0);
 		break;
 	}
 	case KeyCode::Key::Enter:
 	{
 		if (eventArgs.m_Alt)
 		{
-			m_pWindow->ToggleFullscreen();
+			app.ToggleFullscreen(m_Name);
 		}
 		break;
 	}
 	case KeyCode::Key::F11:
 	{
-		m_pWindow->ToggleFullscreen();
+		app.ToggleFullscreen(m_Name);
 		break;
 	}
 	case KeyCode::Key::V:
