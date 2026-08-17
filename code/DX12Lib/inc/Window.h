@@ -6,7 +6,7 @@
 #include <wrl/client.h>
 #include <dxgi1_6.h>
 
-#include "Event.h"
+#include "EventArgs.h"
 #include "HighResolutionClock.h"
 
 class WindowListener;
@@ -61,7 +61,9 @@ protected:
 	Window(HWND hWnd, const std::wstring& windowName, int clientWidth, int clientHeight);
 	virtual ~Window();
 
-	void RegisterEvents(WindowListener* listener);
+	void RegisterListener(WindowListener* listener);
+	void UnregisterListener(WindowListener* listener);
+	void UnregisterListeners();
 
 	void OnUpdate(UpdateEventArgs& eventArgs);
 	void OnRender(RenderEventArgs& eventArgs);
@@ -80,6 +82,8 @@ private:
 	Window(const Window& otherWindow) = delete;
 	Window& operator= (const Window& otherWindow) = delete;
 
+	std::vector<WindowListener*> m_Listeners;
+
 	HighResolutionClock m_UpdateClock;
 	HighResolutionClock m_RenderClock;
 
@@ -95,14 +99,4 @@ private:
 	int m_PreviousMouseY;
 
 	bool m_Fullscreen;
-
-	Event<UpdateEventArgs>		m_Update;
-	Event<RenderEventArgs>		m_Render;
-	Event<KeyEventArgs>			m_KeyPressed;
-	Event<KeyEventArgs>			m_KeyReleased;
-	Event<MouseMotionEventArgs> m_MouseMoved;
-	Event<MouseButtonEventArgs> m_MouseButtonPressed;
-	Event<MouseButtonEventArgs> m_MouseButtonReleased;
-	Event<MouseWheelEventArgs>	m_MouseWheel;
-	Event<ResizeEventArgs>		m_Resize;
 };

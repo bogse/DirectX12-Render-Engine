@@ -129,15 +129,17 @@ std::shared_ptr<Window> Application::CreateRenderWindow(
 	g_Windows.insert(WindowMap::value_type(hWnd, pWindow));
 	g_WindowByName.insert(WindowNameMap::value_type(windowName, pWindow));
 
-	pWindow->RegisterEvents(listener);
+	pWindow->RegisterListener(listener);
 
 	return pWindow;
 }
 
 void Application::DestroyWindow(std::shared_ptr<Window> window)
 {
-	if (window) 
+	if (window)
+	{
 		window->Destroy();
+	}
 }
 
 void Application::DestroyWindow(const std::wstring& windowName)

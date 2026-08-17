@@ -24,17 +24,27 @@ Window::~Window()
 	assert(!m_hWnd && "Use Application::DestroyWindow before destruction.");
 }
 
-void Window::RegisterEvents(WindowListener* listener)
+void Window::RegisterListener(WindowListener* listener)
 {
-	m_Update.AddListener([listener](UpdateEventArgs& eventArgs) { listener->OnUpdate(eventArgs); });
-	m_Render.AddListener([listener](RenderEventArgs& eventArgs) { listener->OnRender(eventArgs); });
-	m_KeyPressed.AddListener([listener](KeyEventArgs& eventArgs) { listener->OnKeyPressed(eventArgs); });
-	m_KeyReleased.AddListener([listener](KeyEventArgs& eventArgs) { listener->OnKeyReleased(eventArgs); });
-	m_MouseMoved.AddListener([listener](MouseMotionEventArgs& eventArgs) { listener->OnMouseMoved(eventArgs); });
-	m_MouseButtonPressed.AddListener([listener](MouseButtonEventArgs& eventArgs) { listener->OnMouseButtonPressed(eventArgs); });
-	m_MouseButtonReleased.AddListener([listener](MouseButtonEventArgs& eventArgs) { listener->OnMouseButtonReleased(eventArgs); });
-	m_MouseWheel.AddListener([listener](MouseWheelEventArgs& eventArgs) { listener->OnMouseWheel(eventArgs); });
-	m_Resize.AddListener([listener](ResizeEventArgs& eventArgs) { listener->OnResize(eventArgs); });
+	assert(listener && "Listener is nullptr.");
+
+	if (std::find(m_Listeners.begin(), m_Listeners.end(), listener) == m_Listeners.end())
+	{
+		m_Listeners.push_back(listener);
+	}
+}
+
+void Window::UnregisterListener(WindowListener* listener)
+{
+	assert(listener && "Listener is nullptr.");
+
+	std::vector<WindowListener*>::iterator it = std::remove(m_Listeners.begin(), m_Listeners.end(), listener);
+	m_Listeners.erase(it, m_Listeners.end());
+}
+
+void Window::UnregisterListeners()
+{
+	m_Listeners.clear();
 }
 
 void Window::Show()
@@ -49,10 +59,9 @@ void Window::Hide()
 
 void Window::Destroy()
 {
-	EventArgs eventArgs;
-
 	if (m_hWnd)
 	{
+		UnregisterListeners();
 		DestroyWindow(m_hWnd);
 		m_hWnd = nullptr;
 	}
@@ -123,7 +132,10 @@ void Window::OnUpdate(UpdateEventArgs& eventArgs)
 		m_UpdateClock.GetTotalSeconds(),
 		eventArgs.m_FrameNumber);
 
-	m_Update.Broadcast(updateEventArgs);
+	for (WindowListener* listener : m_Listeners)
+	{
+		listener->OnUpdate(updateEventArgs);
+	}
 }
 
 void Window::OnRender(RenderEventArgs& eventArgs)
@@ -135,17 +147,26 @@ void Window::OnRender(RenderEventArgs& eventArgs)
 		m_RenderClock.GetTotalSeconds(),
 		eventArgs.m_FrameNumber);
 
-	m_Render.Broadcast(renderEventArgs);
+	for (WindowListener* listener : m_Listeners)
+	{
+		listener->OnRender(renderEventArgs);
+	}
 }
 
 void Window::OnKeyPressed(KeyEventArgs& eventArgs)
 {
-	m_KeyPressed.Broadcast(eventArgs);
+	for (WindowListener* listener : m_Listeners)
+	{
+		listener->OnKeyPressed(eventArgs);
+	}
 }
 
 void Window::OnKeyReleased(KeyEventArgs& eventArgs)
 {
-	m_KeyReleased.Broadcast(eventArgs);
+	for (WindowListener* listener : m_Listeners)
+	{
+		listener->OnKeyReleased(eventArgs);
+	}
 }
 
 void Window::OnMouseMoved(MouseMotionEventArgs& eventArgs)
@@ -156,22 +177,34 @@ void Window::OnMouseMoved(MouseMotionEventArgs& eventArgs)
 	m_PreviousMouseX = eventArgs.m_X;
 	m_PreviousMouseY = eventArgs.m_Y;
 
-	m_MouseMoved.Broadcast(eventArgs);
+	for (WindowListener* listener : m_Listeners)
+	{
+		listener->OnMouseMoved(eventArgs);
+	}
 }
 
 void Window::OnMouseButtonPressed(MouseButtonEventArgs& eventArgs)
 {
-	m_MouseButtonPressed.Broadcast(eventArgs);
+	for (WindowListener* listener : m_Listeners)
+	{
+		listener->OnMouseButtonPressed(eventArgs);
+	}
 }
 
 void Window::OnMouseButtonReleased(MouseButtonEventArgs& eventArgs)
 {
-	m_MouseButtonReleased.Broadcast(eventArgs);
+	for (WindowListener* listener : m_Listeners)
+	{
+		listener->OnMouseButtonReleased(eventArgs);
+	}
 }
 
 void Window::OnMouseWheel(MouseWheelEventArgs& eventArgs)
 {
-	m_MouseWheel.Broadcast(eventArgs);
+	for (WindowListener* listener : m_Listeners)
+	{
+		listener->OnMouseWheel(eventArgs);
+	}
 }
 
 void Window::OnResize(ResizeEventArgs& eventArgs)
@@ -182,6 +215,9 @@ void Window::OnResize(ResizeEventArgs& eventArgs)
 		m_ClientWidth = std::max(1, eventArgs.m_Width);
 		m_ClientHeight = std::max(1, eventArgs.m_Height);
 
-		m_Resize.Broadcast(eventArgs);
+		for (WindowListener* listener : m_Listeners)
+		{
+			listener->OnResize(eventArgs);
+		}
 	}
 }

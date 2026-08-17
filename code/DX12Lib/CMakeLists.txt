@@ -25,7 +25,6 @@ set(DX12_HEADERS
     inc/DescriptorAllocatorPage.h
 	inc/Device.h
     inc/DynamicDescriptorHeap.h
-	inc/Event.h
     inc/EventArgs.h
 	inc/GenerateMipsPSO.h
     inc/GUISystem.h
