@@ -44,6 +44,8 @@ public:
 
 	void DestroyWindow(const std::wstring& windowName);
 	void DestroyWindow(std::shared_ptr<Window> window);
+
+	void CloseWindow(HWND hWnd);
 	
 	std::shared_ptr<Window> GetWindowByName(const std::wstring& windowName);
 
@@ -55,11 +57,6 @@ public:
 	int Run();
 
 	void ToggleFullscreen(const std::wstring& windowName);
-
-	/**
-	* Request to quit the application and close all windows. @param exitCode The error code to return to the invoking process.
-	*/
-	void Quit(int exitCode = 0);
 
 	static WndProcHandlerCallback OnWndProcHandler;
 

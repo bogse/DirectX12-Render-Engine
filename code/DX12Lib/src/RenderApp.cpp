@@ -17,8 +17,8 @@ RenderApp::RenderApp(const std::wstring& name, int width, int height)
 
 RenderApp::~RenderApp()
 {
-	m_SwapChain.reset();
 	m_Device.reset();
+	assert(!m_SwapChain && "Use RenderApp::Destroy() before destruction.");
 	assert(!m_GUISystem && "Use RenderApp::Destroy() before destruction.");
 }
 
@@ -75,14 +75,16 @@ bool RenderApp::Initialize()
 
 void RenderApp::Destroy()
 {
-	Application::GetInstance().DestroyWindow(m_Name);
-
 	// Flush any commands in the commands queues before quitting;
 	m_Device->Flush();
 
 	m_GUISystem->Shutdown();
 
 	m_GUISystem.reset();
+
+	m_SwapChain.reset();
+
+	Application::GetInstance().DestroyWindow(m_Name);
 }
 
 int RenderApp::Run()
@@ -136,7 +138,8 @@ void RenderApp::OnKeyPressed(KeyEventArgs& eventArgs)
 	{
 	case KeyCode::Key::Escape:
 	{
-		app.Quit(0);
+		HWND hWnd = app.GetWindowHandle(m_Name);
+		app.CloseWindow(hWnd);
 		break;
 	}
 	case KeyCode::Key::Enter:

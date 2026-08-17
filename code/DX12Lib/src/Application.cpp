@@ -151,6 +151,11 @@ void Application::DestroyWindow(const std::wstring& windowName)
 	pWindow.reset();
 }
 
+void Application::CloseWindow(HWND hWnd)
+{
+	PostMessage(hWnd, WM_CLOSE, 0, 0);
+}
+
 std::shared_ptr<Window> Application::GetWindowByName(const std::wstring& windowName)
 {
 	std::shared_ptr<Window> window;
@@ -188,11 +193,6 @@ int Application::Run()
 	}
 
 	return static_cast<int>(msg.wParam);
-}
-
-void Application::Quit(int exitCode)
-{
-	PostQuitMessage(exitCode);
 }
 
 void Application::ToggleFullscreen(const std::wstring& windowName)
